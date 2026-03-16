@@ -21,6 +21,8 @@ const BusinessUnitList = ({ title, type, icon: Icon, color }) => {
   const [units, setUnits] = useState([]);
   const [stats, setStats] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pagination, setPagination] = useState(null);
 
   const API_BASE = 'http://localhost:8003/api/v1';
 
@@ -28,11 +30,12 @@ const BusinessUnitList = ({ title, type, icon: Icon, color }) => {
     try {
       setLoading(true);
       const res = await axios.get(`${API_BASE}/admin/${type}`, {
-        params: { search: searchTerm, status: filterStatus }
+        params: { search: searchTerm, status: filterStatus, page: currentPage, per_page: 8 }
       });
       if (res.data.success) {
         setUnits(res.data.data);
-        setStats(res.data.stats);
+        if (res.data.stats) setStats(res.data.stats);
+        if (res.data.pagination) setPagination(res.data.pagination);
       }
     } catch (err) {
       console.error(`Failed to fetch ${type}:`, err);
@@ -43,6 +46,11 @@ const BusinessUnitList = ({ title, type, icon: Icon, color }) => {
 
   useEffect(() => {
     fetchData();
+  }, [searchTerm, filterStatus, type, currentPage]);
+
+  // Reset page to 1 when search or filter changes
+  useEffect(() => {
+    setCurrentPage(1);
   }, [searchTerm, filterStatus, type]);
 
   const handleStatusUpdate = async (id, newStatus) => {
@@ -130,6 +138,7 @@ const BusinessUnitList = ({ title, type, icon: Icon, color }) => {
             <thead>
               <tr className="bg-slate-50/50">
                 <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Merchant Info</th>
+                <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Contact & Docs</th>
                 <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Location</th>
                 <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Status</th>
                 <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">
@@ -138,17 +147,39 @@ const BusinessUnitList = ({ title, type, icon: Icon, color }) => {
                 <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-50">
+            <tbody className="divide-y divide-slate-50 relative">
+              {loading && (
+                 <tr>
+                    <td colSpan="6">
+                      <div className="absolute inset-0 bg-white/50 backdrop-blur-sm z-10 flex items-center justify-center">
+                        <div className="w-8 h-8 border-4 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
+                      </div>
+                    </td>
+                 </tr>
+              )}
               {units.map((u) => (
                 <tr key={u.id} className="hover:bg-slate-50/50 transition-colors group">
                   <td className="px-8 py-5">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 font-black">
+                      <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-800 font-black shadow-sm">
                         {u.name.charAt(0)}
                       </div>
                       <div>
                         <p className="text-sm font-black text-slate-900 leading-none mb-1">{u.name}</p>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter italic">Owner: {u.owner}</p>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Joined: {u.joinDate}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-8 py-5">
+                    <div className="flex flex-col gap-1">
+                      <span className="text-xs font-bold text-slate-700">{u.owner}</span>
+                      <span className="text-[10px] text-slate-400 font-medium">{u.email}</span>
+                      <div className="flex items-center gap-1 mt-1">
+                        {u.has_docs ? (
+                          <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md"><ShieldCheck size={10} /> Docs Verified</span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-orange-600 bg-orange-50 px-2 py-0.5 rounded-md"><AlertCircle size={10} /> Missing Docs</span>
+                        )}
                       </div>
                     </div>
                   </td>
@@ -189,7 +220,7 @@ const BusinessUnitList = ({ title, type, icon: Icon, color }) => {
               ))}
               {units.length === 0 && !loading && (
                  <tr>
-                    <td colSpan="5" className="px-8 py-10 text-center text-sm font-bold text-slate-400">
+                    <td colSpan="6" className="px-8 py-10 text-center text-sm font-bold text-slate-400">
                        No {type} found.
                     </td>
                  </tr>
@@ -198,13 +229,24 @@ const BusinessUnitList = ({ title, type, icon: Icon, color }) => {
           </table>
         </div>
         
+        {/* Pagination */ }
         <div className="p-6 bg-slate-50/50 flex items-center justify-between border-t border-slate-50">
-           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Showing 1-4 of 142 Results</p>
-           <div className="flex gap-1">
-             {[1,2,3].map(n => (
-               <button key={n} className={`w-8 h-8 rounded-lg text-[10px] font-black shadow-sm transition-all ${n === 1 ? 'bg-primary-600 text-white shadow-primary-500/20' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}>{n}</button>
-             ))}
-           </div>
+           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+             {pagination ? `Showing ${pagination.from || 0}-${pagination.to || 0} of ${pagination.total} Results` : 'Loading...'}
+           </p>
+           {pagination && pagination.last_page > 1 && (
+             <div className="flex gap-1">
+               {Array.from({ length: pagination.last_page }, (_, i) => i + 1).map(n => (
+                 <button 
+                    key={n} 
+                    onClick={() => setCurrentPage(n)}
+                    className={`w-8 h-8 rounded-lg text-[10px] font-black shadow-sm transition-all ${n === currentPage ? 'bg-primary-600 text-white shadow-primary-500/20' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}
+                  >
+                    {n}
+                  </button>
+               ))}
+             </div>
+           )}
         </div>
       </div>
     </div>
