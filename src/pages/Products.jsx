@@ -31,6 +31,13 @@ const Products = () => {
   const [activeMenu, setActiveMenu] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   
+  // Drawer States
+  const [isAddDrawerOpen, setIsAddDrawerOpen] = useState(false);
+  const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
+  const [isDetailDrawerOpen, setIsDetailDrawerOpen] = useState(false);
+  const [currentProduct, setCurrentProduct] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  
   // Advanced Search State
   const [isAdvancedSearchOpen, setIsAdvancedSearchOpen] = useState(false);
   const [categories, setCategories] = useState([]);
@@ -129,7 +136,47 @@ const Products = () => {
   };
 
   const handleAddProduct = () => {
-    alert('Navigation to "New Product" flow initialized. (Route implementation pending sandbox verification)');
+    setIsAddDrawerOpen(true);
+  };
+
+  const handleViewDetails = async (id) => {
+    try {
+      const res = await axios.get(`${API_BASE}/admin/products/${id}`);
+      if (res.data.success) {
+        setCurrentProduct(res.data.product);
+        setIsDetailDrawerOpen(true);
+      }
+    } catch (err) {
+      setError('Telemetry retrieval failed for this unit.');
+    }
+  };
+
+  const handleEditProduct = async (id) => {
+    try {
+      const res = await axios.get(`${API_BASE}/admin/products/${id}`);
+      if (res.data.success) {
+        setCurrentProduct(res.data.product);
+        setIsEditDrawerOpen(true);
+      }
+    } catch (err) {
+      setError('Parameter access denied or terminal error.');
+    }
+  };
+
+  const handleDeleteProduct = async (id) => {
+    if (!window.confirm('Are you sure you want to decommission this part from the active catalog?')) return;
+    try {
+      setIsDeleting(true);
+      const res = await axios.delete(`${API_BASE}/admin/products/${id}`);
+      if (res.data.success) {
+        fetchProducts();
+        fetchOverview();
+      }
+    } catch (err) {
+      setError('Decommissioning sequence failed. Check system permissions.');
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   useEffect(() => {
@@ -776,17 +823,26 @@ const Products = () => {
                               className="absolute right-0 top-full mt-2 w-48 bg-white border border-slate-100 rounded-3xl shadow-2xl z-50 p-2 overflow-hidden"
                             >
                               <div className="flex flex-col">
-                                <button className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 hover:text-primary-600 rounded-2xl transition-all">
+                                <button 
+                                  onClick={() => handleViewDetails(p.id)}
+                                  className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 hover:text-primary-600 rounded-2xl transition-all"
+                                >
                                   <Eye size={14} /> View Details
                                 </button>
-                                <button className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 hover:text-primary-600 rounded-2xl transition-all">
+                                <button 
+                                  onClick={() => handleEditProduct(p.id)}
+                                  className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 hover:text-primary-600 rounded-2xl transition-all"
+                                >
                                   <SlidersHorizontal size={14} /> Edit Product
                                 </button>
                                 <button className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 hover:text-primary-600 rounded-2xl transition-all">
                                   <Layers size={14} /> Specs & Files
                                 </button>
                                 <div className="h-px bg-slate-50 my-1 mx-2" />
-                                <button className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-rose-500 hover:bg-rose-50 rounded-2xl transition-all">
+                                <button 
+                                  onClick={() => handleDeleteProduct(p.id)}
+                                  className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-rose-500 hover:bg-rose-50 rounded-2xl transition-all"
+                                >
                                   <Trash2 size={14} /> Delete Part
                                 </button>
                               </div>
@@ -861,10 +917,9 @@ const Products = () => {
   );
 };
 
-// Formatting Helper
-function numberWithCommas(x) {
-  if (!x) return '0';
-  return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-}
+// Helper for currency formatting
+const numberWithCommas = (x) => {
+  return x?.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") || '0';
+};
 
 export default Products;
