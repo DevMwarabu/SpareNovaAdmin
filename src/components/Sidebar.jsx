@@ -5,14 +5,24 @@ import {
   LayoutDashboard, 
   Store, 
   Gavel, 
-  Truck, 
+  Truck,
+  Shield,
+  ClipboardList,
+  Layers,
+  Megaphone,
+  Terminal,
   Users, 
   Settings, 
   HelpCircle,
-  BarChart3,
+  LineChart, // Changed from BarChart3
+  Brain, // Added Brain icon
   CreditCard,
   Wrench,
-  ShoppingBag
+  ShoppingBag,
+  Package,
+  Percent,
+  Star,
+  Box // Added Box icon, assuming it's used for Inventory
 } from 'lucide-react';
 
 
@@ -26,7 +36,8 @@ const Sidebar = () => {
       label: 'Main',
       items: [
         { name: 'Dashboard', icon: LayoutDashboard, path: '/admin' },
-        { name: 'Analytics', icon: BarChart3, path: '/admin/analytics' },
+        { name: 'Analytics', icon: LineChart, path: '/admin/analytics' }, // Changed icon to LineChart
+        { name: 'AI Insights', icon: Brain, path: '/admin/ai-insights' }, // Added AI Insights
       ]
     },
     ...(isAdmin ? [
@@ -42,12 +53,22 @@ const Sidebar = () => {
         label: 'E-Commerce',
         items: [
           { name: 'Products', icon: ShoppingBag, path: '/admin/products' },
+          { name: 'Orders', icon: Package, path: '/admin/orders' },
+          { name: 'Offers', icon: Percent, path: '/admin/offers' },
+          { name: 'Inventory', icon: Box, path: '/admin/inventory' },
         ]
       },
       {
         label: 'Administration',
         items: [
           { name: 'Users', icon: Users, path: '/admin/users' },
+          { name: 'Reviews', icon: Star, path: '/admin/reviews' },
+          { name: 'Disputes', icon: Gavel, path: '/admin/disputes' },
+          { name: 'Security', icon: Shield, path: '/admin/security' },
+          { name: 'Audit Logs', icon: ClipboardList, path: '/admin/audit-logs' },
+          { name: 'SaaS Platform', icon: Layers, path: '/admin/saas' },
+          { name: 'Communications', icon: Megaphone, path: '/admin/communications' },
+          { name: 'System Logs', icon: Terminal, path: '/admin/system-logs' },
           { name: 'Payments', icon: CreditCard, path: '/admin/payments' },
           { name: 'Settings', icon: Settings, path: '/admin/settings' },
         ]

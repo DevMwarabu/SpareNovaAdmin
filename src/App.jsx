@@ -5,13 +5,23 @@ import AdminLayout from './layouts/AdminLayout';
 import Auth from './pages/Auth';
 import Dashboard from './pages/Dashboard';
 import Analytics from './pages/Analytics';
-import Shops from './pages/Shops';
-import Garages from './pages/Garages';
-import Logistics from './pages/Logistics';
+import BusinessUnits from './pages/BusinessUnits';
 import Users from './pages/Users';
 import Payments from './pages/Payments';
 import Settings from './pages/Settings';
 import Products from './pages/Products';
+import Orders from './pages/Orders';
+import Offers from './pages/Offers';
+import Inventory from './pages/Inventory';
+import Reviews from './pages/Reviews';
+import LogisticsIntelligence from './pages/LogisticsIntelligence';
+import Disputes from './pages/Disputes';
+import Security from './pages/Security';
+import AuditLogs from './pages/AuditLogs';
+import SaaSManagement from './pages/SaaSManagement';
+import AIInsights from './pages/AIInsights';
+import Communications from './pages/Communications';
+import SystemLogs from './pages/SystemLogs';
 import './index.css';
 
 const API_BASE = 'http://localhost:8003/api/v1';
@@ -41,12 +51,23 @@ function App() {
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<Dashboard />} />
           <Route path="analytics" element={<Analytics />} />
-          <Route path="shops" element={<Shops />} />
-          <Route path="garages" element={<Garages />} />
-          <Route path="logistics" element={<Logistics />} />
+          <Route path="shops" element={<BusinessUnits type="shop" />} />
+          <Route path="garages" element={<BusinessUnits type="garage" />} />
+          <Route path="logistics" element={<LogisticsIntelligence />} />
           <Route path="users" element={<Users />} />
           <Route path="payments" element={<Payments />} />
           <Route path="products" element={<Products />} />
+          <Route path="orders" element={<Orders />} />
+          <Route path="offers" element={<Offers />} />
+          <Route path="inventory" element={<Inventory />} />
+          <Route path="reviews" element={<Reviews />} />
+          <Route path="disputes" element={<Disputes />} />
+          <Route path="security" element={<Security />} />
+          <Route path="audit-logs" element={<AuditLogs />} />
+          <Route path="saas" element={<SaaSManagement />} />
+          <Route path="ai-insights" element={<AIInsights />} />
+          <Route path="communications" element={<Communications />} />
+          <Route path="system-logs" element={<SystemLogs />} />
           <Route path="settings" element={<Settings />} />
         </Route>
         <Route path="/" element={<Navigate to="/auth" replace />} />
