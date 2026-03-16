@@ -13,8 +13,8 @@
   --primary-900: color-mix(in srgb, var(--dynamic-brand-color) 60%, black);
   --brand-950: color-mix(in srgb, var(--dynamic-brand-color) 50%, black);
 
-  /* Branded UI Components - Restored to Deep Navy matching screenshot */
-  --sidebar-dark: #0a0f1b; 
+  /* Branded UI Components - Restored to exact sidebar background */
+  --sidebar-dark: #151723; 
   --sidebar-border: rgba(255, 255, 255, 0.03);
   
   --brand-50: #f9fafb;
