@@ -56,7 +56,7 @@ function App() {
           <Route path="analytics" element={<Analytics />} />
           <Route path="shops" element={<BusinessUnits type="shops" title="Shop Network" icon={Store} color="blue" />} />
           <Route path="garages" element={<BusinessUnits type="garages" title="Service Garages" icon={Wrench} color="emerald" />} />
-          <Route path="logistics" element={<BusinessUnits type="logistics" title="Logistics Fleet" icon={Truck} color="indigo" />} />
+          <Route path="logistics" element={<LogisticsIntelligence />} />
           <Route path="users" element={<Users />} />
           <Route path="payments" element={<Payments />} />
           <Route path="products" element={<Products />} />
