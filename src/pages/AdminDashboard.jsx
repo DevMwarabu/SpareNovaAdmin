@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { 
   Users, 
@@ -185,30 +185,23 @@ const Dashboard = () => {
             
             <div className="h-64 relative px-2">
               {loading && (
-                <div className="absolute inset-0 flex items-center justify-center bg-white/50 z-10 rounded-2xl backdrop-blur-[1px]">
+                <div className="absolute inset-0 flex items-center justify-center bg-white/50 z-10 rounded-[2.5rem] backdrop-blur-[1px]">
                   <div className="animate-pulse text-primary-500 font-bold">Refining...</div>
                 </div>
               )}
               
               <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="w-full h-full overflow-visible group">
-                {/* Grid Lines - Ultra subtle whisper */}
-                {[25, 50, 75].map((tick) => (
-                  <line 
-                    key={tick} 
-                    x1="0" y1={tick} x2="100" y2={tick} 
-                    stroke="#f1f5f9" 
-                    strokeWidth="0.2"
-                    strokeDasharray="0.5,0.5"
-                  />
-                ))}
-
                 <defs>
-                  <linearGradient id="line-grad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="var(--primary-500)" stopOpacity="0.04" />
-                    <stop offset="100%" stopColor="var(--primary-500)" stopOpacity="0" />
+                  <linearGradient id="bar-grad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="var(--primary-500)" stopOpacity="0.8" />
+                    <stop offset="100%" stopColor="var(--primary-500)" stopOpacity="0.2" />
                   </linearGradient>
-                  <filter id="shadow" height="200%">
-                    <feGaussianBlur in="SourceAlpha" stdDeviation="1.5" />
+                  <linearGradient id="bar-grad-hover" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="var(--primary-600)" stopOpacity="1" />
+                    <stop offset="100%" stopColor="var(--primary-500)" stopOpacity="0.5" />
+                  </linearGradient>
+                  <filter id="bar-shadow" height="200%">
+                    <feGaussianBlur in="SourceAlpha" stdDeviation="1" />
                     <feOffset dx="0" dy="2" result="offsetblur" />
                     <feComponentTransfer>
                       <feFuncA type="linear" slope="0.1" />
@@ -220,71 +213,54 @@ const Dashboard = () => {
                   </filter>
                 </defs>
 
-                {/* Area */}
-                <motion.path
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  d={areaPath}
-                  fill="url(#line-grad)"
-                />
+                {/* Bars */}
+                {chartData.map((d, i) => {
+                  const barWidth = (100 / chartData.length) * 0.5;
+                  const barX = (i / chartData.length) * 100 + ((100 / chartData.length) * 0.25);
+                  const barHeight = (d.value / maxVal) * 100 || 1; // Minimum 1px height
+                  const barY = 100 - barHeight;
+                  const isHovered = hoveredPoint && hoveredPoint.label === d.label;
 
-                {/* Smooth Curve - Ultra thin for elegance */}
-                <motion.path
-                  initial={{ pathLength: 0, opacity: 0 }}
-                  animate={{ pathLength: 1, opacity: 1 }}
-                  transition={{ duration: 1.5, ease: "easeInOut" }}
-                  d={curvePath}
-                  fill="none"
-                  stroke="var(--primary-500)"
-                  strokeWidth="0.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  filter="url(#shadow)"
-                />
-
-                {/* Interactive Hover Nodes */}
-                {chartData.map((d, i) => (
-                  <rect
-                    key={`hover-${i}`}
-                    x={(i / (chartData.length - 1)) * 100 - 2}
-                    y="0"
-                    width="4"
-                    height="100"
-                    fill="transparent"
-                    className="cursor-pointer"
-                    onMouseEnter={() => setHoveredPoint({ ...d, x: (i / (chartData.length - 1)) * 100, y: 100 - (d.value / maxVal) * 100 })}
-                    onMouseLeave={() => setHoveredPoint(null)}
-                  />
-                ))}
-
-                {/* Tooltip Bubble - Cyan style matching screenshot */}
-                {hoveredPoint && (
-                  <motion.g
-                    initial={{ opacity: 0, scale: 0.8, y: 3 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                  >
-                    <circle 
-                      cx={hoveredPoint.x} 
-                      cy={hoveredPoint.y} 
-                      r="1.2" 
-                      className="fill-primary-500 stroke-white stroke-[0.3]" 
+                  return (
+                    <motion.rect
+                      key={`bar-${i}`}
+                      initial={{ height: 0, y: 100 }}
+                      animate={{ height: barHeight, y: barY }}
+                      transition={{ duration: 0.8, delay: i * 0.05, ease: "easeOut" }}
+                      x={barX}
+                      width={barWidth}
+                      rx={2} // Rounded tops
+                      fill={isHovered ? "url(#bar-grad-hover)" : "url(#bar-grad)"}
+                      filter={isHovered ? "url(#bar-shadow)" : ""}
+                      className="cursor-pointer transition-colors duration-300"
+                      onMouseEnter={() => setHoveredPoint({ ...d, x: barX + (barWidth / 2), y: barY })}
+                      onMouseLeave={() => setHoveredPoint(null)}
                     />
-                  <foreignObject
-                    x={hoveredPoint.x - 15}
-                    y={hoveredPoint.y - 12}
-                    width="30"
-                    height="10"
-                    className="overflow-visible"
-                  >
-                    <div className="flex justify-center items-center h-full w-full">
-                      <div className="bg-[#e0f2f1] text-[#00695c] text-[4px] font-black px-2 py-0.5 rounded-full shadow-sm border border-[#b2dfdb] whitespace-nowrap">
-                        {hoveredPoint.label}: {hoveredPoint.value.toLocaleString()}
-                      </div>
-                    </div>
-                  </foreignObject>
-                  </motion.g>
-                )}
+                  );
+                })}
               </svg>
+
+              {/* Distort-Free Tooltip */}
+              <AnimatePresence mode="wait">
+                {hoveredPoint && (
+                  <motion.div
+                    key="chart-tooltip"
+                    initial={{ opacity: 0, y: 10, scale: 0.9, x: "-50%" }}
+                    animate={{ opacity: 1, y: 0, scale: 1, x: "-50%" }}
+                    exit={{ opacity: 0, scale: 0.9, x: "-50%" }}
+                    style={{
+                      left: `${hoveredPoint.x}%`,
+                      top: `${hoveredPoint.y}%`,
+                      marginTop: '-8px'
+                    }}
+                    className="absolute z-20 pointer-events-none -translate-x-1/2 -translate-y-full"
+                  >
+                    <div className="bg-[#e0f2f1] text-[#00695c] text-[10px] font-black px-3 py-1.5 rounded-xl shadow-xl shadow-slate-900/10 border border-[#b2dfdb] whitespace-nowrap">
+                       {hoveredPoint.label}: {hoveredPoint.value.toLocaleString()}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
             
             <div className="flex justify-between mt-6 px-2">
