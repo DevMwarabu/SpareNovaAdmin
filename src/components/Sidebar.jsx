@@ -39,6 +39,12 @@ const Sidebar = () => {
         ]
       },
       {
+        label: 'E-Commerce',
+        items: [
+          { name: 'Products', icon: ShoppingBag, path: '/admin/products' },
+        ]
+      },
+      {
         label: 'Administration',
         items: [
           { name: 'Users', icon: Users, path: '/admin/users' },

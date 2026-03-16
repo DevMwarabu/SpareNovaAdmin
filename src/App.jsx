@@ -11,6 +11,7 @@ import Logistics from './pages/Logistics';
 import Users from './pages/Users';
 import Payments from './pages/Payments';
 import Settings from './pages/Settings';
+import Products from './pages/Products';
 import './index.css';
 
 const API_BASE = 'http://localhost:8003/api/v1';
@@ -45,6 +46,7 @@ function App() {
           <Route path="logistics" element={<Logistics />} />
           <Route path="users" element={<Users />} />
           <Route path="payments" element={<Payments />} />
+          <Route path="products" element={<Products />} />
           <Route path="settings" element={<Settings />} />
         </Route>
         <Route path="/" element={<Navigate to="/auth" replace />} />
