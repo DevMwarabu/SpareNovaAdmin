@@ -29,6 +29,7 @@ const Products = () => {
   const [selectedProducts, setSelectedProducts] = useState([]);
   const [error, setError] = useState(null);
   const [activeMenu, setActiveMenu] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
   
   // Advanced Search State
   const [isAdvancedSearchOpen, setIsAdvancedSearchOpen] = useState(false);
