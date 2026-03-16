@@ -67,9 +67,11 @@ const Products = () => {
   };
 
   // 3. Fetch Product List (Table)
-  const fetchProducts = useCallback(async () => {
+  const fetchProducts = useCallback(async (isRefresh = false) => {
     try {
-      setLoading(true);
+      if (isRefresh) setRefreshing(true);
+      else setLoading(true);
+      
       const res = await axios.get(`${API_BASE}/admin/products`, {
         params: { 
           search: searchTerm, 
@@ -98,8 +100,36 @@ const Products = () => {
       setPagination(null);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, [searchTerm, filterStatus, currentPage, advancedFilters]);
+
+  const handleRefresh = () => {
+    fetchOverview();
+    fetchProducts(true);
+  };
+
+  const handleExport = () => {
+    if (products.length === 0) return;
+    const headers = ['ID', 'Title', 'OEM', 'Category', 'Price', 'Stock', 'Store', 'Vendor', 'Status'];
+    const csvData = products.map(p => [
+      p.id, p.title, p.oem, p.category, p.price, p.stock, p.store_name, p.vendor, p.status
+    ]);
+    const csvContent = [headers, ...csvData].map(e => e.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `sparenova_products_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleAddProduct = () => {
+    alert('Navigation to "New Product" flow initialized. (Route implementation pending sandbox verification)');
+  };
 
   useEffect(() => {
     fetchOverview();
@@ -197,16 +227,22 @@ const Products = () => {
         </div>
         <div className="flex items-center gap-3">
           <button 
-            onClick={() => { fetchOverview(); fetchProducts(); }}
+            onClick={handleRefresh}
             className="p-3 bg-white border border-slate-200 rounded-2xl text-slate-400 hover:text-primary-600 hover:border-primary-100 transition-all flex items-center gap-2 group shadow-sm"
           >
-            <RefreshCcw size={18} className="group-hover:rotate-180 transition-transform duration-500" />
+            <RefreshCcw size={18} className={`group-hover:rotate-180 transition-transform duration-500 ${refreshing ? 'animate-spin' : ''}`} />
           </button>
           <div className="h-10 w-px bg-slate-200 mx-1" />
-          <button className="bg-white border border-slate-200 px-5 py-3 rounded-2xl text-xs font-black text-slate-700 shadow-sm hover:bg-slate-50 flex items-center gap-2 transition-all">
+          <button 
+            onClick={handleExport}
+            className="bg-white border border-slate-200 px-5 py-3 rounded-2xl text-xs font-black text-slate-700 shadow-sm hover:bg-slate-50 flex items-center gap-2 transition-all"
+          >
             <Download size={16} /> Export
           </button>
-          <button className="bg-primary-600 text-white px-6 py-3 rounded-2xl text-xs font-black shadow-xl shadow-primary-500/20 hover:bg-primary-700 flex items-center gap-2 transition-all active:scale-95">
+          <button 
+            onClick={handleAddProduct}
+            className="bg-primary-600 text-white px-6 py-3 rounded-2xl text-xs font-black shadow-xl shadow-primary-500/20 hover:bg-primary-700 flex items-center gap-2 transition-all active:scale-95"
+          >
             <Plus size={18} /> Add Product
           </button>
         </div>
