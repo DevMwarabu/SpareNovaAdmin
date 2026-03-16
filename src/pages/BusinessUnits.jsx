@@ -13,7 +13,8 @@ import {
   MapPin,
   TrendingUp,
   Download,
-  Loader2
+  Loader2,
+  FileText
 } from 'lucide-react';
 
 const BusinessUnitList = ({ title, type, icon: Icon, color }) => {
@@ -122,8 +123,9 @@ const BusinessUnitList = ({ title, type, icon: Icon, color }) => {
   };
 
   const handleRegisterNew = () => {
-    // Redirect to auth page for registration
-    window.location.href = '/auth';
+    // Open registration in a new tab with Admin Mode context
+    const mappedRole = type === 'shops' ? 'store_owner' : type === 'garages' ? 'garage_owner' : 'delivery';
+    window.open(`/auth?mode=register&admin_mode=true&role=${mappedRole}`, '_blank');
   };
 
   return (
@@ -364,28 +366,46 @@ const BusinessUnitList = ({ title, type, icon: Icon, color }) => {
                        <div>
                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Verification Documents</p>
                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                             {Object.entries(selectedUnit.documents).map(([key, url]) => (
-                                <div key={key} className="group relative aspect-video bg-slate-50 rounded-2xl border border-dashed border-slate-200 overflow-hidden flex flex-col items-center justify-center gap-2">
-                                   {url ? (
-                                      <>
-                                         <img src={url} alt={key} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                                         <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                            <a href={url} target="_blank" rel="noopener noreferrer" className="p-3 bg-white rounded-full text-slate-900 hover:scale-110 transition-transform">
-                                               <ExternalLink size={20} />
-                                            </a>
-                                         </div>
-                                      </>
-                                   ) : (
-                                      <>
-                                         <AlertCircle size={20} className="text-slate-300" />
-                                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{key.replace('_', ' ')} Missing</span>
-                                      </>
-                                   )}
-                                   <div className="absolute top-2 left-2 bg-white/90 backdrop-blur px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter text-slate-500 border border-slate-100">
-                                      {key.replace('_', ' ')}
+                             {Object.entries(selectedUnit.documents).map(([key, url]) => {
+                                const isPdf = url?.toLowerCase().endsWith('.pdf');
+                                return (
+                                   <div key={key} className="group relative aspect-video bg-slate-50 rounded-2xl border border-dashed border-slate-200 overflow-hidden flex flex-col items-center justify-center gap-2">
+                                      {url ? (
+                                         <>
+                                            {isPdf ? (
+                                               <div className="w-full h-full flex flex-col items-center justify-center bg-red-50/30 text-red-500 group-hover:scale-110 transition-transform duration-500">
+                                                  <FileText size={32} />
+                                                  <span className="text-[10px] font-black uppercase mt-2">View PDF</span>
+                                               </div>
+                                            ) : (
+                                               <img 
+                                                  src={url} 
+                                                  alt={key} 
+                                                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+                                                  onError={(e) => {
+                                                     e.target.onerror = null;
+                                                     e.target.src = 'https://placehold.co/400x300/f8fafc/cbd5e1?text=Image+Unavailable';
+                                                  }}
+                                               />
+                                            )}
+                                            <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                               <a href={url} target="_blank" rel="noopener noreferrer" className="p-3 bg-white rounded-full text-slate-900 hover:scale-110 transition-transform">
+                                                  <ExternalLink size={20} />
+                                               </a>
+                                            </div>
+                                         </>
+                                      ) : (
+                                         <>
+                                            <AlertCircle size={20} className="text-slate-300" />
+                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{key.replace('_', ' ')} Missing</span>
+                                         </>
+                                      )}
+                                      <div className="absolute top-2 left-2 bg-white/90 backdrop-blur px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter text-slate-500 border border-slate-100">
+                                         {key.replace('_', ' ')}
+                                      </div>
                                    </div>
-                                </div>
-                             ))}
+                                );
+                             })}
                           </div>
                        </div>
                     </div>

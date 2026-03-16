@@ -1,13 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useSearchParams } from 'react-router-dom';
 import { Store, Gavel, Truck, ShieldCheck, ArrowRight, CheckCircle2, Loader2, Mail, Lock, User, Phone, MapPin, LogIn, UserPlus, Upload, FileText, Image as ImageIcon, X, Eye, EyeOff } from 'lucide-react';
 import axios from 'axios';
 
 const API_BASE = 'http://localhost:8003/api/v1';
 
 const Auth = () => {
-  const [step, setStep] = useState(0); // 0: Landing, 1: Role, 2: Details, 5: Docs, 3: Success, 4: Login
-  const [role, setRole] = useState(null);
+  const [searchParams] = useSearchParams();
+  const isAdminMode = searchParams.get('admin_mode') === 'true';
+  const initialRole = searchParams.get('role');
+  const initialStep = (isAdminMode && initialRole) ? 2 : 0;
+
+  const [step, setStep] = useState(initialStep); // 0: Landing, 1: Role, 2: Details, 5: Docs, 3: Success, 4: Login
+  const [role, setRole] = useState(initialRole || null);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     businessName: '',
@@ -78,8 +84,10 @@ const Auth = () => {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       
-      localStorage.setItem('user', JSON.stringify(response.data.user));
-      localStorage.setItem('token', response.data.token);
+      if (!isAdminMode) {
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+        localStorage.setItem('token', response.data.token);
+      }
       setStep(3);
     } catch (error) {
       alert('Registration failed: ' + (error.response?.data?.message || 'Please try again.'));
@@ -150,6 +158,12 @@ const Auth = () => {
             <span className="text-2xl font-black text-slate-900 tracking-tight">Spare<span className="text-primary-600">Nova</span></span>
           </motion.div>
           <div className="h-px w-12 bg-slate-200 mx-auto" />
+          {isAdminMode && (
+            <div className="mt-4 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 border border-amber-100 text-amber-600">
+               <ShieldCheck size={12} />
+               <span className="text-[10px] font-black uppercase tracking-wider">Admin Registration Mode</span>
+            </div>
+          )}
         </div>
 
         <div className="bg-white rounded-[40px] shadow-[0_32px_64px_-12px_rgba(0,0,0,0.08)] border border-slate-100/50 p-8 md:p-12">
@@ -478,10 +492,10 @@ const Auth = () => {
                 </div>
 
                 <button
-                  onClick={() => window.location.href = 'http://localhost:8003'}
+                  onClick={() => window.location.href = isAdminMode ? `/admin/${initialRole === 'store_owner' ? 'shops' : initialRole === 'garage_owner' ? 'garages' : 'logistics'}` : 'http://localhost:8003'}
                   className="w-full bg-primary-600 text-white font-black py-4 rounded-2xl hover:bg-primary-700 transition-all shadow-xl shadow-primary-500/20 active:scale-95"
                 >
-                  Return to Homepage
+                  {isAdminMode ? 'Back to Dashboard' : 'Return to Homepage'}
                 </button>
               </motion.div>
             )}
