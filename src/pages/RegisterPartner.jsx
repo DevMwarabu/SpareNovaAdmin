@@ -8,6 +8,7 @@ import {
   CheckCircle, Circle
 } from 'lucide-react';
 import axios from 'axios';
+import CountrySelector, { allCountries } from '../components/CountrySelector';
 
 const API_BASE = 'http://localhost:8003/api/v1';
 
@@ -53,6 +54,8 @@ const RegisterPartner = () => {
     businessName: '', email: '', phone: '', location: '', name: '', password: '',
   });
   const [files, setFiles] = useState({ id_front: null, id_back: null, supporting_document: null });
+  const [showCountrySelector, setShowCountrySelector] = useState(false);
+  const [selectedCountry, setSelectedCountry] = useState(allCountries.find(c => c.code === 'KE') || allCountries[0]);
 
   const roles = {
     store_owner:  { title: 'Store Partner',    icon: Store, accent: 'blue'    },
@@ -84,7 +87,13 @@ const RegisterPartner = () => {
     setLoading(true);
     try {
       const payload = new FormData();
-      Object.entries(formData).forEach(([k, v]) => payload.append(k, v));
+      Object.entries(formData).forEach(([k, v]) => {
+        if (k === 'phone') {
+          payload.append(k, `${selectedCountry.dial}${v}`);
+        } else {
+          payload.append(k, v);
+        }
+      });
       payload.append('role', role);
       if (!formData.name) payload.append('name', formData.businessName);
       if (files.id_front)           payload.append('id_front', files.id_front);
@@ -253,11 +262,37 @@ const RegisterPartner = () => {
                       </Field>
 
                       <Field label="Phone Number">
-                        <div className="relative">
-                          <Phone className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-primary-600 transition-colors" size={17} />
-                          <input name="phone" value={formData.phone} onChange={handleChange}
-                            className="w-full bg-slate-50/50 border border-slate-100 rounded-2xl pl-14 pr-5 py-4 outline-none focus:bg-white focus:border-primary-600 focus:shadow-xl focus:shadow-primary-600/5 transition-all font-bold text-slate-900 placeholder:text-slate-300 text-sm"
-                            placeholder="+254 700 000 000" />
+                        <div className="relative group/phone">
+                          <div className="absolute left-1 top-1/2 -translate-y-1/2 z-10">
+                            <button 
+                              type="button"
+                              onClick={() => setShowCountrySelector(true)}
+                              className="flex items-center gap-2 pl-4 pr-3 py-2 hover:bg-slate-100 rounded-xl transition-colors border-r border-slate-100"
+                            >
+                              <span className="text-xl leading-none">{selectedCountry.flag}</span>
+                              <span className="text-xs font-black italic text-slate-400 group-focus-within/phone:text-primary-600 transition-colors">{selectedCountry.dial}</span>
+                            </button>
+                          </div>
+                          <input 
+                            name="phone" 
+                            value={formData.phone} 
+                            onChange={handleChange}
+                            className="w-full bg-slate-50/50 border border-slate-100 rounded-2xl pl-28 pr-5 py-4 outline-none focus:bg-white focus:border-primary-600 focus:shadow-xl focus:shadow-primary-600/5 transition-all font-bold text-slate-900 placeholder:text-slate-300 text-sm"
+                            placeholder="700 000 000" 
+                          />
+                          
+                          <AnimatePresence>
+                            {showCountrySelector && (
+                              <CountrySelector 
+                                selected={selectedCountry}
+                                onSelect={(c) => {
+                                  setSelectedCountry(c);
+                                  setShowCountrySelector(false);
+                                }}
+                                onClose={() => setShowCountrySelector(false)}
+                              />
+                            )}
+                          </AnimatePresence>
                         </div>
                       </Field>
                     </div>

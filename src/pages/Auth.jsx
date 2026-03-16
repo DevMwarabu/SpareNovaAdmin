@@ -7,6 +7,7 @@ import {
   Building2, Briefcase, AlertCircle, Circle, CheckCircle
 } from 'lucide-react';
 import axios from 'axios';
+import CountrySelector, { allCountries } from '../components/CountrySelector';
 
 const API_BASE = 'http://localhost:8003/api/v1';
 
@@ -62,6 +63,8 @@ const Auth = () => {
     id_back: null,
     supporting_document: null
   });
+  const [showCountrySelector, setShowCountrySelector] = useState(false);
+  const [selectedCountry, setSelectedCountry] = useState(allCountries.find(c => c.code === 'KE') || allCountries[0]);
 
   // Password Policy Logic
   const strength      = useMemo(() => getStrength(formData.password), [formData.password]);
@@ -106,7 +109,13 @@ const Auth = () => {
     setLoading(true);
     try {
       const payload = new FormData();
-      Object.keys(formData).forEach(key => payload.append(key, formData[key]));
+      Object.keys(formData).forEach(key => {
+        if (key === 'phone') {
+          payload.append(key, `${selectedCountry.dial}${formData[key]}`);
+        } else {
+          payload.append(key, formData[key]);
+        }
+      });
       payload.append('role', role);
       if (!formData.name) payload.append('name', formData.businessName);
       
@@ -353,15 +362,37 @@ const Auth = () => {
                       </div>
                     </Field>
                     <Field label="Contact Phone">
-                      <div className="relative">
-                        <Phone className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+                      <div className="relative group/phone">
+                        <div className="absolute left-1 top-1/2 -translate-y-1/2 z-10">
+                          <button 
+                            type="button"
+                            onClick={() => setShowCountrySelector(true)}
+                            className="flex items-center gap-2 pl-4 pr-3 py-2 hover:bg-slate-100 rounded-xl transition-colors border-r border-slate-100"
+                          >
+                            <span className="text-xl leading-none">{selectedCountry.flag}</span>
+                            <span className="text-xs font-black italic text-slate-400 group-focus-within/phone:text-primary-600 transition-colors">{selectedCountry.dial}</span>
+                          </button>
+                        </div>
                         <input 
                           name="phone"
                           value={formData.phone}
                           onChange={handleInputChange}
-                          className="w-full bg-slate-50/50 border border-slate-100 rounded-[22px] pl-14 pr-4 py-4 outline-none focus:bg-white focus:border-primary-600 transition-all font-bold text-slate-900 text-sm" 
-                          placeholder="+254 7..." 
+                          className="w-full bg-slate-50/50 border border-slate-100 rounded-[22px] pl-28 pr-4 py-4 outline-none focus:bg-white focus:border-primary-600 transition-all font-bold text-slate-900 text-sm" 
+                          placeholder="7..." 
                         />
+                        
+                        <AnimatePresence>
+                          {showCountrySelector && (
+                            <CountrySelector 
+                              selected={selectedCountry}
+                              onSelect={(c) => {
+                                setSelectedCountry(c);
+                                setShowCountrySelector(false);
+                              }}
+                              onClose={() => setShowCountrySelector(false)}
+                            />
+                          )}
+                        </AnimatePresence>
                       </div>
                     </Field>
                   </div>
