@@ -16,6 +16,14 @@ import {
 
 const AIInsights = () => {
   const [insights, setInsights] = useState([]);
+  const [stats, setStats] = useState({
+    velocity: '12.4%',
+    active_predictions: '842',
+    confidence: '98.4%',
+    latency: '14ms',
+    event_rate: '4.2k',
+    node_count: '18'
+  });
   const [loading, setLoading] = useState(true);
 
   const API_BASE = 'http://localhost:8003/api/v1';
@@ -26,6 +34,9 @@ const AIInsights = () => {
       const res = await axios.get(`${API_BASE}/admin/ai-insights`);
       if (res.data.success) {
         setInsights(res.data.insights);
+        if (res.data.stats) {
+          setStats(res.data.stats);
+        }
       }
     } catch (err) {
       console.error(`Failed to fetch AI insights:`, err);
@@ -52,6 +63,7 @@ const AIInsights = () => {
       case 'AlertTriangle': return <AlertTriangle size={20} />;
       case 'Zap': return <Zap size={20} />;
       case 'Star': return <Star size={20} />;
+      case 'Activity': return <Activity size={20} />;
       default: return <Sparkles size={20} />;
     }
   };
@@ -86,15 +98,15 @@ const AIInsights = () => {
                   <Sparkles size={12} /> Live Engine
                </div>
                <h2 className="text-2xl font-black tracking-tight">System Pulse: <span className="text-purple-400 italic font-medium">Stable</span></h2>
-               <p className="text-slate-400 text-sm font-medium leading-relaxed max-w-sm">Neural network is currently processing 4.2k events/sec across 18 regional nodes.</p>
+               <p className="text-slate-400 text-sm font-medium leading-relaxed max-w-sm">Neural network is currently processing {stats.event_rate} events/sec across {stats.node_count} regional nodes.</p>
                <div className="flex items-center gap-6 pt-4 border-t border-white/5">
-                  <div>
+                   <div>
                     <p className="text-[10px] font-black uppercase text-slate-500 tracking-tighter">Confidence</p>
-                    <p className="text-lg font-black text-emerald-400 font-mono italic">98.4%</p>
+                    <p className="text-lg font-black text-emerald-400 font-mono italic">{stats.confidence}</p>
                   </div>
                   <div>
                     <p className="text-[10px] font-black uppercase text-slate-500 tracking-tighter">Latency</p>
-                    <p className="text-lg font-black text-blue-400 font-mono italic">14ms</p>
+                    <p className="text-lg font-black text-blue-400 font-mono italic">{stats.latency}</p>
                   </div>
                </div>
             </div>
@@ -102,14 +114,19 @@ const AIInsights = () => {
          <div className="bg-white rounded-[32px] p-8 border border-slate-100 flex flex-col justify-between shadow-sm shadow-slate-200/50">
            <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl w-fit"><BarChart3 size={24} /></div>
            <div className="mt-6">
-             <p className="text-3xl font-black text-slate-900 tracking-tighter">12.4% <span className="text-sm text-emerald-500">↑</span></p>
+             <p className="text-3xl font-black text-slate-900 tracking-tighter">
+               {stats.velocity} 
+               <span className={`text-sm ml-1 ${parseFloat(stats.velocity) >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                 {parseFloat(stats.velocity) >= 0 ? '↑' : '↓'}
+               </span>
+             </p>
              <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">Growth Velocity</p>
            </div>
          </div>
          <div className="bg-white rounded-[32px] p-8 border border-slate-100 flex flex-col justify-between shadow-sm shadow-slate-200/50">
            <div className="p-3 bg-orange-50 text-orange-600 rounded-2xl w-fit"><Lightbulb size={24} /></div>
            <div className="mt-6">
-             <p className="text-3xl font-black text-slate-900 tracking-tighter">842</p>
+             <p className="text-3xl font-black text-slate-900 tracking-tighter">{stats.active_predictions}</p>
              <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">Active Predictions</p>
            </div>
          </div>
