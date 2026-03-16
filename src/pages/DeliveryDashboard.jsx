@@ -33,14 +33,14 @@ const DeliveryDashboard = () => {
           <h1 className="text-3xl font-black text-slate-900 tracking-tight">Logistics Command</h1>
           <p className="text-slate-500 font-medium">Coordinate your fleet and track deliveries live.</p>
         </div>
-        <button className="bg-orange-600 text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-orange-500/20 active:scale-95 transition-all">
+        <button className="bg-primary-600 text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-primary-500/20 active:scale-95 transition-all">
           <Navigation size={20} /> Live Map
         </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard title="Active Trips" value="24" change={15} icon={Navigation} color="orange" />
-        <StatCard title="Fleet Status" value="98%" change={1.2} icon={Truck} color="blue" />
+        <StatCard title="Fleet Status" value="98%" change={1.2} icon={Truck} color="primary" />
         <StatCard title="Avg. Time" value="45m" change={-5} icon={Clock} color="purple" />
         <StatCard title="Total Volume" value="KES 890k" change={8.4} icon={TrendingUp} color="emerald" />
       </div>
@@ -80,7 +80,7 @@ const DeliveryDashboard = () => {
           </div>
         </div>
 
-        <div className="bg-slate-900 rounded-3xl p-8 text-white">
+        <div className="bg-sidebar-dark rounded-3xl p-8 text-white">
           <h2 className="text-xl font-black mb-6">Fleet Utilization</h2>
           <div className="space-y-8 mt-12">
             <div className="relative flex justify-center">

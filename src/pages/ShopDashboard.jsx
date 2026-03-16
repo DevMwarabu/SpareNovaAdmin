@@ -32,14 +32,14 @@ const ShopDashboard = () => {
           <h1 className="text-3xl font-black text-slate-900 tracking-tight">Shop Console</h1>
           <p className="text-slate-500 font-medium">Manage your inventory and track sales performance.</p>
         </div>
-        <button className="bg-emerald-600 text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-emerald-500/20 active:scale-95 transition-all">
+        <button className="bg-primary-600 text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-primary-500/20 active:scale-95 transition-all">
           <Plus size={20} /> Add Product
         </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard title="Monthly Sales" value="KES 450k" change={18} icon={DollarSign} color="emerald" />
-        <StatCard title="Orders" value="128" change={5.4} icon={ShoppingCart} color="blue" />
+        <StatCard title="Orders" value="128" change={5.4} icon={ShoppingCart} color="primary" />
         <StatCard title="Total Products" value="1,240" change={2.1} icon={Package} color="purple" />
         <StatCard title="Low Stock" value="12 Items" change={-12} icon={AlertTriangle} color="orange" />
       </div>
@@ -72,7 +72,7 @@ const ShopDashboard = () => {
             </table>
           </div>
         </div>
-        <div className="bg-slate-900 rounded-3xl p-8 text-white relative overflow-hidden">
+        <div className="bg-sidebar-dark rounded-3xl p-8 text-white relative overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/20 rounded-full blur-3xl -mr-16 -mt-16"></div>
           <h2 className="text-xl font-black mb-6 relative z-10">Stock Insights</h2>
           <div className="space-y-6 relative z-10">

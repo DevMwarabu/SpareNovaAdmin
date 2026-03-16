@@ -9,8 +9,11 @@ import {
   Settings, 
   HelpCircle,
   BarChart3,
-  CreditCard
+  CreditCard,
+  Wrench,
+  ShoppingBag
 } from 'lucide-react';
+
 
 const Sidebar = () => {
   const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -48,7 +51,7 @@ const Sidebar = () => {
         items: [
           { name: 'My Orders', icon: ShoppingBag, path: '/admin/orders', roles: ['shop', 'store_owner'] },
           { name: 'Inventory', icon: Store, path: '/admin/inventory', roles: ['shop', 'store_owner'] },
-          { name: 'Services', icon: Tool, path: '/admin/services', roles: ['garage', 'garage_owner'] },
+          { name: 'Services', icon: Wrench, path: '/admin/services', roles: ['garage', 'garage_owner'] },
           { name: 'Bookings', icon: Gavel, path: '/admin/bookings', roles: ['garage', 'garage_owner'] },
           { name: 'Fleet', icon: Truck, path: '/admin/fleet', roles: ['delivery'] },
           { name: 'Settings', icon: Settings, path: '/admin/settings' },
@@ -58,13 +61,13 @@ const Sidebar = () => {
   ];
 
   return (
-    <aside className="w-64 bg-slate-900 h-screen flex flex-col border-r border-slate-800 relative z-40">
+    <aside className="w-64 bg-sidebar-dark h-screen flex flex-col border-r border-sidebar-border relative z-40">
       <div className="p-6">
         <div className="flex items-center gap-2 mb-8">
-          <div className="w-8 h-8 rounded-lg bg-blue-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
+          <div className="w-8 h-8 rounded-lg bg-primary-500 flex items-center justify-center shadow-lg shadow-primary-500/20">
             <span className="text-white font-black text-xl">S</span>
           </div>
-          <span className="text-xl font-black text-white tracking-tight">Spare<span className="text-blue-500">Nova</span></span>
+          <span className="text-xl font-black text-white tracking-tight">Spare<span className="text-primary-500">Nova</span></span>
         </div>
 
         <nav className="space-y-8">
@@ -79,7 +82,7 @@ const Sidebar = () => {
                     className={({ isActive }) => 
                       `flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group ${
                         isActive 
-                        ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' 
+                        ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/20' 
                         : 'text-slate-400 hover:text-white hover:bg-white/5'
                       }`
                     }
@@ -94,7 +97,7 @@ const Sidebar = () => {
         </nav>
       </div>
 
-      <div className="mt-auto p-6 border-t border-slate-800">
+      <div className="mb-4 pb-4 border-b border-sidebar-border">
         <a href="#" className="flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white transition-colors">
           <HelpCircle size={20} />
           <span className="text-sm font-bold">Help Center</span>

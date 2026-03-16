@@ -2,12 +2,13 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { 
   Calendar, 
-  Tool, 
+  Wrench, 
   Users, 
   CheckCircle,
   ArrowUpRight,
   Clock
 } from 'lucide-react';
+
 
 const StatCard = ({ title, value, change, icon: Icon, color }) => (
   <motion.div whileHover={{ y: -4 }} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm shadow-slate-200/50">
@@ -32,14 +33,14 @@ const GarageDashboard = () => {
           <h1 className="text-3xl font-black text-slate-900 tracking-tight">Garage Hub</h1>
           <p className="text-slate-500 font-medium">Manage service bookings and mechanic assignments.</p>
         </div>
-        <button className="bg-purple-600 text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-purple-500/20 active:scale-95 transition-all">
+        <button className="bg-primary-600 text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-primary-500/20 active:scale-95 transition-all">
           <Calendar size={20} /> View Schedule
         </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard title="Monthly Bookings" value="84" change={12} icon={Calendar} color="purple" />
-        <StatCard title="Active Services" value="12" change={3.4} icon={Clock} color="blue" />
+        <StatCard title="Active Services" value="12" change={3.4} icon={Clock} color="primary" />
         <StatCard title="Mechanics" value="8" change={0} icon={Users} color="emerald" />
         <StatCard title="Completed" value="342" change={24} icon={CheckCircle} color="orange" />
       </div>
@@ -83,8 +84,8 @@ const GarageDashboard = () => {
             <div>
               <div className="flex justify-between text-[10px] font-black uppercase text-slate-400 mb-1">Body Work</div>
               <div className="h-8 bg-slate-50 rounded-lg overflow-hidden flex items-center px-4 relative">
-                <div className="absolute inset-y-0 left-0 bg-blue-100 w-[25%]"></div>
-                <span className="relative z-10 text-xs font-bold text-blue-700">25%</span>
+                <div className="absolute inset-y-0 left-0 bg-primary-100 w-[25%]"></div>
+                <span className="relative z-10 text-xs font-bold text-primary-700">25%</span>
               </div>
             </div>
             <div>
@@ -96,7 +97,7 @@ const GarageDashboard = () => {
             </div>
           </div>
           </div>
-          <button className="w-full mt-6 py-3 bg-slate-900 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-slate-900/20 active:scale-95 transition-all">Optimize Schedule</button>
+          <button className="w-full mt-6 py-3 bg-primary-600 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-primary-500/20 active:scale-95 transition-all">Optimize Schedule</button>
         </div>
       </div>
     </div>
