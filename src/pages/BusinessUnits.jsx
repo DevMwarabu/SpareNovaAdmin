@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import axios from 'axios';
 import { 
   Store, 
   Search, 
@@ -16,14 +17,44 @@ import {
 
 const BusinessUnitList = ({ title, type, icon: Icon, color }) => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState('All Status');
+  const [units, setUnits] = useState([]);
+  const [stats, setStats] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Sample data - in real app would fetch from Laravel
-  const units = [
-    { id: 1, name: 'SpareNova Central', owner: 'John Doe', location: 'Nairobi', status: 'verified', joinDate: '2026-03-01', revenue: '450k' },
-    { id: 2, name: 'Premium Autoparts', owner: 'Sarah Smith', location: 'Mombasa', status: 'pending', joinDate: '2026-03-10', revenue: '0' },
-    { id: 3, name: 'QuickFix Spares', owner: 'Mike Tyson', location: 'Kisumu', status: 'verified', joinDate: '2026-02-15', revenue: '120k' },
-    { id: 4, name: 'GearHead Shop', owner: 'Emily Blunt', location: 'Eldoret', status: 'suspended', joinDate: '2026-01-20', revenue: '85k' },
-  ];
+  const API_BASE = 'http://localhost:8003/api/v1';
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const res = await axios.get(`${API_BASE}/admin/${type}`, {
+        params: { search: searchTerm, status: filterStatus }
+      });
+      if (res.data.success) {
+        setUnits(res.data.data);
+        setStats(res.data.stats);
+      }
+    } catch (err) {
+      console.error(`Failed to fetch ${type}:`, err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [searchTerm, filterStatus, type]);
+
+  const handleStatusUpdate = async (id, newStatus) => {
+    try {
+      const res = await axios.put(`${API_BASE}/admin/${type}/${id}/status`, { status: newStatus });
+      if (res.data.success) {
+        fetchData(); // Refresh list after update
+      }
+    } catch (err) {
+      console.error(`Failed to update status for ${type} ${id}:`, err);
+    }
+  };
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
@@ -49,15 +80,11 @@ const BusinessUnitList = ({ title, type, icon: Icon, color }) => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-         {[
-           { l: 'Total Units', v: '142', c: '+8%', i: Icon, col: color },
-           { l: 'Verified', v: '128', c: '90%', i: ShieldCheck, col: 'blue' },
-           { l: 'Pending Approval', v: '14', c: 'Needs review', i: AlertCircle, col: 'orange' },
-         ].map((s, i) => (
+         {stats.length > 0 ? stats.map((s, i) => (
            <div key={i} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className={`w-12 h-12 rounded-2xl bg-${s.col}-50 text-${s.col}-600 flex items-center justify-center`}>
-                  <s.i size={24} />
+                   {i === 0 ? <Icon size={24} /> : i === 1 ? <ShieldCheck size={24} /> : <AlertCircle size={24} />}
                 </div>
                 <div>
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{s.l}</p>
@@ -68,7 +95,7 @@ const BusinessUnitList = ({ title, type, icon: Icon, color }) => {
                 {s.c}
               </div>
            </div>
-         ))}
+         )) : Array(3).fill(0).map((_, i) => <div key={i} className="animate-pulse bg-slate-100 h-24 rounded-3xl"></div>)}
       </div>
 
       {/* Table Section */}
@@ -85,11 +112,15 @@ const BusinessUnitList = ({ title, type, icon: Icon, color }) => {
            </div>
            <div className="flex gap-2">
              <button className="p-3 bg-slate-50 text-slate-400 hover:text-slate-600 rounded-xl transition-colors"><Filter size={18} /></button>
-             <select className="bg-slate-50 border-none rounded-xl px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-500 outline-none">
-                <option>All Status</option>
-                <option>Verified</option>
-                <option>Pending</option>
-                <option>Suspended</option>
+             <select 
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="bg-slate-50 border-none rounded-xl px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-500 outline-none"
+             >
+                <option value="All Status">All Status</option>
+                <option value="verified">Verified</option>
+                <option value="pending">Pending</option>
+                <option value="suspended">Suspended</option>
              </select>
            </div>
         </div>
@@ -137,14 +168,30 @@ const BusinessUnitList = ({ title, type, icon: Icon, color }) => {
                   <td className="px-8 py-5 text-sm font-black text-slate-900 tracking-tight">
                     KES {u.revenue}
                   </td>
-                  <td className="px-8 py-5 text-right">
-                    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <td className="px-8 py-5 text-right relative">
+                    <div className="flex items-center justify-end gap-2 group-hover:opacity-100 transition-opacity">
+                      <select 
+                        value={u.status} 
+                        onChange={(e) => handleStatusUpdate(u.id, e.target.value)}
+                        className="opacity-0 group-hover:opacity-100 bg-white border border-slate-200 rounded-lg px-2 py-1 text-[10px] font-bold text-slate-500 outline-none transition-all cursor-pointer hover:border-primary-300 focus:border-primary-500"
+                      >
+                         <option value="pending">Set Pending</option>
+                         <option value="verified">Approve</option>
+                         <option value="suspended">Suspend</option>
+                         <option value="rejected">Reject</option>
+                      </select>
                       <button className="p-2 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-all"><ExternalLink size={18} /></button>
-                      <button className="p-2 text-slate-400 hover:text-slate-900 rounded-lg transition-all"><MoreVertical size={18} /></button>
                     </div>
                   </td>
                 </tr>
               ))}
+              {units.length === 0 && !loading && (
+                 <tr>
+                    <td colSpan="5" className="px-8 py-10 text-center text-sm font-bold text-slate-400">
+                       No {type} found.
+                    </td>
+                 </tr>
+              )}
             </tbody>
           </table>
         </div>
