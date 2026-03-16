@@ -397,26 +397,58 @@ const RegisterPartner = () => {
 
               {/* ── STEP 3: Success ── */}
               {step === 3 && (
-                <motion.div key="step3" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-16">
-                  <div className="relative inline-block mb-10">
-                    <div className="absolute inset-0 bg-emerald-500/20 rounded-full blur-[60px] animate-pulse" />
-                    <div className="relative w-32 h-32 rounded-[48px] bg-emerald-500 text-white flex items-center justify-center shadow-xl shadow-emerald-500/30">
-                      <CheckCircle2 size={56} />
+                <motion.div
+                  key="step3"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="text-center py-6"
+                >
+                  <div className="mb-8 inline-flex w-32 h-32 rounded-[52px] bg-emerald-50 items-center justify-center text-emerald-500 shadow-inner relative">
+                    <div className="absolute inset-0 bg-emerald-500/10 rounded-full blur-[60px] animate-pulse" />
+                    <CheckCircle2 size={64} className="relative z-10" />
+                  </div>
+                  
+                  <h1 className="text-4xl font-black text-slate-900 mb-3 tracking-tighter italic uppercase">Provisioned</h1>
+                  <p className="text-lg text-slate-500 font-medium mb-10 max-w-md mx-auto leading-snug px-4">
+                    The {currentRole.title} account for <span className="text-slate-900 font-black underline decoration-emerald-200 decoration-4 underline-offset-4">{formData.businessName}</span> has been provisioned and is ready for live operations.
+                  </p>
+
+                  <div className="bg-slate-50 rounded-[40px] p-8 text-left mb-10 border border-slate-100 shadow-sm">
+                    <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-6 ml-1">Lifecycle Tracking</h3>
+                    <div className="space-y-6">
+                      {[
+                        { t: 'Vault Review', d: 'Our analysts are verifying business identity.', col: 'blue' },
+                        { t: 'Dispatch Access', d: 'Secure keys will be issued via email.', col: 'amber' },
+                        { t: 'Marketplace Entry', d: 'Begin your commercial journey.', col: 'emerald' }
+                      ].map((s, i) => (
+                        <div key={i} className="flex gap-5">
+                          <div className={`w-12 h-12 rounded-2xl bg-${s.col}-50 flex-shrink-0 flex items-center justify-center text-xs font-black shadow-sm text-${s.col}-600 border border-${s.col}-100`}>
+                             {i + 1}
+                          </div>
+                          <div>
+                            <p className="text-sm font-black text-slate-900 leading-tight uppercase italic">{s.t}</p>
+                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">{s.d}</p>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
 
-                  <h1 className="text-4xl font-black text-slate-900 mb-4 tracking-tight italic uppercase">Activation Successful</h1>
-                  <p className="text-lg text-slate-500 font-medium mb-12 max-w-md mx-auto leading-relaxed">
-                    The {currentRole.title} account for <span className="text-slate-900 font-black underline decoration-4 decoration-primary-500/30 underline-offset-4">{formData.businessName}</span> has been provisioned and is ready for live operations.
-                  </p>
-
                   <div className="flex flex-col sm:flex-row gap-5 justify-center">
-                    <button onClick={() => { setStep(1); setFormData({ businessName: '', email: '', phone: '', location: '', name: '', password: '' }); setFiles({ id_front: null, id_back: null, supporting_document: null }); }}
-                      className="px-10 bg-white border-2 border-slate-100 text-slate-900 font-black py-5 rounded-[28px] hover:border-primary-600/20 hover:bg-primary-50/10 transition-all flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                          setStep(1);
+                          setFormData({ businessName: '', email: '', phone: '', location: '', name: '', password: '' });
+                          setFiles({ id_front: null, id_back: null, supporting_document: null });
+                      }}
+                      className="px-10 bg-white border-2 border-slate-100 text-slate-900 font-black py-5 rounded-[28px] hover:border-primary-600/20 hover:bg-primary-50/10 transition-all flex items-center gap-2 uppercase tracking-widest text-xs"
+                    >
                       <ArrowRight size={18} /> Onboard Another
                     </button>
-                    <button onClick={handleBack}
-                      className="px-10 bg-slate-900 text-white font-black py-5 rounded-[28px] hover:bg-black transition-all shadow-xl shadow-slate-900/10">
+                    <button
+                      onClick={handleBack}
+                      className="px-10 bg-slate-900 text-white font-black py-5 rounded-[28px] hover:bg-black transition-all shadow-xl shadow-slate-900/10 uppercase tracking-widest text-xs"
+                    >
                       Return to Network List
                     </button>
                   </div>
