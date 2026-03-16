@@ -27,6 +27,7 @@ const Products = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState(null);
   const [selectedProducts, setSelectedProducts] = useState([]);
+  const [error, setError] = useState(null);
   
   // Advanced Search State
   const [isAdvancedSearchOpen, setIsAdvancedSearchOpen] = useState(false);
@@ -47,6 +48,7 @@ const Products = () => {
       }
     } catch (err) {
       console.error('Failed to fetch overview:', err);
+      setError('Intelligence systems connectivity failure.');
     }
   };
 
@@ -81,10 +83,18 @@ const Products = () => {
       });
       if (res.data.success) {
         setProducts(res.data.data);
-        if (res.data.pagination) setPagination(res.data.pagination);
+        setPagination(res.data.pagination || null);
+        setError(null);
+      } else {
+        setError(res.data.message || 'Catalog synchronization error.');
+        setProducts([]);
+        setPagination(null);
       }
     } catch (err) {
       console.error('Failed to fetch products:', err);
+      setError('Marketplace server timeout or unreachable.');
+      setProducts([]);
+      setPagination(null);
     } finally {
       setLoading(false);
     }
@@ -559,6 +569,19 @@ const Products = () => {
           </AnimatePresence>
 
           <AnimatePresence>
+            {error && (
+              <motion.div 
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="bg-rose-50 border border-rose-100 p-4 rounded-2xl flex items-center gap-3 text-rose-600 mb-6"
+              >
+                <AlertCircle size={18} />
+                <span className="text-[10px] font-black uppercase tracking-widest leading-none">{error}</span>
+                <button onClick={() => { fetchOverview(); fetchProducts(); }} className="ml-auto text-[10px] font-black underline uppercase hover:text-rose-700 whitespace-nowrap">Reboot Sensors</button>
+              </motion.div>
+            )}
+
             {selectedProducts.length > 0 && (
               <motion.div 
                 initial={{ opacity: 0, y: -20 }}
