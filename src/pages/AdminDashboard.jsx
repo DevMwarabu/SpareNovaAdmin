@@ -53,6 +53,8 @@ const Dashboard = () => {
   const [recentOrders, setRecentOrders] = useState([]);
   const [chartData, setChartData] = useState([]);
   const [channelDistribution, setChannelDistribution] = useState([]);
+  const [growthSignal, setGrowthSignal] = useState({ title: 'System Analytics', message: 'Analyzing data metrics...' });
+  const [logisticsHub, setLogisticsHub] = useState({ title: 'Logistics Monitor', message: 'Monitoring delivery routes...' });
   const [days, setDays] = useState(7);
   const [loading, setLoading] = useState(true);
   const [hoveredPoint, setHoveredPoint] = useState(null);
@@ -67,6 +69,8 @@ const Dashboard = () => {
         setRecentOrders(response.data.recentOrders);
         setChartData(response.data.chartData);
         setChannelDistribution(response.data.channelDistribution || []);
+        if (response.data.growthSignal) setGrowthSignal(response.data.growthSignal);
+        if (response.data.logisticsHub) setLogisticsHub(response.data.logisticsHub);
       }
     } catch (error) {
       console.error('Failed to fetch dashboard stats:', error);
@@ -301,13 +305,13 @@ const Dashboard = () => {
               </button>
             </div>
 
-            {/* Logistics Hub (Static/Small placeholder to balance layout) */}
+            {/* Logistics Hub (Dynamic real-time monitor) */}
             <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm shadow-slate-200/50 flex flex-col justify-center items-center text-center">
                <div className="w-16 h-16 bg-primary-50 rounded-2xl flex items-center justify-center text-primary-600 mb-4 shadow-lg shadow-primary-500/10">
                   <TrendingUp size={32} />
                </div>
-               <h3 className="font-black text-slate-900 mb-2">Performance Spike</h3>
-               <p className="text-xs text-slate-500 font-medium px-4">Logistics efficiency has increased by 14% this week. Delivery partners are responding faster.</p>
+               <h3 className="font-black text-slate-900 mb-2">{logisticsHub.title}</h3>
+               <p className="text-xs text-slate-500 font-medium px-4 leading-relaxed">{logisticsHub.message}</p>
             </div>
           </div>
         </div>
@@ -345,8 +349,8 @@ const Dashboard = () => {
                     <TrendingUp size={24} />
                   </div>
                   <div>
-                    <h3 className="text-sm font-black text-white leading-tight">Growth Signal</h3>
-                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">High demand in garages</p>
+                    <h3 className="text-sm font-black text-white leading-tight">{growthSignal.title}</h3>
+                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest leading-relaxed">{growthSignal.message}</p>
                   </div>
                 </div>
                 <button className="w-full flex items-center justify-center gap-2 text-[10px] font-black text-white uppercase tracking-widest hover:text-primary-400 transition-colors">

@@ -1,5 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { 
   LayoutDashboard, 
   Store, 
@@ -74,21 +75,35 @@ const Sidebar = () => {
           {menuGroups.map((group, i) => (
             <div key={i}>
               <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-4 ml-3">{group.label}</h3>
-              <div className="space-y-1">
+              <div className="space-y-1 relative">
                 {group.items.map((item) => (
                   <NavLink
                     key={item.name}
                     to={item.path}
+                    end={item.path === '/admin'}
                     className={({ isActive }) => 
-                      `flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group ${
+                      `relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group ${
                         isActive 
-                        ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/20' 
+                        ? 'text-white' 
                         : 'text-slate-400 hover:text-white hover:bg-white/5'
                       }`
                     }
                   >
-                    <item.icon size={20} className="transition-transform group-hover:scale-110" />
-                    <span className="text-sm font-bold">{item.name}</span>
+                    {({ isActive }) => (
+                      <>
+                        {isActive && (
+                          <motion.div
+                            layoutId="active-sidebar-pill"
+                            className="absolute inset-0 bg-primary-500 rounded-xl shadow-[inset_0_2px_8px_rgba(0,0,0,0.25)] shadow-primary-500/20"
+                            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                          />
+                        )}
+                        <div className="relative z-10 flex items-center gap-3 w-full">
+                          <item.icon size={20} className="transition-transform group-hover:scale-110" />
+                          <span className="text-sm font-bold">{item.name}</span>
+                        </div>
+                      </>
+                    )}
                   </NavLink>
                 ))}
               </div>
