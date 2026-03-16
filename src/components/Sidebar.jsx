@@ -11,6 +11,8 @@ import {
   Layers,
   Megaphone,
   Terminal,
+  Layout,
+  FileText,
   Users, 
   Settings, 
   HelpCircle,
