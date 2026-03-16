@@ -820,27 +820,34 @@ const Products = () => {
                               initial={{ opacity: 0, scale: 0.9, y: 10 }}
                               animate={{ opacity: 1, scale: 1, y: 0 }}
                               exit={{ opacity: 0, scale: 0.9, y: 10 }}
-                              className="absolute right-0 top-full mt-2 w-48 bg-white border border-slate-100 rounded-3xl shadow-2xl z-50 p-2 overflow-hidden"
+                              className="absolute right-0 top-full mt-2 w-48 bg-white border border-slate-100 rounded-3xl shadow-2xl z-[999] p-2 overflow-hidden"
                             >
                               <div className="flex flex-col">
                                 <button 
-                                  onClick={() => handleViewDetails(p.id)}
+                                  type="button"
+                                  onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); setActiveMenu(null); handleViewDetails(p.id); }}
                                   className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 hover:text-primary-600 rounded-2xl transition-all"
                                 >
                                   <Eye size={14} /> View Details
                                 </button>
                                 <button 
-                                  onClick={() => handleEditProduct(p.id)}
+                                  type="button"
+                                  onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); setActiveMenu(null); handleEditProduct(p.id); }}
                                   className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 hover:text-primary-600 rounded-2xl transition-all"
                                 >
                                   <SlidersHorizontal size={14} /> Edit Product
                                 </button>
-                                <button className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 hover:text-primary-600 rounded-2xl transition-all">
+                                <button 
+                                  type="button"
+                                  onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); setActiveMenu(null); }}
+                                  className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 hover:text-primary-600 rounded-2xl transition-all"
+                                >
                                   <Layers size={14} /> Specs & Files
                                 </button>
                                 <div className="h-px bg-slate-50 my-1 mx-2" />
                                 <button 
-                                  onClick={() => handleDeleteProduct(p.id)}
+                                  type="button"
+                                  onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); setActiveMenu(null); handleDeleteProduct(p.id); }}
                                   className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-rose-500 hover:bg-rose-50 rounded-2xl transition-all"
                                 >
                                   <Trash2 size={14} /> Delete Part
