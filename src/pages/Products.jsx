@@ -28,6 +28,7 @@ const Products = () => {
   const [pagination, setPagination] = useState(null);
   const [selectedProducts, setSelectedProducts] = useState([]);
   const [error, setError] = useState(null);
+  const [activeMenu, setActiveMenu] = useState(null);
   
   // Advanced Search State
   const [isAdvancedSearchOpen, setIsAdvancedSearchOpen] = useState(false);
@@ -102,6 +103,9 @@ const Products = () => {
 
   useEffect(() => {
     fetchOverview();
+    const closeMenu = () => setActiveMenu(null);
+    window.addEventListener('click', closeMenu);
+    return () => window.removeEventListener('click', closeMenu);
   }, []);
 
   useEffect(() => {
@@ -718,9 +722,41 @@ const Products = () => {
                          {p.status === 'approved' ? 'Flag' : 'Verify'}
                       </button>
                       <div className="h-4 w-px bg-slate-200" />
-                      <button className="p-2.5 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-xl transition-all">
-                        <MoreVertical size={18} />
-                      </button>
+                      <div className="relative">
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); setActiveMenu(activeMenu === p.id ? null : p.id); }}
+                          className={`p-2.5 rounded-xl transition-all ${activeMenu === p.id ? 'bg-primary-50 text-primary-600' : 'text-slate-400 hover:text-primary-600 hover:bg-primary-50'}`}
+                        >
+                          <MoreVertical size={18} />
+                        </button>
+                        
+                        <AnimatePresence>
+                          {activeMenu === p.id && (
+                            <motion.div 
+                              initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                              animate={{ opacity: 1, scale: 1, y: 0 }}
+                              exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                              className="absolute right-0 top-full mt-2 w-48 bg-white border border-slate-100 rounded-3xl shadow-2xl z-50 p-2 overflow-hidden"
+                            >
+                              <div className="flex flex-col">
+                                <button className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 hover:text-primary-600 rounded-2xl transition-all">
+                                  <Eye size={14} /> View Details
+                                </button>
+                                <button className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 hover:text-primary-600 rounded-2xl transition-all">
+                                  <SlidersHorizontal size={14} /> Edit Product
+                                </button>
+                                <button className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 hover:text-primary-600 rounded-2xl transition-all">
+                                  <Layers size={14} /> Specs & Files
+                                </button>
+                                <div className="h-px bg-slate-50 my-1 mx-2" />
+                                <button className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-rose-500 hover:bg-rose-50 rounded-2xl transition-all">
+                                  <Trash2 size={14} /> Delete Part
+                                </button>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
                     </div>
                   </td>
                 </tr>
