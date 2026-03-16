@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Search, Globe, X, Check } from 'lucide-react';
 
 const allCountries = [
@@ -257,76 +257,87 @@ const CountrySelector = ({ selected, onSelect, onClose }) => {
 
   return (
     <motion.div 
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.95 }}
-      className="absolute top-0 left-0 w-full h-full bg-white z-[100] rounded-[32px] md:rounded-[48px] overflow-hidden flex flex-col border border-slate-100 shadow-2xl"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-slate-900/40 backdrop-blur-md"
+      onClick={onClose}
     >
-      <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-primary-600 text-white flex items-center justify-center">
-            <Globe size={20} />
-          </div>
-          <div>
-            <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 leading-none">Country Code</h3>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Select Jurisdiction</p>
-          </div>
-        </div>
-        <button onClick={onClose} className="w-10 h-10 rounded-2xl bg-white border border-slate-200 text-slate-400 hover:text-red-500 transition-colors flex items-center justify-center shadow-sm">
-          <X size={20} />
-        </button>
-      </div>
-
-      <div className="px-6 py-4 border-b border-slate-100">
-        <div className="relative group">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-primary-600 transition-colors" size={18} />
-          <input 
-            autoFocus
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-12 pr-4 py-4 outline-none focus:bg-white focus:border-primary-600 focus:shadow-lg focus:shadow-primary-600/5 transition-all font-bold text-slate-900 placeholder:text-slate-300"
-            placeholder="Search country or code..."
-          />
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-y-auto p-4 space-y-1 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
-        {filtered.map((country) => (
-          <button
-            key={`${country.code}-${country.dial}`}
-            onClick={() => onSelect(country)}
-            className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all group ${
-              selected?.code === country.code 
-                ? 'bg-primary-600 text-white shadow-lg shadow-primary-600/20' 
-                : 'hover:bg-slate-50 text-slate-600'
-            }`}
-          >
-            <div className="flex items-center gap-4">
-              <span className="text-2xl leading-none">{country.flag}</span>
-              <div className="text-left">
-                <p className={`text-sm font-black italic uppercase leading-tight ${selected?.code === country.code ? 'text-white' : 'text-slate-900'}`}>
-                  {country.name}
-                </p>
-                <p className={`text-[10px] font-bold uppercase tracking-widest ${selected?.code === country.code ? 'text-primary-100' : 'text-slate-400'}`}>
-                  {country.code}
-                </p>
-              </div>
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.9, y: 20 }}
+        className="w-full max-w-lg bg-white rounded-[40px] overflow-hidden flex flex-col border border-white/20 shadow-2xl max-h-[80vh]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-primary-600 text-white flex items-center justify-center shadow-lg shadow-primary-500/20">
+              <Globe size={24} />
             </div>
-            <div className="flex items-center gap-3">
-              <span className={`text-xs font-black italic ${selected?.code === country.code ? 'text-white' : 'text-primary-600 group-hover:scale-110 transition-transform'}`}>
-                {country.dial}
-              </span>
-              {selected?.code === country.code && <Check size={16} />}
+            <div>
+              <h3 className="text-base font-black uppercase tracking-widest text-slate-900 leading-none">Country Selector</h3>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1.5">Global Dial Codes</p>
             </div>
+          </div>
+          <button onClick={onClose} className="w-12 h-12 rounded-2xl bg-white border border-slate-200 text-slate-400 hover:text-red-500 hover:border-red-100 hover:bg-red-50 transition-all flex items-center justify-center shadow-sm group">
+            <X size={20} className="group-hover:rotate-90 transition-transform" />
           </button>
-        ))}
-        {filtered.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-20 text-slate-300">
-            <Globe size={48} className="mb-4 opacity-20" />
-            <p className="text-xs font-black uppercase tracking-widest">No matching countries</p>
+        </div>
+
+        <div className="px-8 py-6 border-b border-slate-100 bg-white">
+          <div className="relative group">
+            <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-primary-600 transition-colors" size={20} />
+            <input 
+              autoFocus
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full bg-slate-50 border border-slate-100 rounded-[22px] pl-14 pr-6 py-5 outline-none focus:bg-white focus:border-primary-600 focus:shadow-xl focus:shadow-primary-600/5 transition-all font-bold text-slate-900 placeholder:text-slate-300"
+              placeholder="Search country or dial code..."
+            />
           </div>
-        )}
-      </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4 space-y-1.5 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
+          {filtered.map((country) => (
+            <button
+              key={`${country.code}-${country.dial}`}
+              onClick={() => onSelect(country)}
+              className={`w-full flex items-center justify-between p-4 px-6 rounded-[24px] transition-all group ${
+                selected?.code === country.code 
+                  ? 'bg-primary-600 text-white shadow-xl shadow-primary-600/20' 
+                  : 'hover:bg-slate-50 text-slate-600'
+              }`}
+            >
+              <div className="flex items-center gap-5">
+                <span className="text-3xl leading-none drop-shadow-sm">{country.flag}</span>
+                <div className="text-left font-bold transition-transform group-hover:translate-x-1">
+                  <p className={`text-sm font-black italic uppercase leading-tight ${selected?.code === country.code ? 'text-white' : 'text-slate-900'}`}>
+                    {country.name}
+                  </p>
+                  <p className={`text-[10px] font-black uppercase tracking-widest ${selected?.code === country.code ? 'text-primary-100' : 'text-slate-400'}`}>
+                    {country.code}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <span className={`text-sm font-black italic ${selected?.code === country.code ? 'text-white' : 'text-primary-600'}`}>
+                  {country.dial}
+                </span>
+                {selected?.code === country.code && <Check size={18} className="text-white" />}
+              </div>
+            </button>
+          ))}
+          {filtered.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-24 text-slate-300">
+              <div className="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center mb-6">
+                <Globe size={32} className="opacity-20 animate-pulse" />
+              </div>
+              <p className="text-xs font-black uppercase tracking-widest">No matching jurisdictions</p>
+            </div>
+          )}
+        </div>
+      </motion.div>
     </motion.div>
   );
 };
