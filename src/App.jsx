@@ -23,6 +23,7 @@ import SaaSManagement from './pages/SaaSManagement';
 import AIInsights from './pages/AIInsights';
 import Communications from './pages/Communications';
 import SystemLogs from './pages/SystemLogs';
+import RegisterPartner from './pages/RegisterPartner';
 import CMS from './pages/CMS';
 import Reports from './pages/Reports';
 import './index.css';
@@ -73,6 +74,7 @@ function App() {
           <Route path="system-logs" element={<SystemLogs />} />
           <Route path="cms" element={<CMS />} />
           <Route path="reports" element={<Reports />} />
+          <Route path="register-partner" element={<RegisterPartner />} />
           <Route path="settings" element={<Settings />} />
         </Route>
         <Route path="/" element={<Navigate to="/auth" replace />} />

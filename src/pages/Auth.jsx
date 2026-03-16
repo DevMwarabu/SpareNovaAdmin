@@ -133,40 +133,57 @@ const Auth = () => {
   );
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4 selection:bg-primary-100 selection:text-primary-900">
-      {/* Background Orbs */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-primary-400/5 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-emerald-400/5 rounded-full blur-[120px]" />
-      </div>
+    <div className={`${isAdminMode ? 'w-full py-4' : 'min-h-screen bg-[#F8FAFC] flex items-center justify-center p-4 selection:bg-primary-100 selection:text-primary-900'}`}>
+      {/* Background Orbs - Hidden in Admin Mode */}
+      {!isAdminMode && (
+        <div className="fixed inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-primary-400/5 rounded-full blur-[120px]" />
+          <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-emerald-400/5 rounded-full blur-[120px]" />
+        </div>
+      )}
 
       <motion.div 
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="w-full max-w-[540px] relative z-10"
+        initial={isAdminMode ? { opacity: 0, y: 10 } : { opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        className={`w-full ${isAdminMode ? 'max-w-none' : 'max-w-[540px]'} relative z-10`}
       >
-        {/* Logo Section */}
-        <div className="text-center mb-8">
-          <motion.div 
-            initial={{ y: -20 }}
-            animate={{ y: 0 }}
-            className="inline-flex items-center gap-2 mb-4"
-          >
-            <div className="w-10 h-10 rounded-xl bg-primary-600 flex items-center justify-center shadow-lg shadow-primary-500/20">
-              <span className="text-white font-black text-2xl tracking-tighter">S</span>
-            </div>
-            <span className="text-2xl font-black text-slate-900 tracking-tight">Spare<span className="text-primary-600">Nova</span></span>
-          </motion.div>
-          <div className="h-px w-12 bg-slate-200 mx-auto" />
-          {isAdminMode && (
-            <div className="mt-4 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 border border-amber-100 text-amber-600">
-               <ShieldCheck size={12} />
-               <span className="text-[10px] font-black uppercase tracking-wider">Admin Registration Mode</span>
-            </div>
-          )}
-        </div>
+        {/* Logo Section - Hidden in Admin Mode */}
+        {!isAdminMode && (
+          <div className="text-center mb-8">
+            <motion.div 
+              initial={{ y: -20 }}
+              animate={{ y: 0 }}
+              className="inline-flex items-center gap-2 mb-4"
+            >
+              <div className="w-10 h-10 rounded-xl bg-primary-600 flex items-center justify-center shadow-lg shadow-primary-500/20">
+                <span className="text-white font-black text-2xl tracking-tighter">S</span>
+              </div>
+              <span className="text-2xl font-black text-slate-900 tracking-tight">Spare<span className="text-primary-600">Nova</span></span>
+            </motion.div>
+            <div className="h-px w-12 bg-slate-200 mx-auto" />
+            {isAdminMode && (
+              <div className="mt-4 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 border border-amber-100 text-amber-600">
+                 <ShieldCheck size={12} />
+                 <span className="text-[10px] font-black uppercase tracking-wider">Admin Registration Mode</span>
+              </div>
+            )}
+          </div>
+        )}
 
-        <div className="bg-white rounded-[40px] shadow-[0_32px_64px_-12px_rgba(0,0,0,0.08)] border border-slate-100/50 p-8 md:p-12">
+        {isAdminMode && (
+          <div className="mb-8 flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-black text-slate-900 tracking-tight italic">Partner Onboarding</h1>
+              <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-1">Admin Registration Mode</p>
+            </div>
+            <div className="px-3 py-1 rounded-full bg-amber-50 border border-amber-100 text-amber-600 flex items-center gap-2">
+               <ShieldCheck size={12} />
+               <span className="text-[10px] font-black uppercase tracking-wider">Secure Mode</span>
+            </div>
+          </div>
+        )}
+
+        <div className={`${isAdminMode ? 'bg-white rounded-[32px] border border-slate-100 p-8 shadow-sm' : 'bg-white rounded-[40px] shadow-[0_32px_64px_-12px_rgba(0,0,0,0.08)] border border-slate-100/50 p-8 md:p-12'}`}>
           <AnimatePresence mode="wait">
             {step === 0 && (
               <motion.div

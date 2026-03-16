@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { 
   Store, 
@@ -18,6 +19,7 @@ import {
 } from 'lucide-react';
 
 const BusinessUnitList = ({ title, type, icon: Icon, color }) => {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('All Status');
   const [units, setUnits] = useState([]);
@@ -123,9 +125,9 @@ const BusinessUnitList = ({ title, type, icon: Icon, color }) => {
   };
 
   const handleRegisterNew = () => {
-    // Open registration in a new tab with Admin Mode context
+    // Navigate in the same window (pane) to dedicated registration page
     const mappedRole = type === 'shops' ? 'store_owner' : type === 'garages' ? 'garage_owner' : 'delivery';
-    window.open(`/auth?mode=register&admin_mode=true&role=${mappedRole}`, '_blank');
+    navigate(`/admin/register-partner?role=${mappedRole}`);
   };
 
   return (
