@@ -256,7 +256,10 @@ const Auth = () => {
                   </div>
                 </div>
 
-                <div className="space-y-4 mb-8">
+                <form 
+                  onSubmit={(e) => { e.preventDefault(); setStep(5); }}
+                  className="space-y-4 mb-8"
+                >
                   <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Business Name</label>
                     <div className="relative group">
@@ -317,15 +320,15 @@ const Auth = () => {
                     </div>
 
                   </div>
-                </div>
 
-                <button
-                  disabled={!formData.email || !formData.password || !formData.businessName}
-                  onClick={() => setStep(5)}
-                  className="w-full bg-primary-600 text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2 hover:bg-primary-700 transition-all shadow-xl shadow-primary-500/20"
-                >
-                  Verify Identity <ArrowRight size={18} />
-                </button>
+                  <button
+                    type="submit"
+                    disabled={!formData.email || !formData.password || !formData.businessName}
+                    className="w-full bg-primary-600 text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2 hover:bg-primary-700 transition-all shadow-xl shadow-primary-500/20"
+                  >
+                    Verify Identity <ArrowRight size={18} />
+                  </button>
+                </form>
               </motion.div>
             )}
 
@@ -395,7 +398,10 @@ const Auth = () => {
                   <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest tracking-tight">Business Dashboard</p>
                 </div>
 
-                <div className="space-y-4 mb-8">
+                <form 
+                  onSubmit={(e) => { e.preventDefault(); handleLogin(); }}
+                  className="space-y-4 mb-8"
+                >
                   <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Email</label>
                     <input 
@@ -428,15 +434,14 @@ const Auth = () => {
                     </div>
                   </div>
 
-                </div>
-
-                <button
-                  disabled={loading || !formData.email || !formData.password}
-                  onClick={handleLogin}
-                  className="w-full bg-primary-600 text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2 hover:bg-primary-700 transition-all shadow-xl shadow-primary-500/20 disabled:opacity-50"
-                >
-                  {loading ? <Loader2 className="animate-spin" size={18} /> : <>Sign In <ArrowRight size={18} /></>}
-                </button>
+                  <button
+                    type="submit"
+                    disabled={loading || !formData.email || !formData.password}
+                    className="w-full bg-primary-600 text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2 hover:bg-primary-700 transition-all shadow-xl shadow-primary-500/20 disabled:opacity-50"
+                  >
+                    {loading ? <Loader2 className="animate-spin" size={18} /> : <>Sign In <ArrowRight size={18} /></>}
+                  </button>
+                </form>
               </motion.div>
             )}
 
