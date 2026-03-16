@@ -132,7 +132,9 @@ const BusinessUnitList = ({ title, type, icon: Icon, color }) => {
                 <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Merchant Info</th>
                 <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Location</th>
                 <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Status</th>
-                <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Revenue (MTD)</th>
+                <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                   {type === 'logistics' ? 'Trips (MTD)' : type === 'garages' ? 'Services (MTD)' : 'Revenue (MTD)'}
+                </th>
                 <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Actions</th>
               </tr>
             </thead>
@@ -166,7 +168,7 @@ const BusinessUnitList = ({ title, type, icon: Icon, color }) => {
                     </span>
                   </td>
                   <td className="px-8 py-5 text-sm font-black text-slate-900 tracking-tight">
-                    KES {u.revenue}
+                    {type === 'logistics' ? '' : 'KES '} {u.revenue}
                   </td>
                   <td className="px-8 py-5 text-right relative">
                     <div className="flex items-center justify-end gap-2 group-hover:opacity-100 transition-opacity">
