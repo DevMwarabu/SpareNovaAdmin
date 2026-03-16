@@ -6,6 +6,7 @@ import Auth from './pages/Auth';
 import Dashboard from './pages/Dashboard';
 import Analytics from './pages/Analytics';
 import BusinessUnits from './pages/BusinessUnits';
+import { Store, Wrench, Truck } from 'lucide-react';
 import Users from './pages/Users';
 import Payments from './pages/Payments';
 import Settings from './pages/Settings';
@@ -22,6 +23,8 @@ import SaaSManagement from './pages/SaaSManagement';
 import AIInsights from './pages/AIInsights';
 import Communications from './pages/Communications';
 import SystemLogs from './pages/SystemLogs';
+import CMS from './pages/CMS';
+import Reports from './pages/Reports';
 import './index.css';
 
 const API_BASE = 'http://localhost:8003/api/v1';
@@ -51,9 +54,9 @@ function App() {
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<Dashboard />} />
           <Route path="analytics" element={<Analytics />} />
-          <Route path="shops" element={<BusinessUnits type="shop" />} />
-          <Route path="garages" element={<BusinessUnits type="garage" />} />
-          <Route path="logistics" element={<LogisticsIntelligence />} />
+          <Route path="shops" element={<BusinessUnits type="shops" title="Shop Network" icon={Store} color="blue" />} />
+          <Route path="garages" element={<BusinessUnits type="garages" title="Service Garages" icon={Wrench} color="emerald" />} />
+          <Route path="logistics" element={<BusinessUnits type="logistics" title="Logistics Fleet" icon={Truck} color="indigo" />} />
           <Route path="users" element={<Users />} />
           <Route path="payments" element={<Payments />} />
           <Route path="products" element={<Products />} />
@@ -68,6 +71,8 @@ function App() {
           <Route path="ai-insights" element={<AIInsights />} />
           <Route path="communications" element={<Communications />} />
           <Route path="system-logs" element={<SystemLogs />} />
+          <Route path="cms" element={<CMS />} />
+          <Route path="reports" element={<Reports />} />
           <Route path="settings" element={<Settings />} />
         </Route>
         <Route path="/" element={<Navigate to="/auth" replace />} />

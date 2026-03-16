@@ -69,6 +69,8 @@ const Sidebar = () => {
           { name: 'SaaS Platform', icon: Layers, path: '/admin/saas' },
           { name: 'Communications', icon: Megaphone, path: '/admin/communications' },
           { name: 'System Logs', icon: Terminal, path: '/admin/system-logs' },
+          { name: 'Content (CMS)', icon: Layout, path: '/admin/cms' },
+          { name: 'Advanced Reports', icon: FileText, path: '/admin/reports' },
           { name: 'Payments', icon: CreditCard, path: '/admin/payments' },
           { name: 'Settings', icon: Settings, path: '/admin/settings' },
         ]
