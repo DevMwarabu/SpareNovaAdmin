@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { 
   Users as UsersIcon, 
@@ -11,17 +11,30 @@ import {
   CheckCircle2, 
   XCircle,
   Clock,
-  Filter
+  Filter,
+  Activity,
+  ArrowRight,
+  Store,
+  Star,
+  DollarSign,
+  X
 } from 'lucide-react';
+import { AreaChart, Area, XAxis, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 
 const Users = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState('All Roles');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [users, setUsers] = useState([]);
   const [stats, setStats] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState(null);
+  
+  // Drawer State
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const API_BASE = 'http://localhost:8003/api/v1';
 
@@ -29,7 +42,7 @@ const Users = () => {
     try {
       setLoading(true);
       const res = await axios.get(`${API_BASE}/admin/users`, {
-        params: { search: searchTerm, role: filterRole, page: currentPage, per_page: 8 }
+        params: { search: searchTerm, role: filterRole, status: filterStatus, page: currentPage, per_page: 8 }
       });
       if (res.data.success) {
         setUsers(res.data.data);
@@ -45,11 +58,11 @@ const Users = () => {
 
   useEffect(() => {
     fetchData();
-  }, [searchTerm, filterRole, currentPage]);
+  }, [searchTerm, filterRole, filterStatus, currentPage]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, filterRole]);
+  }, [searchTerm, filterRole, filterStatus]);
 
   const handleStatusUpdate = async (id, newStatus) => {
     try {
@@ -111,20 +124,73 @@ const Users = () => {
                className="w-full bg-slate-50 border-none rounded-2xl pl-12 pr-4 py-3 text-sm font-bold placeholder:text-slate-300 outline-none focus:ring-2 focus:ring-primary-500/10 transition-all"
              />
            </div>
-           <div className="flex gap-2">
-             <button className="p-3 bg-slate-50 text-slate-400 hover:text-slate-600 rounded-xl transition-colors"><Filter size={18} /></button>
-             <select 
-               value={filterRole}
-               onChange={(e) => setFilterRole(e.target.value)}
-               className="bg-slate-50 border-none rounded-xl px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-500 outline-none"
+           <div className="relative">
+             <button 
+               onClick={() => setIsFilterOpen(!isFilterOpen)}
+               className={`p-3 rounded-xl transition-colors flex items-center gap-2 text-xs font-black uppercase tracking-widest ${isFilterOpen || filterRole !== 'All Roles' || filterStatus !== '' ? 'bg-primary-50 text-primary-600' : 'bg-slate-50 text-slate-400 hover:text-slate-600'}`}
              >
-                <option>All Roles</option>
-                <option>Admins</option>
-                <option>Store Owners</option>
-                <option>Garage Owners</option>
-                <option>Delivery Partners</option>
-                <option>Customers</option>
-             </select>
+               <Filter size={18} /> Filter
+             </button>
+
+             <AnimatePresence>
+                {isFilterOpen && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    className="absolute top-full right-0 mt-3 w-80 bg-white rounded-3xl shadow-2xl shadow-primary-500/10 border border-slate-100 p-6 z-50 text-left"
+                  >
+                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 italic">Advanced Telemetry Filter</p>
+                     
+                     <div className="space-y-5">
+                       <div>
+                         <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest block mb-2 italic">Account Hierarchy</label>
+                         <select 
+                           value={filterRole}
+                           onChange={(e) => setFilterRole(e.target.value)}
+                           className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-xs font-black text-slate-700 outline-none focus:ring-2 focus:ring-primary-500/20 italic uppercase"
+                         >
+                            <option>All Roles</option>
+                            <option>Admins</option>
+                            <option>Store Owners</option>
+                            <option>Garage Owners</option>
+                            <option>Delivery Partners</option>
+                            <option>Customers</option>
+                         </select>
+                       </div>
+
+                       <div>
+                         <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest block mb-2 italic">Operation Protocol</label>
+                         <select 
+                            value={filterStatus} 
+                            onChange={(e) => setFilterStatus(e.target.value)}
+                            className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-xs font-black text-slate-700 outline-none focus:ring-2 focus:ring-primary-500/20 italic uppercase"
+                         >
+                            <option value="">All States</option>
+                            <option value="Active">Active / Verified</option>
+                            <option value="Pending">Pending Assignment</option>
+                            <option value="Suspended">Suspended</option>
+                         </select>
+                       </div>
+                       
+                       <div className="pt-2 flex items-center justify-between border-t border-slate-50 mt-2">
+                          <button 
+                            onClick={() => { setFilterRole('All Roles'); setFilterStatus(''); }}
+                            className="text-[10px] font-black text-slate-400 hover:text-slate-600 transition-colors uppercase tracking-widest italic"
+                          >
+                             Reset Params
+                          </button>
+                          <button 
+                             onClick={() => setIsFilterOpen(false)}
+                             className="bg-slate-900 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-colors shadow-sm active:scale-95"
+                          >
+                             Apply Matrix
+                          </button>
+                       </div>
+                     </div>
+                  </motion.div>
+                )}
+             </AnimatePresence>
            </div>
         </div>
 
@@ -150,7 +216,7 @@ const Users = () => {
                  </tr>
               )}
               {users.map((u) => (
-                <tr key={u.id} className="hover:bg-slate-50/50 transition-colors group">
+                <tr key={u.id} className="hover:bg-slate-50/50 transition-colors group cursor-pointer" onClick={() => { setSelectedUser(u); setIsDrawerOpen(true); }}>
                   <td className="px-8 py-5">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-800 font-black shadow-sm border border-slate-200">
@@ -177,10 +243,10 @@ const Users = () => {
                     </span>
                   </td>
                   <td className="px-8 py-5 text-xs font-bold text-slate-500 tracking-tight font-serif">
-                    {u.joined}
+                    {u.joinDate}
                   </td>
                   <td className="px-8 py-5 text-right relative">
-                    <div className="flex items-center justify-end gap-2 group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center justify-end gap-2 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
                       <select 
                         value={u.status.toLowerCase()} 
                         onChange={(e) => handleStatusUpdate(u.id, e.target.value)}
@@ -230,6 +296,119 @@ const Users = () => {
            )}
         </div>
       </div>
+
+      <AnimatePresence>
+        {isDrawerOpen && selectedUser && (
+           <>
+             {/* Backdrop */}
+             <motion.div 
+               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+               onClick={() => setIsDrawerOpen(false)}
+               className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-40"
+             />
+
+             {/* Drawer */}
+             <motion.div 
+               initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
+               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+               className="fixed top-0 right-0 h-full w-full max-w-xl bg-white shadow-2xl z-50 flex flex-col border-l border-slate-100"
+             >
+               <div className="p-8 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
+                  <div className="flex items-center gap-4">
+                     <div className="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-800 font-black shadow-sm border border-slate-200 text-xl">
+                        {selectedUser.name.charAt(0)}
+                     </div>
+                     <div>
+                        <h2 className="text-xl font-black text-slate-900 tracking-tight leading-none">{selectedUser.name}</h2>
+                        <p className="text-xs font-bold text-slate-400 italic lowercase tracking-tight mt-1">{selectedUser.email}</p>
+                     </div>
+                  </div>
+                  <button onClick={() => setIsDrawerOpen(false)} className="w-10 h-10 bg-white border border-slate-200 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all shadow-sm active:scale-95"><X size={20} /></button>
+               </div>
+
+               <div className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar">
+                  {/* Institutional Metrics */}
+                  <div className="grid grid-cols-2 gap-4">
+                     <div className="p-5 bg-emerald-50 rounded-3xl border border-emerald-100">
+                        <div className="flex items-center gap-2 mb-2 text-emerald-600">
+                           <DollarSign size={16} />
+                           <span className="text-[10px] font-black uppercase tracking-widest">Revenue Generated</span>
+                        </div>
+                        <p className="text-lg font-black text-emerald-900 tracking-tight">{selectedUser.revenue || 'KES 0'}</p>
+                     </div>
+                     <div className="p-5 bg-purple-50 rounded-3xl border border-purple-100">
+                        <div className="flex items-center gap-2 mb-2 text-purple-600">
+                           <Shield size={16} />
+                           <span className="text-[10px] font-black uppercase tracking-widest">Loyalty Score</span>
+                        </div>
+                        <div className="flex items-end gap-2">
+                           <p className="text-lg font-black text-purple-900 tracking-tight leading-none">{selectedUser.ai_segment?.loyalty_score || 0}</p>
+                           <span className="text-[10px] font-bold text-purple-600/60 pb-0.5">/ 100</span>
+                        </div>
+                     </div>
+                     <div className="p-5 bg-blue-50 rounded-3xl border border-blue-100 col-span-2">
+                        <div className="flex items-center gap-2 mb-2 text-blue-600">
+                           <Store size={16} />
+                           <span className="text-[10px] font-black uppercase tracking-widest">Institutional Linkage</span>
+                        </div>
+                        <p className="text-sm font-black text-blue-900 uppercase tracking-tight italic">{selectedUser.shop_link}</p>
+                     </div>
+                  </div>
+
+                  {/* Activity Graph */}
+                  <div>
+                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-4 flex items-center gap-2"><Activity size={16} className="text-slate-400" /> Platform Telemetry (6M)</h3>
+                    <div className="h-40 bg-slate-50 rounded-3xl p-4 border border-slate-100">
+                       <ResponsiveContainer width="100%" height="100%">
+                         <AreaChart data={selectedUser.activity_graph || []}>
+                           <defs>
+                             <linearGradient id="colorActivity" x1="0" y1="0" x2="0" y2="1">
+                               <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.2}/>
+                               <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
+                             </linearGradient>
+                           </defs>
+                           <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 800 }} dy={10} />
+                           <RechartsTooltip 
+                              contentStyle={{ backgroundColor: '#ffffff', borderRadius: '16px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', padding: '12px' }}
+                              itemStyle={{ color: '#0f172a', fontWeight: 900, fontSize: '12px' }}
+                            />
+                           <Area type="monotone" dataKey="activity" stroke="#8b5cf6" strokeWidth={3} fillOpacity={1} fill="url(#colorActivity)" />
+                         </AreaChart>
+                       </ResponsiveContainer>
+                    </div>
+                  </div>
+
+                  {/* Recent Reviews matrix */}
+                  <div>
+                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-4 flex items-center gap-2"><Star size={16} className="text-slate-400" /> Immutable Activity Ledger</h3>
+                    <div className="space-y-3">
+                       {selectedUser.activities && selectedUser.activities.length > 0 ? (
+                          selectedUser.activities.map((act) => (
+                             <div key={act.id} className="p-4 bg-white border border-slate-100 rounded-2xl shadow-sm group">
+                                <div className="flex items-center justify-between mb-2">
+                                   <div className="flex items-center gap-1 text-orange-400">
+                                      {Array.from({ length: 5 }).map((_, i) => (
+                                         <Star key={i} size={12} fill={i < act.rating ? "currentColor" : "none"} />
+                                      ))}
+                                   </div>
+                                   <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{act.date}</span>
+                                </div>
+                                <p className="text-xs font-black text-slate-900 italic tracking-tight mb-1">{act.title}</p>
+                                <p className="text-[11px] font-bold text-slate-500 line-clamp-2 leading-relaxed">{act.body}</p>
+                             </div>
+                          ))
+                       ) : (
+                          <div className="p-6 bg-slate-50 border border-slate-100 rounded-2xl text-center">
+                             <p className="text-xs font-black text-slate-400 uppercase tracking-widest italic">No traceable activities</p>
+                          </div>
+                       )}
+                    </div>
+                  </div>
+               </div>
+             </motion.div>
+           </>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
