@@ -14,18 +14,58 @@ import {
   BarChart3,
   RefreshCw,
   Globe,
-  Settings
+  Settings,
+  ShieldCheck,
+  ShieldAlert,
+  Loader2,
+  PieChart as PieChartIcon,
+  Crown,
+  Database,
+  Cpu,
+  Mail,
+  X,
+  ChevronDown
 } from 'lucide-react';
+import { 
+  AreaChart, 
+  Area, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  Cell,
+  PieChart,
+  Pie
+} from 'recharts';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const SaaSManagement = () => {
   const [subscriptions, setSubscriptions] = useState([]);
   const [stats, setStats] = useState([]);
+  const [mrrGrowth, setMrrGrowth] = useState([]);
+  const [tierDistribution, setTierDistribution] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState('All Subscriptions');
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState(null);
+  const [toast, setToast] = useState(null);
+
+  // Governance States
+  const [isAdminActionOpen, setIsAdminActionOpen] = useState(false);
+  const [actionType, setActionType] = useState(null); // 'active', 'expired', 'cancelled'
+  const [targetSubId, setTargetSubId] = useState(null);
+  const [adminTemplates, setAdminTemplates] = useState([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState('');
 
   const API_BASE = 'http://localhost:8003/api/v1';
+
+  const showToast = (message, type = 'blue') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   const fetchData = async () => {
     try {
@@ -36,6 +76,8 @@ const SaaSManagement = () => {
       if (res.data.success) {
         setSubscriptions(res.data.data);
         setStats(res.data.stats);
+        setMrrGrowth(res.data.mrrGrowth);
+        setTierDistribution(res.data.tierDistribution);
         setPagination(res.data.pagination);
       }
     } catch (err) {
@@ -45,158 +87,369 @@ const SaaSManagement = () => {
     }
   };
 
-  useEffect(() => {
-    fetchData();
-  }, [filterStatus, currentPage]);
-
-  const getStatusColor = (status) => {
-    const s = status.toLowerCase();
-    if (s === 'active') return 'text-emerald-600 bg-emerald-50 border-emerald-100';
-    if (s === 'expired') return 'text-red-600 bg-red-50 border-red-100';
-    return 'text-orange-600 bg-orange-50 border-orange-100';
+  const fetchTemplates = async () => {
+    try {
+      const res = await axios.get(`${API_BASE}/admin/email-templates`);
+      if (res.data.success) {
+        setAdminTemplates(res.data.data);
+      }
+    } catch (err) {
+      console.error("Template fetch failure:", err);
+    }
   };
 
+  useEffect(() => {
+    fetchData();
+    fetchTemplates();
+  }, [filterStatus, currentPage]);
+
+  const handleGovernanceRequest = (id, type) => {
+    setTargetSubId(id);
+    setActionType(type);
+    setIsAdminActionOpen(true);
+  };
+
+  const executeAdminAction = async () => {
+    try {
+      setLoading(true);
+      const res = await axios.put(`${API_BASE}/admin/saas/${targetSubId}/status`, {
+        status: actionType,
+        template_id: selectedTemplateId
+      });
+      
+      if (res.data.success) {
+        setIsAdminActionOpen(false);
+        showToast(`Subscription lifecycle updated and tenant notified.`, 'emerald');
+        fetchData();
+      }
+    } catch (err) {
+      showToast('Monetization Governance Dispatch failed', 'rose');
+    } finally {
+      setLoading(false);
+      setSelectedTemplateId('');
+    }
+  };
+
+  const getStatusStyles = (status) => {
+    const s = status.toLowerCase();
+    if (s === 'active') return 'bg-emerald-50 text-emerald-600 border-emerald-100';
+    if (s === 'expired') return 'bg-rose-50 text-rose-600 border-rose-100';
+    return 'bg-orange-50 text-orange-600 border-orange-100';
+  };
+
+  const COLORS = ['#4f46e5', '#818cf8', '#6366f1', '#4338ca'];
+
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000 min-h-screen pb-20">
+      {/* Toast System */}
+      {toast && (
+        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[300] bg-slate-900 text-white px-8 py-4 rounded-3xl shadow-2xl flex items-center gap-4 animate-in slide-in-from-bottom-4">
+           <div className={`w-8 h-8 rounded-lg flex items-center justify-center bg-${toast.type}-500 shadow-xl shadow-${toast.type}-500/20`}>
+              <Zap size={16} />
+           </div>
+           <p className="text-[10px] font-black uppercase tracking-widest">{toast.message}</p>
+        </div>
+      )}
+
+      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-             <div className="p-2 rounded-xl bg-indigo-50 text-indigo-600">
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3 italic uppercase">
+             <div className="p-2.5 rounded-2xl bg-indigo-50 text-indigo-600 shadow-xl shadow-indigo-500/10 border border-indigo-100">
                 <Layers size={24} />
              </div>
-             SaaS Platform Control
+             Monetization Hub
           </h1>
-          <p className="text-slate-500 font-medium mt-1">Manage vendor subscription tiers, platform revenue, and tenant access.</p>
+          <p className="text-slate-500 font-medium mt-1 uppercase text-[10px] tracking-widest italic opacity-60 italic">Platform SaaS Revenue & Multi-Tenant Lifecycle Infrastructure</p>
         </div>
         <div className="flex gap-2">
-           <button className="bg-white border border-slate-200 px-6 py-2.5 rounded-xl text-xs font-black text-slate-700 shadow-sm hover:bg-slate-50 flex items-center gap-2 transition-all">
-             <Settings size={14} /> Subscription Plans
+           <button className="bg-slate-900 text-white px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-slate-900/20 hover:scale-105 transition-all flex items-center gap-3 italic">
+              <Plus size={18} /> New Monetization Node
            </button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
          {stats.length > 0 ? stats.map((s, i) => (
-           <div key={i} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex flex-col justify-between">
-              <div className={`w-12 h-12 rounded-2xl bg-${s.col}-50 text-${s.col}-600 flex items-center justify-center mb-4`}>
-                 {i === 0 ? <TrendingUp size={24} /> : i === 1 ? <Users size={24} /> : <Zap size={24} />}
+            <div key={i} className="bg-white p-6 rounded-[40px] border border-slate-100 shadow-sm shadow-slate-200/50 flex items-center justify-between group hover:border-primary-100 transition-colors">
+              <div className="flex items-center gap-5">
+                <div className={`w-14 h-14 rounded-2xl bg-${s.col}-50 text-${s.col}-600 flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm`}>
+                   {i === 0 ? <TrendingUp size={28} /> : i === 1 ? <Users size={28} /> : <Zap size={28} />}
+                </div>
+                <div>
+                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 italic leading-none">{s.l}</p>
+                   <p className="text-2xl font-black text-slate-900 tracking-tighter italic">{s.v}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{s.l}</p>
-                <p className="text-xl font-black text-slate-900 tracking-tight">{s.v}</p>
-                <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-tighter">{s.c}</p>
+              <div className="text-[9px] font-black text-slate-400 bg-slate-50 px-2.5 py-1.5 rounded-xl uppercase italic">
+                {s.c}
               </div>
            </div>
-         )) : Array(3).fill(0).map((_, i) => <div key={i} className="animate-pulse bg-slate-100 h-32 rounded-3xl"></div>)}
+         )) : Array(3).fill(0).map((_, i) => <div key={i} className="animate-pulse bg-slate-100 h-28 rounded-3xl"></div>)}
       </div>
 
-      <div className="bg-white rounded-[40px] border border-slate-100 shadow-sm overflow-hidden shadow-slate-200/50">
-        <div className="p-6 border-b border-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-4">
-           <div className="relative group flex-1 max-w-sm">
-             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" size={18} />
+      {/* Analytics Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+         <div className="bg-white p-10 rounded-[56px] border border-slate-100 shadow-2xl shadow-slate-200/50">
+            <div className="flex items-center justify-between mb-10">
+               <div>
+                  <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                     <TrendingUp size={18} className="text-indigo-600" /> MRR Lifecycle Growth
+                  </h3>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1 opacity-60 italic">Monthly Recurring Revenue Projections</p>
+               </div>
+            </div>
+            <div className="h-64 w-full">
+               <ResponsiveContainer width="100%" height={256}>
+                  <AreaChart data={mrrGrowth}>
+                     <defs>
+                        <linearGradient id="colorMRR" x1="0" y1="0" x2="0" y2="1">
+                           <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.1}/>
+                           <stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/>
+                        </linearGradient>
+                     </defs>
+                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                     <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 900, fill: '#94a3b8' }} dy={10} />
+                     <YAxis hide />
+                     <Tooltip contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.1)', fontSize: '11px', fontWeight: '900' }} />
+                     <Area type="monotone" dataKey="mrr" stroke="#4f46e5" strokeWidth={4} fillOpacity={1} fill="url(#colorMRR)" />
+                  </AreaChart>
+               </ResponsiveContainer>
+            </div>
+         </div>
+
+         <div className="bg-slate-900 p-10 rounded-[56px] shadow-2xl shadow-indigo-900/20 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-10 opacity-5 text-white">
+               <PieChartIcon size={140} />
+            </div>
+            <div className="relative z-10 flex items-center justify-between mb-10">
+               <div>
+                  <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">
+                     <Globe size={18} className="text-indigo-400" /> Plan Distribution Matrix
+                  </h3>
+                  <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest mt-1 italic">Enterprise vs Basic Tier Density</p>
+               </div>
+            </div>
+            <div className="h-64 w-full relative z-10">
+               <ResponsiveContainer width="100%" height={256}>
+                  <PieChart>
+                     <Pie
+                        data={tierDistribution}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={80}
+                        paddingAngle={10}
+                        dataKey="value"
+                     >
+                        {tierDistribution.map((entry, index) => (
+                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="rgba(0,0,0,0.1)" strokeWidth={2} />
+                        ))}
+                     </Pie>
+                     <Tooltip 
+                        contentStyle={{ 
+                           borderRadius: '24px', 
+                           border: 'none', 
+                           boxShadow: '0 25px 50px -12px rgb(0 0(0,0,0,0.25)', 
+                           fontSize: '11px', 
+                           fontWeight: '900',
+                           backgroundColor: '#0f172a',
+                           color: 'white'
+                        }} 
+                     />
+                  </PieChart>
+               </ResponsiveContainer>
+            </div>
+         </div>
+      </div>
+
+      <div className="bg-white rounded-[48px] border border-slate-100 shadow-sm overflow-hidden shadow-slate-200/50">
+        <div className="p-8 border-b border-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-6">
+           <div className="relative group flex-1 max-w-md">
+             <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" size={18} />
              <input 
-               placeholder="Search Tenant / Store Name..." 
-               className="w-full bg-slate-50 border-none rounded-2xl pl-12 pr-4 py-3 text-sm font-bold placeholder:text-slate-300 outline-none focus:ring-2 focus:ring-indigo-500/10 transition-all"
+               placeholder="Index Tenant or Tier Hub..." 
+               className="w-full bg-slate-50 border-none rounded-[24px] pl-14 pr-6 py-4 text-xs font-black placeholder:text-slate-300 outline-none focus:ring-4 focus:ring-indigo-500/5 transition-all uppercase tracking-widest italic"
              />
            </div>
            <div className="flex gap-2">
-             <select 
-               value={filterStatus}
-               onChange={(e) => setFilterStatus(e.target.value)}
-               className="bg-slate-50 border-none rounded-xl px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-500 outline-none"
-             >
-                <option value="All Subscriptions">All Status</option>
-                <option value="active">Active</option>
-                <option value="expired">Expired</option>
-                <option value="cancelled">Cancelled</option>
-             </select>
+              <select 
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="bg-slate-50 border-none rounded-[20px] px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500 outline-none focus:ring-4 focus:ring-indigo-500/5 transition-all italic shadow-sm"
+              >
+                 <option value="All Subscriptions">All Monetization Pulsars</option>
+                 <option value="active">Active Nodes</option>
+                 <option value="expired">Expired Hubs</option>
+              </select>
            </div>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50/50">
-                <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Vendor Node</th>
-                <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Active Tier</th>
-                <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Revenue Flow</th>
-                <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Status</th>
-                <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Renewal Date</th>
+              <tr className="bg-slate-50/50 uppercase italic opacity-70">
+                <th className="px-10 py-5 text-[10px] font-black tracking-widest text-slate-400 italic">Tenant Node</th>
+                <th className="px-10 py-5 text-[10px] font-black tracking-widest text-slate-400 italic text-center">Active Lifecycle</th>
+                <th className="px-10 py-5 text-[10px] font-black tracking-widest text-slate-400 italic">Revenue Velocity</th>
+                <th className="px-10 py-5 text-[10px] font-black tracking-widest text-slate-400 italic">Integrity State</th>
+                <th className="px-10 py-5 text-[10px] font-black tracking-widest text-slate-400 text-right italic uppercase tracking-[0.2em]">Renewal Hub</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50 relative">
               {loading && (
                  <tr>
-                    <td colSpan="5" className="py-20 text-center">
-                       <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                    <td colSpan="5" className="py-24 text-center">
+                       <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto shadow-xl shadow-indigo-500/20"></div>
+                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-6 italic animate-pulse">Synchronizing Subscription Mesh...</p>
                     </td>
                  </tr>
               )}
               {subscriptions.map((sub) => (
-                <tr key={sub.id} className="hover:bg-slate-50/50 transition-colors group">
-                  <td className="px-8 py-5">
-                    <div className="flex items-center gap-3">
-                       <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
-                          <Globe size={16} />
+                <tr key={sub.id} className="hover:bg-slate-50/50 transition-all group">
+                  <td className="px-10 py-6">
+                    <div className="flex items-center gap-6">
+                       <div className="w-14 h-14 rounded-2xl bg-slate-50 text-indigo-600 flex items-center justify-center border border-slate-100 shadow-inner group-hover:scale-110 transition-transform">
+                          <Globe size={24} />
                        </div>
-                       <span className="text-xs font-black text-slate-900">{sub.store}</span>
+                       <div>
+                          <p className="text-[11px] font-black text-slate-900 uppercase italic tracking-tighter leading-none mb-2">{sub.store}</p>
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic opacity-60">Verified Tenant Hub</p>
+                       </div>
                     </div>
                   </td>
-                  <td className="px-8 py-5">
-                    <div className="flex items-center gap-2">
-                       <span className="text-xs font-black text-slate-700 italic">{sub.plan}</span>
+                  <td className="px-10 py-6 text-center">
+                    <div className="flex flex-col items-center gap-1.5">
+                       <span className="text-[11px] font-black text-slate-700 uppercase italic leading-none">{sub.plan}</span>
+                       <span className="text-[8px] font-black text-indigo-400 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100/50">Authoritative Tier</span>
                     </div>
                   </td>
-                  <td className="px-8 py-5">
-                    <span className="text-xs font-black text-slate-900 font-mono italic">{sub.price}</span>
+                  <td className="px-10 py-6">
+                    <div className="flex flex-col gap-1.5">
+                       <span className="text-xs font-black text-slate-900 font-mono italic">{sub.price}</span>
+                       <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest italic leading-none opacity-60">Contracted Yield</span>
+                    </div>
                   </td>
-                  <td className="px-8 py-5">
-                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[9px] font-black uppercase tracking-tight ${getStatusColor(sub.status)}`}>
-                        <div className={`w-1 h-1 rounded-full ${sub.status === 'Active' ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                  <td className="px-10 py-6">
+                    <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border shadow-sm ${getStatusStyles(sub.status)}`}>
+                        <div className={`w-1.5 h-1.5 rounded-full ${sub.status === 'Active' ? 'bg-emerald-500' : 'bg-orange-500'} animate-pulse`} />
                         {sub.status}
                     </span>
                   </td>
-                  <td className="px-8 py-5 text-right font-black text-slate-400 text-[10px]">
-                    {sub.renews_at}
+                  <td className="px-10 py-6 text-right relative">
+                    <div className="flex flex-col gap-1 opacity-100 group-hover:opacity-0 transition-all">
+                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic leading-none">{sub.renews_at}</span>
+                       <span className="text-[8px] font-black text-slate-300 uppercase italic opacity-60">{sub.days_remaining} Days to Pulse</span>
+                    </div>
+                    <div className="absolute inset-0 flex items-center justify-end px-10 opacity-0 group-hover:opacity-100 transition-all">
+                       <div className="flex items-center gap-2">
+                          <select 
+                             value={sub.status.toLowerCase()} 
+                             onChange={(e) => handleGovernanceRequest(sub.id, e.target.value)}
+                             className="bg-white border-2 border-slate-50 rounded-xl px-2 py-1.5 text-[10px] font-black text-slate-500 outline-none transition-all cursor-pointer hover:border-indigo-100 italic shadow-sm"
+                          >
+                             <option value="active">Authorize Pulse</option>
+                             <option value="expired">Mark Expired</option>
+                             <option value="cancelled">Rescind Access</option>
+                          </select>
+                          <button className="p-3 bg-white border border-slate-100 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all shadow-xl shadow-slate-200/50">
+                             <CreditCard size={18} />
+                          </button>
+                       </div>
+                    </div>
                   </td>
                 </tr>
               ))}
-              {subscriptions.length === 0 && !loading && (
-                 <tr>
-                    <td colSpan="5" className="px-8 py-20 text-center text-sm font-bold text-slate-400 italic">
-                        No active SaaS subscriptions found.
-                    </td>
-                 </tr>
-              )}
             </tbody>
           </table>
         </div>
 
-        {/* Pagination */ }
-        <div className="p-6 bg-slate-50/50 flex items-center justify-between border-t border-slate-50">
-           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-             {pagination ? `Showing ${pagination.from || 0}-${pagination.to || 0} of ${pagination.total} Results` : 'Loading...'}
+        <div className="p-8 bg-slate-50/20 flex items-center justify-between border-t border-slate-50">
+           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic opacity-60 italic">
+             {pagination ? `${pagination.from || 0}-${pagination.to || 0} of ${pagination.total} Monetization Cycles Indexed` : 'Synchronizing Metadata...'}
            </p>
            {pagination && pagination.last_page > 1 && (
-             <div className="flex gap-1">
+             <div className="flex gap-2">
                {Array.from({ length: Math.min(pagination.last_page, 5) }, (_, i) => {
                   const startPage = Math.max(1, currentPage - 2);
                   const n = startPage + i;
                   if (n > pagination.last_page) return null;
                   return (
-                    <button 
-                        key={n} 
-                        onClick={() => setCurrentPage(n)}
-                        className={`w-8 h-8 rounded-lg text-[10px] font-black shadow-sm transition-all ${n === currentPage ? 'bg-indigo-600 text-white shadow-indigo-500/20' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}
-                      >
-                        {n}
-                      </button>
+                    <button key={n} onClick={() => setCurrentPage(n)} className={`w-10 h-10 rounded-xl text-[10px] font-black shadow-xl transition-all ${n === currentPage ? 'bg-indigo-600 text-white shadow-indigo-900/40' : 'bg-white text-slate-600 border-2 border-slate-50 hover:bg-slate-50 hover:border-slate-100'}`}>{n}</button>
                   );
                })}
              </div>
            )}
         </div>
       </div>
+
+      {/* Monetization Governance Sidebar */}
+      <AnimatePresence>
+        {isAdminActionOpen && (
+           <div className="fixed inset-0 z-[200] flex justify-end bg-slate-900/40 backdrop-blur-sm">
+              <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} className="bg-white w-full max-w-lg h-full shadow-2xl overflow-y-auto flex flex-col uppercase italic">
+                 <div className="p-10 border-b border-slate-50 flex items-center justify-between sticky top-0 bg-white z-10 shadow-sm shadow-slate-100/30">
+                    <div className="flex items-center gap-5">
+                       <div className={`p-4 rounded-[24px] shadow-xl ${actionType === 'active' ? 'bg-emerald-50 text-emerald-600 shadow-emerald-500/10' : 'bg-rose-50 text-rose-600 shadow-rose-500/10'}`}>
+                          <ShieldCheck size={28} />
+                       </div>
+                       <div>
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 italic">Billing Governance</p>
+                          <h2 className="text-2xl font-black text-slate-900 tracking-tight capitalize italic">{actionType} AUTHORIZATION</h2>
+                       </div>
+                    </div>
+                    <button onClick={() => setIsAdminActionOpen(false)} className="w-12 h-12 flex items-center justify-center hover:bg-slate-50 rounded-2xl text-slate-400 transition-all"><X size={28} /></button>
+                 </div>
+
+                 <div className="p-10 space-y-10 flex-1">
+                    <div className="p-8 bg-slate-50 rounded-[44px] border border-slate-100 space-y-6">
+                       <div className="flex items-center gap-4">
+                          <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-indigo-500 shadow-sm border border-slate-100">
+                             <Mail size={20} />
+                          </div>
+                          <div>
+                             <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest italic leading-none mb-1">Billing Dispatch</p>
+                             <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest opacity-60 italic leading-none">Select Engagement Protocol</p>
+                          </div>
+                       </div>
+                       <select value={selectedTemplateId} onChange={(e) => setSelectedTemplateId(e.target.value)} className="w-full bg-white border-2 border-slate-100 rounded-[20px] px-6 py-4 text-[11px] font-black text-slate-600 outline-none focus:ring-4 focus:ring-indigo-500/5 transition-all shadow-xl shadow-slate-200/50 uppercase tracking-[0.1em] italic">
+                          <option value="">Awaiting Monetization Protocol...</option>
+                          {adminTemplates.map(t => (
+                            <option key={t.id} value={t.id}>{t.name}</option>
+                          ))}
+                       </select>
+                       
+                       {selectedTemplateId && adminTemplates.find(t => t.id === String(selectedTemplateId)) && (
+                         <div className="mt-6 p-6 bg-white rounded-[28px] border border-indigo-50 animate-in fade-in zoom-in-95 shadow-sm">
+                            <div className="flex items-center gap-2 mb-3">
+                               <ShieldCheck size={14} className="text-indigo-500" />
+                               <p className="text-[9px] font-black text-indigo-500 uppercase tracking-widest italic leading-none">Draft Dispatch Preview</p>
+                            </div>
+                            <p className="text-xs text-slate-500 whitespace-pre-wrap leading-relaxed italic font-medium opacity-80">{adminTemplates.find(t => t.id === String(selectedTemplateId)).body}</p>
+                         </div>
+                       )}
+                    </div>
+
+                    <div className="p-8 bg-indigo-50 rounded-[32px] border border-indigo-100 flex items-start gap-5">
+                       <Zap size={24} className="text-indigo-600 shrink-0 mt-1 shadow-sm" />
+                       <div>
+                          <p className="text-[12px] font-black text-indigo-900 uppercase tracking-widest mb-1.5 leading-none">Monetization Policy Pulse</p>
+                          <p className="text-[10px] text-indigo-700 font-black leading-relaxed tracking-tight uppercase opacity-50 italic">Authorizing this lifecycle transition will immediately synchronize the tenant's access state and dispatch a professional billing notice to the Hub owner's primary endpoint. This action is recorded in the integrity mesh.</p>
+                       </div>
+                    </div>
+                 </div>
+
+                 <div className="p-10 border-t border-slate-50 bg-white sticky bottom-0">
+                    <button onClick={executeAdminAction} disabled={!selectedTemplateId || loading} className={`w-full py-5 rounded-[24px] text-xs font-black shadow-2xl transition-all flex items-center justify-center gap-4 ${actionType === 'active' ? 'bg-indigo-600 text-white shadow-indigo-500/30' : 'bg-slate-900 text-white shadow-slate-900/30'} disabled:opacity-20 disabled:grayscale hover:scale-[1.02] active:scale-95 uppercase tracking-widest italic`}>
+                       {loading ? <Loader2 size={18} className="animate-spin" /> : <ShieldCheck size={20} />}
+                       {loading ? 'Dispatching Protocol...' : 'Authorize Lifecycle Decision'}
+                    </button>
+                    <button onClick={() => setIsAdminActionOpen(false)} className="w-full mt-6 py-4 rounded-xl text-[10px] font-black text-slate-400 hover:text-rose-500 transition-all uppercase tracking-[0.2em] italic">Discard Authorization</button>
+                 </div>
+              </motion.div>
+           </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

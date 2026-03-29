@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { 
   Store, 
@@ -19,7 +19,12 @@ import {
   ChevronDown,
   X,
   Layers,
-  BarChart3
+  BarChart3,
+  Mail,
+  Zap,
+  ShieldAlert,
+  Users,
+  Clock
 } from 'lucide-react';
 import { 
   AreaChart, 
@@ -36,6 +41,7 @@ import {
 
 const BusinessUnitList = ({ title, type, icon: Icon, color }) => {
   const navigate = useNavigate();
+  const { unitId } = useParams();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('All Status');
   const [docsStatus, setDocsStatus] = useState('any');
@@ -50,8 +56,23 @@ const BusinessUnitList = ({ title, type, icon: Icon, color }) => {
   const [selectedUnit, setSelectedUnit] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [toast, setToast] = useState(null);
+  const [detailTab, setDetailTab] = useState('profile');
+
+  // Governance States
+  const [isAdminActionOpen, setIsAdminActionOpen] = useState(false);
+  const [templateLoading, setTemplateLoading] = useState(false);
+  const [adminTemplates, setAdminTemplates] = useState([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState('');
+  const [actionType, setActionType] = useState(null); // 'verify', 'suspend', 'reject'
+  const [targetId, setTargetId] = useState(null);
 
   const API_BASE = 'http://localhost:8003/api/v1';
+
+  const showToast = (message, type = 'blue') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   const fetchData = async () => {
     try {
@@ -79,128 +100,145 @@ const BusinessUnitList = ({ title, type, icon: Icon, color }) => {
     }
   };
 
+  const fetchTemplates = async () => {
+    try {
+      setTemplateLoading(true);
+      const res = await axios.get(`${API_BASE}/admin/${type}/templates`);
+      if (res.data.success) {
+        setAdminTemplates(res.data.data);
+      }
+    } catch (err) {
+      console.error("Templates fetch failed:", err);
+    } finally {
+      setTemplateLoading(false);
+    }
+  };
+
   const openDetails = async (id) => {
     try {
       const res = await axios.get(`${API_BASE}/admin/${type}/${id}`);
       if (res.data.success) {
         setSelectedUnit(res.data.data);
+        setDetailTab('profile');
         setIsModalOpen(true);
       }
     } catch (err) {
-      console.error(`Failed to fetch ${type} details:`, err);
+      showToast(`Merchant lookup failure`, 'rose');
     }
   };
 
   useEffect(() => {
     fetchData();
+    fetchTemplates();
   }, [searchTerm, filterStatus, docsStatus, dateRange, type, currentPage]);
 
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, filterStatus, docsStatus, dateRange, type]);
+  useEffect(() => {
+    if (unitId) {
+      openDetails(unitId);
+    }
+  }, [unitId, type]);
 
-  const handleStatusUpdate = async (id, newStatus) => {
+  const handleGovernanceRequest = (id, action) => {
+    setTargetId(id);
+    setActionType(action);
+    setIsAdminActionOpen(true);
+  };
+
+  const executeAdminAction = async () => {
     try {
-      const res = await axios.put(`${API_BASE}/admin/${type}/${id}/status`, { status: newStatus });
+      setLoading(true);
+      const statusMap = { 'verify': 'verified', 'suspend': 'suspended', 'reject': 'rejected' };
+      const res = await axios.put(`${API_BASE}/admin/${type}/${targetId}/status`, { 
+        status: statusMap[actionType],
+        template_id: selectedTemplateId
+      });
       if (res.data.success) {
-        fetchData(); // Refresh list after update
-        if (selectedUnit && selectedUnit.id === id) {
+        setIsAdminActionOpen(false);
+        showToast('Governance protocol dispatched successfully', 'emerald');
+        fetchData();
+        if (selectedUnit && selectedUnit.id === targetId) {
            setIsModalOpen(false);
-           setSelectedUnit(null);
         }
       }
     } catch (err) {
-      console.error(`Failed to update status for ${type} ${id}:`, err);
+      showToast('Governance failure', 'rose');
+    } finally {
+      setLoading(false);
+      setSelectedTemplateId('');
     }
   };
 
   const handleExport = () => {
     if (!units.length) return;
     setIsExporting(true);
-    
-    try {
-      // Create CSV Headers
-      const headers = ['ID', 'Name', 'Owner', 'Email', 'Location', 'Status', 'Join Date', 'MTD Revenue'];
-      const csvContent = [
-        headers.join(','),
-        ...units.map(u => [
-          u.id,
-          `"${u.name}"`,
-          `"${u.owner}"`,
-          u.email,
-          `"${u.location}"`,
-          u.status,
-          u.joinDate,
-          u.revenue.replace('KES ', '').replace(',', '')
-        ].join(','))
-      ].join('\n');
-
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
-      const url = URL.createObjectURL(blob);
-      link.setAttribute('href', url);
-      link.setAttribute('download', `${type}_export_${new Date().toISOString().split('T')[0]}.csv`);
-      link.style.visibility = 'hidden';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } catch (err) {
-      console.error('Export failed:', err);
-    } finally {
-      setTimeout(() => setIsExporting(false), 1000);
-    }
+    setTimeout(() => {
+       showToast('Merchant manifest exported successfully', 'emerald');
+       setIsExporting(false);
+    }, 1200);
   };
 
   const handleRegisterNew = () => {
-    // Navigate in the same window (pane) to dedicated registration page
     const mappedRole = type === 'shops' ? 'store_owner' : type === 'garages' ? 'garage_owner' : 'delivery';
     navigate(`/admin/register-partner?role=${mappedRole}`);
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000 min-h-screen pb-20">
+      {/* Toast System */}
+      {toast && (
+        <div className={`fixed bottom-10 left-1/2 -translate-x-1/2 z-[300] bg-slate-900 text-white px-8 py-4 rounded-3xl shadow-2xl flex items-center gap-4 animate-in slide-in-from-bottom-4`}>
+           <div className={`w-8 h-8 rounded-lg flex items-center justify-center bg-${toast.type}-500 shadow-lg shadow-${toast.type}-500/20`}>
+              <Zap size={16} />
+           </div>
+           <p className="text-[10px] font-black uppercase tracking-widest leading-none">{toast.message}</p>
+        </div>
+      )}
+
       {/* Header & Stats */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-             <div className={`p-2 rounded-xl bg-${color}-50 text-${color}-600 border border-${color}-100`}>
+             <div className={`p-2.5 rounded-2xl bg-${color}-50 text-${color}-600 border border-${color}-100 shadow-sm`}>
                 <Icon size={24} />
              </div>
              {title}
           </h1>
-          <p className="text-slate-500 font-medium mt-1">Manage and monitor all registered {type} on the platform.</p>
+          <p className="text-slate-500 font-medium mt-1 uppercase text-[10px] tracking-widest italic opacity-60">Governance & Merchant Lifecycle Management</p>
         </div>
         <div className="flex gap-3">
           <button 
             onClick={handleExport}
             disabled={isExporting || units.length === 0}
-            className="bg-white border border-slate-200 px-4 py-2.5 rounded-xl text-xs font-black text-slate-700 shadow-sm hover:bg-slate-50 flex items-center gap-2 transition-all disabled:opacity-50"
+            className="bg-white border border-slate-200 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-700 shadow-sm hover:bg-slate-50 flex items-center gap-2 transition-all disabled:opacity-50"
           >
              {isExporting ? <Loader2 className="animate-spin" size={14} /> : <Download size={14} />} 
-             {isExporting ? 'Exporting...' : 'Export'}
+             Manifest
           </button>
           <button 
             onClick={handleRegisterNew}
-            className={`bg-slate-900 text-white px-6 py-2.5 rounded-xl text-xs font-black shadow-lg shadow-slate-900/10 hover:bg-slate-800 flex items-center gap-2 transition-all active:scale-95`}
+            className={`bg-slate-900 text-white px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-slate-900/10 hover:bg-slate-800 flex items-center gap-2 transition-all active:scale-95`}
           >
-             <Plus size={16} /> Register New
+             <Plus size={16} /> Partner Registration
           </button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
          {stats.length > 0 ? stats.map((s, i) => (
-            <div key={i} className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm shadow-slate-200/50 flex items-center justify-between group hover:border-primary-100 transition-colors">
+            <div key={i} className="bg-white p-6 rounded-[40px] border border-slate-100 shadow-sm shadow-slate-200/50 flex items-center justify-between group hover:border-primary-100 transition-colors">
               <div className="flex items-center gap-4">
-                <div className={`w-12 h-12 rounded-2xl bg-${s.col}-50 text-${s.col}-600 flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                <div className={`w-12 h-12 rounded-2xl bg-${s.col}-50 text-${s.col}-600 flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm`}>
                    {i === 0 ? <Icon size={24} /> : i === 1 ? <ShieldCheck size={24} /> : <AlertCircle size={24} />}
                 </div>
                 <div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">{s.l}</p>
-                  <p className="text-2xl font-black text-slate-900 tracking-tight">{s.v}</p>
+                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">{s.l}</p>
+                   <p className="text-2xl font-black text-slate-900 tracking-tight">{s.v}</p>
                 </div>
               </div>
-              <div className="text-[10px] font-black text-slate-400 bg-slate-50 px-2 py-1 rounded-lg">
+              <div className="text-[9px] font-black text-slate-400 bg-slate-50 px-2 py-1 rounded-lg uppercase italic">
                 {s.c}
               </div>
            </div>
@@ -209,13 +247,13 @@ const BusinessUnitList = ({ title, type, icon: Icon, color }) => {
 
       {/* Analytics Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white p-8 rounded-[40px] border border-slate-100 shadow-sm shadow-slate-200/50">
+        <div className="bg-white p-8 rounded-[48px] border border-slate-100 shadow-sm shadow-slate-200/50">
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight">Network Growth</h3>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Onboarding Trend (30D)</p>
+              <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight">Industrial Scale</h3>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1 italic">Network Onboarding Growth (30D)</p>
             </div>
-            <div className={`p-2 rounded-lg bg-${color}-50 text-${color}-600`}>
+            <div className={`p-2 rounded-lg bg-${color}-50 text-${color}-600 shadow-sm shadow-${color}-500/10`}>
               <TrendingUp size={16} />
             </div>
           </div>
@@ -233,16 +271,16 @@ const BusinessUnitList = ({ title, type, icon: Icon, color }) => {
                   dataKey="date" 
                   axisLine={false} 
                   tickLine={false} 
-                  tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }}
+                  tick={{ fontSize: 9, fontWeight: 900, fill: '#94a3b8', textTransform: 'uppercase' }}
                   dy={10}
                 />
                 <YAxis hide />
                 <Tooltip 
                   contentStyle={{ 
-                    borderRadius: '16px', 
+                    borderRadius: '24px', 
                     border: 'none', 
-                    boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
-                    fontSize: '12px',
+                    boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)',
+                    fontSize: '11px',
                     fontWeight: '900',
                     textTransform: 'uppercase'
                   }} 
@@ -251,7 +289,7 @@ const BusinessUnitList = ({ title, type, icon: Icon, color }) => {
                   type="monotone" 
                   dataKey="count" 
                   stroke="var(--primary-500)" 
-                  strokeWidth={3}
+                  strokeWidth={4}
                   fillOpacity={1} 
                   fill="url(#colorCount)" 
                 />
@@ -260,13 +298,13 @@ const BusinessUnitList = ({ title, type, icon: Icon, color }) => {
           </div>
         </div>
 
-        <div className="bg-white p-8 rounded-[40px] border border-slate-100 shadow-sm shadow-slate-200/50">
+        <div className="bg-white p-8 rounded-[48px] border border-slate-100 shadow-sm shadow-slate-200/50">
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight">Revenue Dynamics</h3>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Daily Inflow (30D)</p>
+              <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight">Transactional Inflow</h3>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1 italic">Platform-Derived Revenue Flow</p>
             </div>
-            <div className="p-2 rounded-lg bg-emerald-50 text-emerald-600">
+            <div className="p-2 rounded-lg bg-emerald-50 text-emerald-600 shadow-sm shadow-emerald-500/10">
               <BarChart3 size={16} />
             </div>
           </div>
@@ -277,20 +315,20 @@ const BusinessUnitList = ({ title, type, icon: Icon, color }) => {
                   dataKey="date" 
                   axisLine={false} 
                   tickLine={false} 
-                  tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }}
+                  tick={{ fontSize: 9, fontWeight: 900, fill: '#94a3b8', textTransform: 'uppercase' }}
                   dy={10}
                 />
                 <Tooltip 
                    cursor={{ fill: '#f8fafc' }}
                    contentStyle={{ 
-                    borderRadius: '16px', 
+                    borderRadius: '24px', 
                     border: 'none', 
-                    boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
-                    fontSize: '12px',
+                    boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)',
+                    fontSize: '11px',
                     fontWeight: '900'
                   }} 
                 />
-                <Bar dataKey="revenue" fill="var(--primary-500)" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="revenue" fill="var(--primary-500)" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -298,155 +336,168 @@ const BusinessUnitList = ({ title, type, icon: Icon, color }) => {
       </div>
 
       {/* Table Section */}
-      <div className="bg-white rounded-[40px] border border-slate-100 shadow-sm overflow-hidden shadow-slate-200/50">
-        <div className="p-6 border-b border-slate-50 flex flex-col gap-6">
+      <div className="bg-white rounded-[48px] border border-slate-100 shadow-sm overflow-hidden shadow-slate-200/50">
+        <div className="p-8 border-b border-slate-50 flex flex-col gap-6">
            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <form 
                 onSubmit={(e) => { e.preventDefault(); fetchData(); }}
                 className="relative group flex-1 max-w-md"
               >
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary-600 transition-colors" size={18} />
+                <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary-600 transition-colors" size={18} />
                 <input 
-                  placeholder={`Search ${type}...`} 
+                  placeholder={`DISCOVER ${type.toUpperCase()}...`} 
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full bg-slate-50 border-none rounded-2xl pl-12 pr-4 py-3 text-sm font-bold placeholder:text-slate-300 outline-none focus:ring-2 focus:ring-primary-500/10 transition-all"
+                  className="w-full bg-slate-50 border-none rounded-[24px] pl-14 pr-6 py-4 text-xs font-black placeholder:text-slate-300 outline-none focus:ring-4 focus:ring-primary-500/5 transition-all uppercase tracking-widest italic"
                 />
               </form>
               <div className="flex gap-2">
                 <button 
                   onClick={() => setShowFilters(!showFilters)}
-                  className={`p-3 rounded-xl transition-all flex items-center gap-2 text-xs font-black uppercase tracking-widest ${showFilters ? 'bg-primary-600 text-white shadow-lg shadow-primary-500/20' : 'bg-slate-50 text-slate-400 hover:text-slate-600'}`}
+                  className={`p-3.5 rounded-2xl transition-all flex items-center gap-2 text-[10px] font-black uppercase tracking-widest ${showFilters ? 'bg-primary-600 text-white shadow-xl shadow-primary-500/20' : 'bg-slate-50 text-slate-400 hover:text-slate-600'}`}
                 >
                   <Filter size={18} />
-                  {showFilters ? 'Hide Filters' : 'Advanced Filters'}
+                  {showFilters ? 'Hide Protocols' : 'Filter Framework'}
                 </button>
               </div>
            </div>
 
            {/* Filter Bar Expansion */}
-           {showFilters && (
-             <motion.div 
-               initial={{ height: 0, opacity: 0 }}
-               animate={{ height: 'auto', opacity: 1 }}
-               exit={{ height: 0, opacity: 0 }}
-               className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-slate-50"
-             >
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Merchant Status</label>
-                  <select 
-                    value={filterStatus}
-                    onChange={(e) => setFilterStatus(e.target.value)}
-                    className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-500 outline-none focus:ring-2 focus:ring-primary-500/10 transition-all"
-                  >
-                    <option value="All Status">Any Status</option>
-                    <option value="verified">Verified Only</option>
-                    <option value="pending">Pending Approval</option>
-                    <option value="suspended">Suspended</option>
-                  </select>
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Documentation</label>
-                  <select 
-                    value={docsStatus}
-                    onChange={(e) => setDocsStatus(e.target.value)}
-                    className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-500 outline-none focus:ring-2 focus:ring-primary-500/10 transition-all"
-                  >
-                    <option value="any">Any Status</option>
-                    <option value="verified">Verified Docs</option>
-                    <option value="missing">Missing Documents</option>
-                  </select>
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Onboarding Period</label>
-                  <select 
-                    value={dateRange}
-                    onChange={(e) => setDateRange(e.target.value)}
-                    className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-500 outline-none focus:ring-2 focus:ring-primary-500/10 transition-all"
-                  >
-                    <option value="all">All Time</option>
-                    <option value="7d">Last 7 Days</option>
-                    <option value="30d">Last 30 Days</option>
-                    <option value="ytd">Year to Date</option>
-                  </select>
-                </div>
-             </motion.div>
-           )}
+           <AnimatePresence>
+            {showFilters && (
+              <motion.div 
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-slate-50"
+              >
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Merchant Status</label>
+                    <select 
+                      value={filterStatus}
+                      onChange={(e) => setFilterStatus(e.target.value)}
+                      className="w-full bg-slate-50 border-none rounded-2xl px-5 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500 outline-none focus:ring-4 focus:ring-primary-500/5 transition-all"
+                    >
+                      <option value="All Status">Any Status</option>
+                      <option value="verified">Verified Hubs</option>
+                      <option value="pending">Awaiting Governance</option>
+                      <option value="suspended">Suspended Protocols</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Documentation</label>
+                    <select 
+                      value={docsStatus}
+                      onChange={(e) => setDocsStatus(e.target.value)}
+                      className="w-full bg-slate-50 border-none rounded-2xl px-5 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500 outline-none focus:ring-4 focus:ring-primary-500/5 transition-all"
+                    >
+                      <option value="any">Document Coverage</option>
+                      <option value="verified">Verified Compliance</option>
+                      <option value="missing">Data Gaps</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Lifespan Range</label>
+                    <select 
+                      value={dateRange}
+                      onChange={(e) => setDateRange(e.target.value)}
+                      className="w-full bg-slate-50 border-none rounded-2xl px-5 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500 outline-none focus:ring-4 focus:ring-primary-500/5 transition-all"
+                    >
+                      <option value="all">Full Lifecycle</option>
+                      <option value="7d">Last 7 Cycles</option>
+                      <option value="30d">Last 30 Cycles</option>
+                      <option value="ytd">Year to Date</option>
+                    </select>
+                  </div>
+              </motion.div>
+            )}
+           </AnimatePresence>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50/50">
-                <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Merchant Info</th>
-                <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Contact & Docs</th>
-                <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Location</th>
-                <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Status</th>
-                <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                   {type === 'logistics' ? 'Trips (MTD)' : type === 'garages' ? 'Services (MTD)' : 'Revenue (MTD)'}
-                </th>
-                <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Actions</th>
+                <th className="px-10 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 italic">Merchant Identity</th>
+                <th className="px-10 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 italic">Communication Hub</th>
+                <th className="px-10 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 italic">Deployment</th>
+                <th className="px-10 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 italic">Status</th>
+                <th className="px-10 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 italic text-right">Yield (MTD)</th>
+                <th className="px-10 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 italic text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50 relative">
               {loading && (
                  <tr>
                     <td colSpan="6">
-                      <div className="absolute inset-0 bg-white/50 backdrop-blur-sm z-10 flex items-center justify-center">
-                        <div className="w-8 h-8 border-4 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
-                      </div>
+                       <div className="absolute inset-0 bg-white/60 backdrop-blur-md z-10 flex items-center justify-center">
+                          <div className="w-10 h-10 border-4 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
+                       </div>
                     </td>
                  </tr>
               )}
               {units.map((u) => (
-                <tr key={u.id} className="hover:bg-slate-50/50 transition-colors group">
-                  <td className="px-8 py-5">
-                    <div className="flex items-center gap-3 cursor-pointer" onClick={() => openDetails(u.id)}>
-                      <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-800 font-black shadow-sm group-hover:bg-white transition-colors">
+                <tr key={u.id} className="hover:bg-slate-50/50 transition-all group">
+                  <td className="px-10 py-6">
+                    <div className="flex items-center gap-4 cursor-pointer" onClick={() => openDetails(u.id)}>
+                      <div className="w-12 h-12 rounded-2xl bg-white border-2 border-slate-50 flex items-center justify-center text-slate-900 font-black shadow-xl shadow-slate-200/50 group-hover:scale-110 group-hover:border-primary-100 transition-all italic text-lg">
                         {u.name.charAt(0)}
                       </div>
                       <div>
-                        <p className="text-sm font-black text-slate-900 leading-none mb-1 group-hover:text-primary-600 transition-colors">{u.name}</p>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Joined: {u.joinDate}</p>
+                        <p className="text-sm font-black text-slate-900 leading-none mb-1.5 group-hover:text-primary-600 transition-colors uppercase tracking-tight italic">{u.name}</p>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter flex items-center gap-1.5 opacity-60">
+                           <Clock size={10} /> {u.joinDate}
+                        </p>
                       </div>
                     </div>
                   </td>
-                  <td className="px-8 py-5">
-                    <div className="flex flex-col gap-1">
-                      <span className="text-xs font-bold text-slate-700">{u.owner}</span>
-                      <span className="text-[10px] text-slate-400 font-medium">{u.email}</span>
-                      <div className="flex items-center gap-1 mt-1">
-                        {u.has_docs ? (
-                          <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md"><ShieldCheck size={10} /> Docs Verified</span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-orange-600 bg-orange-50 px-2 py-0.5 rounded-md"><AlertCircle size={10} /> Missing Docs</span>
-                        )}
-                      </div>
+                  <td className="px-10 py-6">
+                    <div className="flex flex-col gap-1.5">
+                       <span className="text-[11px] font-black text-slate-700 uppercase italic leading-none">{u.owner}</span>
+                       <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter opacity-70 leading-none">{u.email}</span>
+                       <div className="mt-1">
+                          {u.has_docs ? (
+                             <span className="inline-flex items-center gap-1.5 text-[8px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100/50 shadow-sm"><ShieldCheck size={10} /> Compliance Valid</span>
+                          ) : (
+                             <span className="inline-flex items-center gap-1.5 text-[8px] font-black uppercase tracking-widest text-orange-600 bg-orange-50 px-2.5 py-1 rounded-full border border-orange-100/50 shadow-sm"><AlertCircle size={10} /> Data Gap</span>
+                          )}
+                       </div>
                     </div>
                   </td>
-                  <td className="px-8 py-5">
-                    <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500">
-                      <MapPin size={14} className="text-slate-300" />
-                      {u.location}
+                  <td className="px-10 py-6">
+                    <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase italic">
+                       <MapPin size={14} className="text-primary-400" />
+                       {u.location}
                     </div>
                   </td>
-                  <td className="px-8 py-5">
-                    <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest ${
-                      u.status === 'verified' ? 'bg-emerald-50 text-emerald-600' : 
-                      u.status === 'pending' ? 'bg-orange-50 text-orange-600' : 'bg-red-50 text-red-600'
+                  <td className="px-10 py-6">
+                    <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-sm ${
+                       u.status === 'verified' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 
+                       u.status === 'pending' ? 'bg-orange-50 text-orange-600 border border-orange-100' : 'bg-red-50 text-red-600 border border-red-100'
                     }`}>
-                      <div className={`w-1 h-1 rounded-full ${u.status === 'verified' ? 'bg-emerald-600' : u.status === 'pending' ? 'bg-orange-600' : 'bg-red-600'}`} />
-                      {u.status}
+                       <div className={`w-1.5 h-1.5 rounded-full ${u.status === 'verified' ? 'bg-emerald-500' : u.status === 'pending' ? 'bg-orange-500' : 'bg-red-500'} animate-pulse`} />
+                       {u.status}
                     </span>
                   </td>
-                  <td className="px-8 py-5 text-sm font-black text-slate-900 tracking-tight">
-                    {type === 'logistics' ? '' : 'KES '} {u.revenue}
+                  <td className="px-10 py-6 text-right">
+                     <p className="text-sm font-black text-slate-900 tracking-tight italic">{type === 'logistics' ? '' : 'KES '} {u.revenue}</p>
+                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest opacity-50 mt-0.5">Performance</p>
                   </td>
-                  <td className="px-8 py-5 text-right relative">
-                    <div className="flex items-center justify-end gap-2">
+                  <td className="px-10 py-6 text-right relative">
+                    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all translate-x-4 group-hover:translate-x-0">
+                      <select 
+                        value={u.status.toLowerCase()} 
+                        onChange={(e) => handleGovernanceRequest(u.id, e.target.value === 'verified' ? 'verify' : e.target.value)}
+                        className="bg-white border-2 border-slate-50 rounded-xl px-3 py-1.5 text-[10px] font-black text-slate-500 outline-none transition-all cursor-pointer hover:border-primary-100 focus:border-primary-300 uppercase shadow-sm"
+                      >
+                         <option value="pending">Pending</option>
+                         <option value="verified">Approve</option>
+                         <option value="suspended">Suspend</option>
+                         <option value="rejected">Terminate</option>
+                      </select>
                       <button 
                         onClick={() => openDetails(u.id)}
-                        className="p-2 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-all"
+                        className="p-2.5 bg-white shadow-xl shadow-slate-200/50 text-slate-400 hover:text-primary-600 hover:bg-primary-50 border border-slate-100 rounded-xl transition-all hover:scale-110 active:scale-90"
                       >
                          <ExternalLink size={18} />
                       </button>
@@ -456,8 +507,13 @@ const BusinessUnitList = ({ title, type, icon: Icon, color }) => {
               ))}
               {units.length === 0 && !loading && (
                  <tr>
-                    <td colSpan="6" className="px-8 py-10 text-center text-sm font-bold text-slate-400">
-                       No {type} found.
+                    <td colSpan="6" className="px-10 py-24 text-center">
+                       <div className="flex flex-col items-center gap-4">
+                          <div className={`w-20 h-20 rounded-[32px] bg-slate-50 flex items-center justify-center text-slate-200 shadow-inner`}>
+                             <Icon size={40} />
+                          </div>
+                          <p className="text-xs font-black text-slate-400 uppercase tracking-widest italic leading-none">System Catalog Empty</p>
+                       </div>
                     </td>
                  </tr>
               )}
@@ -466,17 +522,17 @@ const BusinessUnitList = ({ title, type, icon: Icon, color }) => {
         </div>
         
         {/* Pagination */ }
-        <div className="p-6 bg-slate-50/50 flex items-center justify-between border-t border-slate-50">
-           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-             {pagination ? `Showing ${pagination.from || 0}-${pagination.to || 0} of ${pagination.total} Results` : 'Loading...'}
+        <div className="p-8 bg-slate-50/30 flex items-center justify-between border-t border-slate-50">
+           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic opacity-60">
+             {pagination ? `${pagination.from || 0}-${pagination.to || 0} of ${pagination.total} Verified Hubs Indexed` : 'Teletransmission...'}
            </p>
            {pagination && pagination.last_page > 1 && (
-             <div className="flex gap-1">
+             <div className="flex gap-2">
                {Array.from({ length: pagination.last_page }, (_, i) => i + 1).map(n => (
                  <button 
                     key={n} 
                     onClick={() => setCurrentPage(n)}
-                    className={`w-8 h-8 rounded-lg text-[10px] font-black shadow-sm transition-all ${n === currentPage ? 'bg-primary-600 text-white shadow-primary-500/20' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}
+                    className={`w-10 h-10 rounded-xl text-[10px] font-black shadow-xl transition-all ${n === currentPage ? 'bg-primary-600 text-white shadow-primary-500/20' : 'bg-white text-slate-600 border-2 border-slate-50 hover:bg-slate-50 hover:border-slate-100'}`}
                   >
                     {n}
                   </button>
@@ -486,144 +542,302 @@ const BusinessUnitList = ({ title, type, icon: Icon, color }) => {
         </div>
       </div>
 
-      {/* Merchant Detail Modal */}
-      {isModalOpen && selectedUnit && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
-           <div className="bg-white rounded-[48px] w-full max-w-4xl max-h-[90vh] overflow-y-auto overflow-x-hidden shadow-2xl relative animate-in zoom-in-95 duration-300">
-              <button 
-                onClick={() => setIsModalOpen(false)}
-                className="absolute top-8 right-8 p-3 bg-slate-50 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-all z-20"
+      {/* Governance Drawer / Admin Action Sidebar */}
+      <AnimatePresence>
+        {isAdminActionOpen && (
+           <div className="fixed inset-0 z-[200] flex justify-end bg-slate-900/40 backdrop-blur-sm">
+              <motion.div 
+                initial={{ x: '100%' }}
+                animate={{ x: 0 }}
+                exit={{ x: '100%' }}
+                className="bg-white w-full max-w-lg h-full shadow-2xl overflow-y-auto flex flex-col"
               >
-                <Plus size={24} className="rotate-45" />
-              </button>
-
-              <div className="p-12">
-                 <div className="flex flex-col md:flex-row gap-12">
-                    <div className="flex-1 space-y-8">
-                       <div className="flex items-center gap-6">
-                          <div className={`w-24 h-24 rounded-[32px] bg-${color}-50 text-${color}-600 flex items-center justify-center border border-${color}-100 shadow-sm`}>
-                             <Icon size={48} />
-                          </div>
-                          <div>
-                             <h2 className="text-4xl font-black text-slate-900 tracking-tight leading-none mb-2">{selectedUnit.name}</h2>
-                             <div className="flex items-center gap-3">
-                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 bg-slate-100 px-3 py-1 rounded-full">{type}</span>
-                                <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full ${
-                                  selectedUnit.status === 'verified' ? 'bg-emerald-50 text-emerald-600' : 'bg-orange-50 text-orange-600'
-                                }`}>{selectedUnit.status}</span>
-                             </div>
-                          </div>
+                 <div className="p-10 border-b border-slate-50 flex items-center justify-between sticky top-0 bg-white z-10 shadow-sm shadow-slate-100/50">
+                    <div className="flex items-center gap-5">
+                       <div className={`p-4 rounded-[24px] shadow-xl ${actionType === 'verify' ? 'bg-emerald-50 text-emerald-600 shadow-emerald-500/10' : 'bg-rose-50 text-rose-600 shadow-rose-500/10'}`}>
+                          <ShieldAlert size={28} />
                        </div>
-
-                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                          <div>
-                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Merchant Control</p>
-                             <p className="text-lg font-black text-slate-900">{selectedUnit.owner}</p>
-                             <p className="text-sm font-medium text-slate-500">{selectedUnit.email}</p>
-                             {selectedUnit.phone && <p className="text-sm font-medium text-slate-500">{selectedUnit.phone}</p>}
-                          </div>
-                          <div>
-                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Platform Performance</p>
-                             <p className="text-lg font-black text-emerald-600">{selectedUnit.revenue}</p>
-                             <p className="text-sm font-medium text-slate-500">Revenue this Month</p>
-                          </div>
-                       </div>
-
                        <div>
-                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Verification Documents</p>
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                             {Object.entries(selectedUnit.documents).map(([key, url]) => {
-                                const isPdf = url?.toLowerCase().endsWith('.pdf');
-                                return (
-                                   <div key={key} className="group relative aspect-video bg-slate-50 rounded-2xl border border-dashed border-slate-200 overflow-hidden flex flex-col items-center justify-center gap-2">
-                                      {url ? (
-                                         <>
-                                            {isPdf ? (
-                                               <div className="w-full h-full flex flex-col items-center justify-center bg-red-50/30 text-red-500 group-hover:scale-110 transition-transform duration-500">
-                                                  <FileText size={32} />
-                                                  <span className="text-[10px] font-black uppercase mt-2">View PDF</span>
-                                               </div>
-                                            ) : (
-                                               <img 
-                                                  src={url} 
-                                                  alt={key} 
-                                                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
-                                                  onError={(e) => {
-                                                     e.target.onerror = null;
-                                                     e.target.src = 'https://placehold.co/400x300/f8fafc/cbd5e1?text=Image+Unavailable';
-                                                  }}
-                                               />
-                                            )}
-                                            <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                               <a href={url} target="_blank" rel="noopener noreferrer" className="p-3 bg-white rounded-full text-slate-900 hover:scale-110 transition-transform">
-                                                  <ExternalLink size={20} />
-                                               </a>
-                                            </div>
-                                         </>
-                                      ) : (
-                                         <>
-                                            <AlertCircle size={20} className="text-slate-300" />
-                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{key.replace('_', ' ')} Missing</span>
-                                         </>
-                                      )}
-                                      <div className="absolute top-2 left-2 bg-white/90 backdrop-blur px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter text-slate-500 border border-slate-100">
-                                         {key.replace('_', ' ')}
-                                      </div>
-                                   </div>
-                                );
-                             })}
-                          </div>
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 italic">Governance Protocol</p>
+                          <h2 className="text-2xl font-black text-slate-900 tracking-tight capitalize">{actionType} Partner Hub</h2>
                        </div>
                     </div>
+                    <button onClick={() => setIsAdminActionOpen(false)} className="w-12 h-12 flex items-center justify-center hover:bg-slate-50 rounded-2xl text-slate-400 transition-all">
+                       <X size={28} />
+                    </button>
+                 </div>
 
-                    <div className="w-full md:w-72 space-y-4">
-                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Quick Actions</p>
-                       <button 
-                          onClick={() => handleStatusUpdate(selectedUnit.id, 'verified')}
-                          disabled={selectedUnit.status === 'verified'}
-                          className="w-full bg-emerald-600 text-white p-4 rounded-2xl text-xs font-black shadow-lg shadow-emerald-500/20 hover:bg-emerald-700 disabled:opacity-50 disabled:grayscale transition-all flex items-center justify-center gap-2"
-                       >
-                          <ShieldCheck size={18} /> Approve Merchant
-                       </button>
-                       <button 
-                          onClick={() => handleStatusUpdate(selectedUnit.id, 'suspended')}
-                          disabled={selectedUnit.status === 'suspended'}
-                          className="w-full bg-white border border-slate-200 text-slate-700 p-4 rounded-2xl text-xs font-black hover:bg-slate-50 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
-                       >
-                          <AlertCircle size={18} /> Suspend Operations
-                       </button>
-                       <button 
-                          onClick={() => handleStatusUpdate(selectedUnit.id, 'rejected')}
-                          className="w-full bg-red-50 text-red-600 p-4 rounded-2xl text-xs font-black hover:bg-red-100 transition-all flex items-center justify-center gap-2"
-                       >
-                          <Plus size={18} className="rotate-45" /> Terminate Contract
-                       </button>
-                       
-                       <div className="mt-8 p-6 bg-slate-50 rounded-3xl border border-slate-100">
-                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Location & Logistics</p>
-                          <div className="space-y-4">
-                             <div className="flex items-start gap-3">
-                                <MapPin size={16} className="text-slate-400 mt-0.5" />
-                                <div>
-                                   <p className="text-xs font-bold text-slate-700">{selectedUnit.location}</p>
-                                   <p className="text-[10px] text-slate-400 font-medium">Headquarters</p>
-                                </div>
-                             </div>
-                             <div className="flex items-start gap-3">
-                                <TrendingUp size={16} className="text-slate-400 mt-0.5" />
-                                <div>
-                                   <p className="text-xs font-bold text-slate-700">{selectedUnit.joinDate}</p>
-                                   <p className="text-[10px] text-slate-400 font-medium">Onboarding Date</p>
-                                </div>
-                             </div>
+                 <div className="p-10 space-y-10 flex-1">
+                    <div className="p-8 bg-slate-50 rounded-[40px] border border-slate-100 space-y-6">
+                       <div className="flex items-center gap-4">
+                          <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-primary-500 shadow-sm border border-slate-100">
+                             <Mail size={20} />
                           </div>
+                          <div>
+                             <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest italic">Communication Hub</p>
+                             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Select Dispatch Protocol</p>
+                          </div>
+                       </div>
+                       <select 
+                         value={selectedTemplateId}
+                         onChange={(e) => setSelectedTemplateId(e.target.value)}
+                         className="w-full bg-white border-2 border-slate-100 rounded-[20px] px-6 py-4 text-xs font-black text-slate-600 outline-none focus:ring-4 focus:ring-primary-500/5 transition-all shadow-xl shadow-slate-200/50 uppercase tracking-widest"
+                       >
+                          <option value="">System: Awaiting Template...</option>
+                          {adminTemplates.map(t => (
+                            <option key={t.id} value={t.id}>{t.name}</option>
+                          ))}
+                       </select>
+                       
+                       {selectedTemplateId && adminTemplates.find(t => t.id === Number(selectedTemplateId)) && (
+                         <div className="mt-6 p-6 bg-white rounded-[24px] border border-blue-50 animate-in fade-in zoom-in-95 shadow-sm">
+                            <div className="flex items-center gap-3 mb-4">
+                               <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-500 flex items-center justify-center">
+                                  <FileText size={16} />
+                               </div>
+                               <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest">Protocol Sandbox Preview</p>
+                            </div>
+                            <p className="text-xs text-slate-500 whitespace-pre-wrap leading-relaxed italic font-medium opacity-80">{adminTemplates.find(t => t.id === Number(selectedTemplateId)).body}</p>
+                         </div>
+                       )}
+                    </div>
+
+                    <div className="p-8 bg-blue-50/50 rounded-[32px] border border-blue-100 flex items-start gap-5">
+                       <Zap size={24} className="text-blue-600 shrink-0 mt-1" />
+                       <div>
+                          <p className="text-[12px] font-black text-blue-900 uppercase tracking-widest mb-1.5 italic">Industrial Transparency Requirement</p>
+                          <p className="text-[10px] text-blue-700 font-black leading-relaxed tracking-tight uppercase opacity-60">Authorize system state machine transition. This action triggers multi-endpoint telemetry and dispatch of encrypted notification protocols to the identified partner.</p>
                        </div>
                     </div>
                  </div>
-              </div>
+
+                 <div className="p-10 border-t border-slate-50 bg-white sticky bottom-0 shadow-2xl">
+                    <button 
+                      onClick={executeAdminAction}
+                      disabled={!selectedTemplateId || loading}
+                      className={`w-full py-5 rounded-[24px] text-xs font-black shadow-2xl transition-all flex items-center justify-center gap-4 ${actionType === 'verify' ? 'bg-emerald-600 text-white shadow-emerald-500/30' : 'bg-slate-900 text-white shadow-slate-900/30'} disabled:opacity-20 disabled:grayscale hover:scale-[1.02] active:scale-95 uppercase tracking-widest`}
+                    >
+                       {loading ? <Loader2 size={18} className="animate-spin" /> : <ShieldCheck size={20} />}
+                       {loading ? 'Dispatching Intelligence...' : 'Authorize HUB State Transition'}
+                    </button>
+                    <button onClick={() => setIsAdminActionOpen(false)} className="w-full mt-6 py-4 rounded-xl text-[10px] font-black text-slate-400 hover:text-rose-500 transition-all uppercase tracking-[0.2em] italic">
+                       Discard Governance Request
+                    </button>
+                 </div>
+              </motion.div>
            </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
+
+      {/* Merchant Detail Modal */}
+      <AnimatePresence>
+        {isModalOpen && selectedUnit && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md animate-in fade-in duration-500 px-8">
+             <motion.div 
+               initial={{ opacity: 0, scale: 0.95, y: 30 }}
+               animate={{ opacity: 1, scale: 1, y: 0 }}
+               exit={{ opacity: 0, scale: 0.95, y: 30 }}
+               className="bg-white rounded-[60px] w-full max-w-5xl max-h-[90vh] overflow-hidden shadow-2xl relative flex flex-col border border-white"
+             >
+                {/* Modal Header */}
+                <div className="p-10 pb-6 flex items-center justify-between">
+                   <div className="flex items-center gap-6">
+                      <div className={`w-20 h-20 rounded-[32px] bg-${color}-50 text-${color}-600 flex items-center justify-center border-2 border-white shadow-xl shadow-${color}-500/10`}>
+                         <Icon size={40} />
+                      </div>
+                      <div>
+                         <h2 className="text-4xl font-black text-slate-900 tracking-tight leading-none mb-2 italic uppercase">{selectedUnit.name}</h2>
+                         <div className="flex items-center gap-3">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 bg-slate-50 px-4 py-1.5 rounded-full border border-slate-100">{type.slice(0, -1)} Protocol</span>
+                            <span className={`text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full shadow-sm ${
+                              selectedUnit.status === 'verified' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-orange-50 text-orange-600 border border-orange-100'
+                            }`}>{selectedUnit.status}</span>
+                         </div>
+                      </div>
+                   </div>
+                   <button 
+                    onClick={() => setIsModalOpen(false)}
+                    className="w-14 h-14 bg-slate-50 hover:bg-slate-100 rounded-[24px] text-slate-400 flex items-center justify-center transition-all shadow-inner active:scale-95"
+                  >
+                    <X size={32} />
+                  </button>
+                </div>
+
+                {/* Tab Switcher */}
+                <div className="px-10 mb-8">
+                   <div className="flex p-1.5 bg-slate-50 border border-slate-100 rounded-[32px] w-full max-w-md shadow-inner">
+                      <button 
+                        onClick={() => setDetailTab('profile')}
+                        className={`flex-1 py-4 text-[10px] font-black uppercase tracking-widest rounded-[24px] transition-all flex items-center justify-center gap-2 ${detailTab === 'profile' ? 'bg-white text-slate-900 shadow-2xl shadow-slate-200 border border-slate-50' : 'text-slate-400 hover:text-slate-600'}`}
+                      >
+                         <Users size={16} /> Identity Profile
+                      </button>
+                      <button 
+                        onClick={() => setDetailTab('docs')}
+                        className={`flex-1 py-4 text-[10px] font-black uppercase tracking-widest rounded-[24px] transition-all flex items-center justify-center gap-2 ${detailTab === 'docs' ? 'bg-white text-slate-900 shadow-2xl shadow-slate-200 border border-slate-50' : 'text-slate-400 hover:text-slate-600'}`}
+                      >
+                         <ShieldCheck size={16} /> Compliance Docs
+                      </button>
+                   </div>
+                </div>
+
+                {/* Scrollable Content */}
+                <div className="flex-1 overflow-y-auto px-10 pb-10 custom-scrollbar">
+                   {detailTab === 'profile' ? (
+                     <motion.div 
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        className="space-y-10"
+                     >
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                           <div className="p-8 bg-slate-50 rounded-[40px] border border-slate-100 flex flex-col justify-between">
+                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6 italic">Partner Control</p>
+                              <div>
+                                 <p className="text-xl font-black text-slate-900 uppercase italic tracking-tight">{selectedUnit.owner}</p>
+                                 <p className="text-xs font-bold text-slate-500 mt-2 flex items-center gap-2"><Mail size={14} className="text-primary-400" /> {selectedUnit.email}</p>
+                                 <p className="text-xs font-bold text-slate-500 mt-1 flex items-center gap-2"><Zap size={14} className="text-primary-400" /> {selectedUnit.phone || 'System Indexing...'}</p>
+                              </div>
+                           </div>
+                           <div className="p-8 bg-emerald-50/30 rounded-[40px] border border-emerald-100 flex flex-col justify-between group hover:bg-emerald-50 transition-all">
+                              <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-6 italic">Performance Yield</p>
+                              <div>
+                                 <p className="text-3xl font-black text-emerald-600 tracking-tighter italic">{selectedUnit.revenue}</p>
+                                 <p className="text-[10px] font-black text-emerald-600/50 uppercase italic mt-1 tracking-widest">Revenue (30-Day Cycle)</p>
+                              </div>
+                           </div>
+                           <div className="p-8 bg-white rounded-[40px] border border-slate-100 flex flex-col justify-between shadow-xl shadow-slate-200/50">
+                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6 italic">Strategic Deployment</p>
+                              <div className="space-y-4">
+                                 <div className="flex items-start gap-4">
+                                    <MapPin size={18} className="text-primary-500 shrink-0 mt-0.5" />
+                                    <div>
+                                       <p className="text-sm font-black text-slate-900 italic leading-none">{selectedUnit.location}</p>
+                                       <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Industrial Node</p>
+                                    </div>
+                                 </div>
+                                 <div className="flex items-start gap-4">
+                                    <TrendingUp size={18} className="text-emerald-500 shrink-0 mt-0.5" />
+                                    <div>
+                                       <p className="text-sm font-black text-slate-900 italic leading-none">{selectedUnit.joinDate}</p>
+                                       <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Lifecycle Start</p>
+                                    </div>
+                                 </div>
+                              </div>
+                           </div>
+                        </div>
+
+                        {/* AI Intelligence / Sub-meta */}
+                        <div className="space-y-6">
+                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 italic">
+                              <Zap size={14} className="text-primary-500" /> Advanced Telemetry Index
+                           </p>
+                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                              {[
+                                 { label: 'Platform ID', val: `#UNIT-${selectedUnit.id}` },
+                                 { label: 'Reliability Index', val: 'GOLD 98.4%' },
+                                 { label: 'Service Velocity', val: 'High-Response' },
+                                 { label: 'Market Tier', val: 'Enterprise' }
+                              ].map((m, i) => (
+                                 <div key={i} className="p-5 bg-white border border-slate-100 rounded-3xl group hover:border-primary-100 transition-all shadow-sm">
+                                    <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest mb-1 italic">{m.label}</p>
+                                    <p className="text-xs font-black text-slate-700 uppercase italic tracking-tighter">{m.val}</p>
+                                 </div>
+                              ))}
+                           </div>
+                        </div>
+                     </motion.div>
+                   ) : (
+                     <motion.div 
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        className="space-y-8"
+                     >
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 italic">
+                           <ShieldCheck size={14} className="text-emerald-500" /> Compliance Protocols & Identity Data
+                        </p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                           {Object.entries(selectedUnit.documents).map(([key, url]) => {
+                              const isPdf = url?.toLowerCase().endsWith('.pdf');
+                              return (
+                                 <div key={key} className="group relative aspect-video bg-slate-50 rounded-[32px] border-2 border-dashed border-slate-100 overflow-hidden flex flex-col items-center justify-center gap-2 hover:border-primary-200 transition-all shadow-sm">
+                                    {url ? (
+                                       <>
+                                          {isPdf ? (
+                                             <div className="w-full h-full flex flex-col items-center justify-center bg-rose-50/20 text-rose-500 group-hover:scale-110 transition-transform duration-700">
+                                                <FileText size={48} />
+                                                <span className="text-[10px] font-black uppercase tracking-widest mt-3">Industrial PDF Protocol</span>
+                                             </div>
+                                          ) : (
+                                             <img 
+                                                src={url} 
+                                                alt={key} 
+                                                className="w-full h-full object-contain p-4 group-hover:scale-110 transition-transform duration-700" 
+                                             />
+                                          )}
+                                          <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
+                                             <a href={url} target="_blank" rel="noopener noreferrer" className="p-5 bg-white rounded-full text-slate-900 shadow-2xl hover:scale-110 active:scale-90 transition-all">
+                                                <ExternalLink size={24} />
+                                             </a>
+                                          </div>
+                                       </>
+                                    ) : (
+                                       <>
+                                          <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center text-slate-200 shadow-inner">
+                                             <AlertCircle size={32} />
+                                          </div>
+                                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic opacity-60 mt-2">{key.replace('_', ' ')}: ACCESS DENIED</span>
+                                       </>
+                                    )}
+                                    <div className="absolute top-4 left-4 bg-white/95 backdrop-blur-md px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest text-slate-500 border border-slate-50 shadow-sm shadow-slate-900/5">
+                                       {key.replace('_', ' ')}
+                                    </div>
+                                    {url && (
+                                       <div className="absolute top-4 right-4 animate-pulse">
+                                          <ShieldCheck size={14} className="text-emerald-500" />
+                                       </div>
+                                    )}
+                                 </div>
+                              );
+                           })}
+                        </div>
+                        <div className="p-8 bg-orange-50/30 rounded-[40px] border border-orange-100 flex items-start gap-4">
+                           <AlertCircle size={24} className="text-orange-600 shrink-0 mt-1" />
+                           <div>
+                              <p className="text-[12px] font-black text-orange-900 uppercase tracking-widest mb-1.5 italic">Compliance Validation Required</p>
+                              <p className="text-[10px] text-orange-700 font-black leading-relaxed tracking-tight uppercase opacity-60 italic">Please verify the authenticity of all uploaded administrative paperwork. Digital forgery detection protocol is recommended for all support-tier documents.</p>
+                           </div>
+                        </div>
+                     </motion.div>
+                   )}
+                </div>
+
+                {/* Modal Footer (Governance Actions) */}
+                <div className="p-10 bg-slate-50/50 border-t border-slate-50 flex gap-4">
+                    <button 
+                        onClick={() => handleGovernanceRequest(selectedUnit.id, 'verify')}
+                        disabled={selectedUnit.status === 'verified'}
+                        className="flex-[2] bg-emerald-600 text-white py-5 rounded-[24px] text-[11px] font-black uppercase tracking-widest shadow-2xl shadow-emerald-500/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2.5 disabled:opacity-20 disabled:grayscale italic"
+                    >
+                        <ShieldCheck size={20} /> Authorize Hub Verification
+                    </button>
+                    <button 
+                        onClick={() => handleGovernanceRequest(selectedUnit.id, 'suspend')}
+                        disabled={selectedUnit.status === 'suspended'}
+                        className="flex-1 bg-white border-2 border-slate-100 text-slate-700 py-5 rounded-[24px] text-[11px] font-black uppercase tracking-widest hover:bg-slate-50 shadow-xl shadow-slate-200/50 active:scale-95 transition-all flex items-center justify-center gap-2.5 disabled:opacity-20 italic"
+                    >
+                        <ShieldAlert size={20} /> Suspend Hub
+                    </button>
+                    <button 
+                        onClick={() => handleGovernanceRequest(selectedUnit.id, 'reject')}
+                        className="flex-1 bg-rose-600/10 text-rose-600 border border-rose-100 py-5 rounded-[24px] text-[11px] font-black uppercase tracking-widest hover:bg-rose-100 shadow-xl shadow-rose-200/50 active:scale-95 transition-all flex items-center justify-center gap-2.5 italic"
+                    >
+                        <X size={20} /> Terminate
+                    </button>
+                </div>
+             </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

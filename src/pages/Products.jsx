@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { 
   ShoppingBag, Search, Filter, Plus, Download, 
@@ -9,7 +10,7 @@ import {
   Layers, Package, AlertTriangle, CheckCircle2,
   MoreVertical, Box, Cpu, Zap, Eye, Trash2, 
   ChevronRight, RefreshCcw, FileInput, Laptop, Loader2,
-  Users, X, ChevronDown, SlidersHorizontal, ArrowUpDown
+  Users, X, ChevronDown, SlidersHorizontal, ArrowUpDown, FileText
 } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -20,6 +21,7 @@ const API_BASE = 'http://localhost:8003/api/v1';
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
 
 const Products = () => {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState({ stats: {}, charts: {} });
   const [products, setProducts] = useState([]);
@@ -31,17 +33,25 @@ const Products = () => {
   const [error, setError] = useState(null);
   const [activeMenu, setActiveMenu] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
   
   // Drawer States
   const [isAddDrawerOpen, setIsAddDrawerOpen] = useState(false);
   const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
   const [isDetailDrawerOpen, setIsDetailDrawerOpen] = useState(false);
   const [currentProduct, setCurrentProduct] = useState(null);
+  const [mainImage, setMainImage] = useState(null);
+  const [selectedProduct, setSelectedProduct] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
   
   // Advanced Search State
   const [isAdvancedSearchOpen, setIsAdvancedSearchOpen] = useState(false);
   const [isExportOpen, setIsExportOpen] = useState(false);
+  const [isAdminActionOpen, setIsAdminActionOpen] = useState(false);
+  const [actionType, setActionType] = useState(null); // 'deactivate' or 'delete'
+  const [adminTemplates, setAdminTemplates] = useState([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState('');
+  const [toast, setToast] = useState(null);
   const exportBtnRef = useRef(null);
   const [categories, setCategories] = useState([]);
   const [advancedFilters, setAdvancedFilters] = useState({
@@ -50,6 +60,8 @@ const Products = () => {
     maxPrice: '',
     stockStatus: 'all'
   });
+
+  const [detailTab, setDetailTab] = useState('profile'); // 'profile' or 'specs'
 
   // 1. Fetch Overview Analytics
   const fetchOverview = async () => {
@@ -120,28 +132,98 @@ const Products = () => {
     fetchProducts(true);
   };
 
-  const handleExportCSV = () => {
-    if (products.length === 0) return;
-    const headers = ['ID', 'Title', 'OEM', 'Category', 'Price', 'Stock', 'Store', 'Vendor', 'Status'];
-    const csvData = products.map(p => [
-      p.id, p.title, p.oem, p.category, p.price, p.stock, p.store_name, p.vendor, p.status
-    ]);
-    const csvContent = [headers, ...csvData].map(e => e.join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", `sparenova_products_${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    setIsExportOpen(false);
+  const showToast = (message, type = 'info') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
   };
 
-  const handleExportPDF = () => {
-    window.print(); // Simple clean industrial print for PDF
-    setIsExportOpen(false);
+  const handleExportCSV = async () => {
+    try {
+      setExportLoading(true);
+      showToast('Generating Universal CSV Report...', 'info');
+      
+      const res = await axios.get(`${API_BASE}/admin/products/export`, {
+        params: { 
+          search: searchTerm, 
+          status: filterStatus,
+          category_id: advancedFilters.categoryId,
+          min_price: advancedFilters.minPrice,
+          max_price: advancedFilters.maxPrice,
+          stock_status: advancedFilters.stockStatus
+        }
+      });
+
+      if (!res.data.success) throw new Error('Export failed');
+
+      const data = res.data.data;
+      const meta = res.data.report_meta;
+      
+      const branding = [
+        ['SPARENOVA INTELLIGENCE SYSTEMS - GLOBAL INVENTORY REPORT'],
+        [`Generated: ${meta.generated_at}`, `Record Count: ${meta.total_count}`],
+        [], // spacing
+      ];
+
+      const headers = ['ID', 'Title', 'OEM', 'Category', 'Price', 'Stock', 'Store', 'Vendor', 'Status', 'Listed Date', 'Classification'];
+      const csvRows = data.map(p => [
+        p.id, p.title, p.oem, p.category, p.price, p.stock, p.store, p.vendor, p.status, p.created_at, 'SPARENOVA INTERNAL'
+      ]);
+
+      const csvContent = [
+        ...branding.map(r => r.join(",")),
+        headers.join(","),
+        ...csvRows.map(r => r.join(","))
+      ].join("\n");
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute("download", `sparenova_inventory_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast('Report downloaded successfully', 'success');
+    } catch (err) {
+      console.error('Export failed:', err);
+      showToast('Failed to generate CSV export', 'danger');
+    } finally {
+      setExportLoading(false);
+      setIsExportOpen(false);
+    }
+  };
+
+  const [printData, setPrintData] = useState([]);
+  const handleExportPDF = async () => {
+    try {
+      setExportLoading(true);
+      showToast('Initializing Visual PDF Pipeline...', 'info');
+      
+      const res = await axios.get(`${API_BASE}/admin/products/export`, {
+        params: { 
+          search: searchTerm, 
+          status: filterStatus,
+          category_id: advancedFilters.categoryId,
+          min_price: advancedFilters.minPrice,
+          max_price: advancedFilters.maxPrice,
+          stock_status: advancedFilters.stockStatus
+        }
+      });
+
+      if (res.data.success) {
+        setPrintData(res.data.data);
+        // Small delay to ensure React renders the hidden printable section
+        setTimeout(() => {
+          window.print();
+        }, 500);
+      }
+    } catch (err) {
+      showToast('PDF Generation Failed', 'danger');
+    } finally {
+      setExportLoading(false);
+      setIsExportOpen(false);
+    }
   };
 
   const handleAddProduct = () => {
@@ -153,10 +235,75 @@ const Products = () => {
       const res = await axios.get(`${API_BASE}/admin/products/${id}`);
       if (res.data.success) {
         setCurrentProduct(res.data.product);
+        setMainImage(res.data.product.image); // Reset main image toggle
         setIsDetailDrawerOpen(true);
       }
     } catch (err) {
       setError('Telemetry retrieval failed for this unit.');
+    }
+  };
+
+  const handleDeactivateRequest = (id) => {
+    const prod = products.find(p => p.id === id);
+    setSelectedProduct(prod);
+    setActionType('deactivate');
+    setIsAdminActionOpen(true);
+    showToast(`Initializing Deactivation Protocol for #${id}`, 'warning');
+  };
+
+  const handleDeleteRequest = (id) => {
+    const prod = products.find(p => p.id === id);
+    setSelectedProduct(prod);
+    setActionType('delete');
+    setIsAdminActionOpen(true);
+    showToast(`Initializing Decommissioning Sequence for #${id}`, 'danger');
+  };
+
+  const handleFlagRequest = (id) => {
+    const prod = products.find(p => p.id === id);
+    setSelectedProduct(prod);
+    setActionType('flag');
+    setIsAdminActionOpen(true);
+    showToast(`Initializing Risk Flagging Protocol for #${id}`, 'warning');
+  };
+
+  const executeAdminAction = async () => {
+    if (!selectedProduct) return;
+    try {
+      setLoading(true);
+      
+      let url, method;
+      if (actionType === 'delete') {
+        url = `${API_BASE}/admin/products/${selectedProduct.id}`;
+        method = 'delete';
+      } else if (actionType === 'flag') {
+        url = `${API_BASE}/admin/products/${selectedProduct.id}/status`;
+        method = 'put';
+      } else {
+        url = `${API_BASE}/admin/products/${selectedProduct.id}/status`; // Deactivate set to pending
+        method = 'put';
+      }
+
+      const res = await axios({
+        method,
+        url,
+        data: { 
+          template_id: selectedTemplateId,
+          status: 'pending' // Flag/Deactivate both use pending status
+        }
+      });
+
+      if (res.data.success) {
+        setIsAdminActionOpen(false);
+        setSelectedTemplateId('');
+        fetchProducts();
+        fetchOverview();
+      }
+    } catch (err) {
+      console.error(`Action execution failed:`, err);
+      setError(`Governance action failed: ${err.message}`);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -172,24 +319,19 @@ const Products = () => {
     }
   };
 
-  const handleDeleteProduct = async (id) => {
-    if (!window.confirm('Are you sure you want to decommission this part from the active catalog?')) return;
-    try {
-      setIsDeleting(true);
-      const res = await axios.delete(`${API_BASE}/admin/products/${id}`);
-      if (res.data.success) {
-        fetchProducts();
-        fetchOverview();
-      }
-    } catch (err) {
-      setError('Decommissioning sequence failed. Check system permissions.');
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
   useEffect(() => {
     fetchOverview();
+    const fetchTemplates = async () => {
+      try {
+        const res = await axios.get(`${API_BASE}/admin/products/templates`);
+        if (res.data.success) {
+          setAdminTemplates(res.data.data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch action templates:', err);
+      }
+    };
+    fetchTemplates();
     const closeMenu = () => setActiveMenu(null);
     window.addEventListener('click', closeMenu);
     return () => window.removeEventListener('click', closeMenu);
@@ -269,7 +411,7 @@ const Products = () => {
   );
 
   return (
-    <div className="max-w-[1600px] mx-auto space-y-8 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+    <div className="max-w-[1600px] mx-auto space-y-8 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-1000 print:hidden">
       
       {/* ── Header & Action Bar ── */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
@@ -370,8 +512,8 @@ const Products = () => {
             </div>
           </div>
           <div className="h-[280px] w-full">
-            <ResponsiveContainer width="100%" height="100%" minWidth={0} debounce={50}>
-              <PieChart>
+            <ResponsiveContainer width="100%" height={280}>
+                <PieChart>
                 <Pie
                   data={data.charts.category_distribution || []}
                   cx="50%"
@@ -417,8 +559,8 @@ const Products = () => {
             </div>
           </div>
           <div className="h-[320px] w-full">
-            <ResponsiveContainer width="100%" height="100%" minWidth={0} debounce={50}>
-              <AreaChart data={data.charts.upload_trend || []}>
+            <ResponsiveContainer width="100%" height={320}>
+                <AreaChart data={data.charts.upload_trend || []}>
                 <defs>
                   <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.1}/>
@@ -488,8 +630,8 @@ const Products = () => {
             <Users size={18} className="text-blue-500" />
           </div>
           <div className="h-[240px] w-full">
-            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-              <BarChart data={data.charts.vendor_distribution || []}>
+            <ResponsiveContainer width="100%" height={240}>
+                <BarChart data={data.charts.vendor_distribution || []}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                 <XAxis dataKey="name" hide />
                 <Tooltip cursor={{ fill: '#f8fafc' }} />
@@ -523,8 +665,8 @@ const Products = () => {
             <Box size={18} className="text-emerald-500" />
           </div>
           <div className="h-[240px] w-full">
-            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-              <BarChart data={data.charts.inventory_health || []} layout="vertical">
+            <ResponsiveContainer width="100%" height={240}>
+                <BarChart data={data.charts.inventory_health || []} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
                 <XAxis type="number" hide />
                 <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 'bold' }} width={80} />
@@ -845,7 +987,7 @@ const Products = () => {
                   <td className="px-8 py-6 text-right">
                     <div className="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button 
-                         onClick={() => handleStatusUpdate(p.id, p.status === 'approved' ? 'pending' : 'approved')}
+                         onClick={() => p.status === 'approved' ? handleFlagRequest(p.id) : handleStatusUpdate(p.id, 'approved')}
                          className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
                           p.status === 'approved' 
                           ? 'bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white' 
@@ -895,9 +1037,15 @@ const Products = () => {
                                 >
                                   <Layers size={14} /> Specs & Files
                                 </button>
+                                <button 
+                                  onClick={() => { setActiveMenu(null); handleDeactivateRequest(p.id); }}
+                                  className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-orange-500 hover:bg-orange-50 rounded-2xl transition-all"
+                                >
+                                  <AlertCircle size={14} /> Deactivate
+                                </button>
                                 <div className="h-px bg-slate-50 my-1 mx-2" />
                                 <button 
-                                  onClick={() => { setActiveMenu(null); handleDeleteProduct(p.id); }}
+                                  onClick={() => { setActiveMenu(null); handleDeleteRequest(p.id); }}
                                   className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-rose-500 hover:bg-rose-50 rounded-2xl transition-all"
                                 >
                                   <Trash2 size={14} /> Delete Part
@@ -973,8 +1121,24 @@ const Products = () => {
 
       {/* Drawer Overlay Layer */}
       <AnimatePresence>
-        {(isAddDrawerOpen || isEditDrawerOpen || isDetailDrawerOpen) && (
+        {(isAddDrawerOpen || isEditDrawerOpen || isDetailDrawerOpen || isAdminActionOpen) && (
           <Portal>
+            <AnimatePresence>
+              {toast && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 50, x: '-50%' }}
+                  animate={{ opacity: 1, y: 0, x: '-50%' }}
+                  exit={{ opacity: 0, y: 20, x: '-50%' }}
+                  className="fixed bottom-10 left-1/2 z-[300] bg-slate-900 text-white px-8 py-4 rounded-3xl shadow-2xl flex items-center gap-4 min-w-[320px]"
+                >
+                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${toast.type === 'danger' ? 'bg-rose-500' : toast.type === 'warning' ? 'bg-orange-500' : 'bg-primary-500'}`}>
+                      <Zap size={16} />
+                   </div>
+                   <p className="text-xs font-black uppercase tracking-widest">{toast.message}</p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -984,6 +1148,7 @@ const Products = () => {
                 setIsAddDrawerOpen(false);
                 setIsEditDrawerOpen(false);
                 setIsDetailDrawerOpen(false);
+                setIsAdminActionOpen(false);
               }}
             >
               <motion.div 
@@ -994,13 +1159,90 @@ const Products = () => {
                 className="bg-white w-full max-w-xl h-full shadow-2xl overflow-y-auto"
                 onClick={(e) => e.stopPropagation()}
               >
+                {/* Admin Action Drawer (Email Template Selector) */}
+                {isAdminActionOpen && selectedProduct && (
+                  <div className="p-10 h-full flex flex-col">
+                    <div className="flex items-center justify-between mb-8">
+                       <div className="flex items-center gap-4">
+                          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-xl ${actionType === 'delete' ? 'bg-rose-50 text-rose-600 shadow-rose-100' : (actionType === 'flag' ? 'bg-amber-50 text-amber-600 shadow-amber-100' : 'bg-orange-50 text-orange-600 shadow-orange-100')}`}>
+                             <ShieldCheck size={28} />
+                          </div>
+                          <div>
+                             <p className={`text-[10px] font-black uppercase tracking-widest mb-0.5 italic ${actionType === 'delete' ? 'text-rose-600' : (actionType === 'flag' ? 'text-amber-600' : 'text-orange-600')}`}>Governance Module v5.4.1</p>
+                             <h2 className="text-2xl font-black text-slate-900 tracking-tight">
+                               {actionType === 'delete' ? 'Decommission Product' : (actionType === 'flag' ? 'Flag Unit' : 'Deactivate Product')}
+                             </h2>
+                          </div>
+                       </div>
+                       <button onClick={() => setIsAdminActionOpen(false)} className="w-10 h-10 rounded-xl bg-slate-50 text-slate-400 flex items-center justify-center hover:bg-slate-100 transition-all">
+                          <X size={20} />
+                       </button>
+                    </div>
+
+                    <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100 mb-8">
+                       <p className="text-xs font-bold text-slate-700 leading-relaxed mb-4">
+                          You are about to {actionType === 'delete' ? 'permanent delete' : 'temporarily deactivate'} <strong>{selectedProduct.title}</strong>. 
+                          The vendor <strong>{selectedProduct.vendor}</strong> will be notified of this action via the selected template.
+                       </p>
+                    </div>
+
+                    <div className="space-y-6">
+                       <div className="space-y-3">
+                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Notification Template (Mandatory Setup)</label>
+                          <div className="grid grid-cols-1 gap-3">
+                             {adminTemplates.map(t => (
+                               <button 
+                                 key={t.id}
+                                 onClick={() => setSelectedTemplateId(t.id)}
+                                 className={`w-full text-left p-4 rounded-2xl border transition-all ${selectedTemplateId === t.id ? 'border-primary-600 bg-primary-50 ring-2 ring-primary-100' : 'border-slate-100 hover:border-slate-300'}`}
+                               >
+                                  <div className="flex items-center justify-between mb-1">
+                                     <p className="text-xs font-black text-slate-900 uppercase">{t.name}</p>
+                                     <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${selectedTemplateId === t.id ? 'border-primary-600 bg-primary-600 shadow-sm' : 'border-slate-200'}`}>
+                                        {selectedTemplateId === t.id && <div className="w-2 h-2 rounded-full bg-white animate-in zoom-in-0 duration-200" />}
+                                     </div>
+                                  </div>
+                                  <p className="text-[10px] font-medium text-slate-400 italic">Subject: {t.subject}</p>
+                               </button>
+                             ))}
+                          </div>
+                       </div>
+
+                       {selectedTemplateId && (
+                         <div className="p-6 bg-white border border-slate-100 rounded-3xl shadow-lg shadow-slate-100/50 space-y-3 animate-in fade-in slide-in-from-top-2">
+                            <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest leading-none mb-1">Preview Notification</p>
+                            <p className="text-xs text-slate-500 whitespace-pre-wrap leading-relaxed">{adminTemplates.find(t => t.id === selectedTemplateId).body}</p>
+                         </div>
+                       )}
+                    </div>
+
+                    <div className="mt-10 pt-10 border-t border-slate-100 space-y-4">
+                       <button 
+                         disabled={!selectedTemplateId || loading}
+                         onClick={executeAdminAction}
+                         className={`w-full py-4 rounded-2xl text-xs font-black shadow-xl transition-all flex items-center justify-center gap-3 ${actionType === 'delete' ? 'bg-rose-600 text-white shadow-rose-500/20 hover:bg-rose-700' : 'bg-orange-600 text-white shadow-orange-500/20 hover:bg-orange-700'} disabled:opacity-30`}
+                       >
+                          {loading ? 'Dispatching...' : `Confirm & Notify Vendor`}
+                       </button>
+                       <button onClick={() => setIsAdminActionOpen(false)} className="w-full py-4 rounded-2xl text-xs font-black text-slate-400 hover:bg-slate-50 transition-all">
+                          Discard Action
+                       </button>
+                    </div>
+                  </div>
+                )}
+
                 {/* Drawer Content */}
                 {isDetailDrawerOpen && currentProduct && (
                   <div className="p-10">
-                    <div className="flex items-center justify-between mb-10">
-                       <div>
-                          <p className="text-[10px] font-black text-primary-600 uppercase tracking-widest mb-1 italic">Product Telemetry</p>
-                          <h2 className="text-2xl font-black text-slate-900 tracking-tight">System Specification</h2>
+                    <div className="flex items-center justify-between mb-8">
+                       <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shadow-sm">
+                             <Zap size={24} />
+                          </div>
+                          <div>
+                             <p className="text-[10px] font-black text-primary-600 uppercase tracking-widest mb-0.5 italic">Product Telemetry</p>
+                             <h2 className="text-2xl font-black text-slate-900 tracking-tight">System Specification</h2>
+                          </div>
                        </div>
                        <button 
                         onClick={() => setIsDetailDrawerOpen(false)}
@@ -1010,74 +1252,198 @@ const Products = () => {
                        </button>
                     </div>
 
-                    <div className="aspect-video w-full rounded-3xl bg-slate-50 border border-slate-100 mb-8 overflow-hidden relative group">
-                       <img 
-                          src={currentProduct.image || 'https://placehold.co/600x400?text=No+Preview'} 
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
-                          alt="" 
-                       />
-                       <div className="absolute top-4 left-4">
-                          <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg ${currentProduct.status === 'approved' ? 'bg-emerald-500 text-white' : 'bg-orange-500 text-white'}`}>
-                             {currentProduct.status}
-                          </div>
-                       </div>
+                    {/* High-Fidelity Tab Switcher for DetailDrawer */}
+                    <div className="flex p-1 bg-slate-50 border border-slate-100 rounded-2xl w-full mb-10 overflow-hidden">
+                       <button 
+                         onClick={() => setDetailTab('profile')}
+                         className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${detailTab === 'profile' ? 'bg-white text-slate-900 shadow-xl shadow-slate-200/50' : 'text-slate-400 hover:text-slate-600'}`}
+                       >
+                          Identity Profile
+                       </button>
+                       <button 
+                         onClick={() => setDetailTab('specs')}
+                         className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${detailTab === 'specs' ? 'bg-white text-slate-900 shadow-xl shadow-slate-200/50' : 'text-slate-400 hover:text-slate-600'}`}
+                       >
+                          Industrial Specs
+                       </button>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-8 mb-10">
-                       <div className="space-y-1">
-                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Pricing Structure</p>
-                          <p className="text-xl font-black text-slate-900 italic">KES {numberWithCommas(currentProduct.price)}</p>
-                       </div>
-                       <div className="space-y-1">
-                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Inventory Status</p>
-                          <p className="text-xl font-black text-slate-900">{currentProduct.stock} Units</p>
-                       </div>
-                    </div>
-
-                    <div className="space-y-6">
-                       <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100">
-                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Merchant Provenance</p>
-                          <div className="flex items-center gap-4">
-                             <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center shadow-sm">
-                                <Users size={24} className="text-primary-600" />
+                    {detailTab === 'profile' ? (
+                      <div className="animate-in fade-in slide-in-from-right-4 duration-500">
+                        {/* Multi-Image Gallery */}
+                        <div className="mb-10 space-y-4">
+                           <div className="aspect-video w-full rounded-[40px] bg-slate-50 border border-slate-100 overflow-hidden relative group">
+                              <img 
+                                src={mainImage || currentProduct.image || 'https://placehold.co/600x400?text=No+Preview'} 
+                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
+                                alt="" 
+                              />
+                              <div className="absolute top-6 left-6">
+                                 <div className={`px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest shadow-xl backdrop-blur-md ${currentProduct.status === 'approved' ? 'bg-emerald-500/90 text-white' : 'bg-orange-500/90 text-white'}`}>
+                                    {currentProduct.status}
+                                 </div>
+                              </div>
+                           </div>
+                           
+                           {currentProduct.images && currentProduct.images.length > 1 && (
+                             <div className="flex gap-4 overflow-x-auto pb-4 pt-1 snap-x no-scrollbar">
+                                {currentProduct.images.map((img, idx) => (
+                                  <button 
+                                    key={idx}
+                                    onClick={() => setMainImage(img)}
+                                    className={`w-28 h-20 rounded-2xl overflow-hidden border-2 shrink-0 transition-all snap-start ${mainImage === img ? 'border-primary-600 scale-105 shadow-lg' : 'border-slate-100 hover:border-slate-300'}`}
+                                  >
+                                     <img src={img} className="w-full h-full object-cover" alt="" />
+                                  </button>
+                                ))}
                              </div>
-                             <div>
-                                <p className="text-sm font-black text-slate-900 uppercase italic">{currentProduct.store_name}</p>
-                                <p className="text-[10px] font-bold text-slate-400 uppercase">{currentProduct.vendor}</p>
-                             </div>
-                          </div>
-                       </div>
+                           )}
+                        </div>
 
-                       <div className="space-y-4">
-                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Unit Meta Profile</p>
-                          <div className="grid grid-cols-2 gap-4">
-                             {[
-                               { label: 'Category Unit', val: currentProduct.category },
-                               { label: 'OEM Protocol', val: currentProduct.oem },
-                               { label: 'Platform ID', val: `#${currentProduct.id}` },
-                               { label: 'Lifecycle', val: 'Active' }
-                             ].map((m, i) => (
-                               <div key={i} className="p-4 bg-white border border-slate-100 rounded-2xl">
-                                  <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest leading-none mb-1">{m.label}</p>
-                                  <p className="text-xs font-bold text-slate-600 uppercase">{m.val}</p>
+                        <div className="grid grid-cols-2 gap-8 mb-10">
+                           <div className="space-y-1">
+                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Pricing Structure</p>
+                              <p className="text-xl font-black text-slate-900 italic">KES {numberWithCommas(currentProduct.price)}</p>
+                           </div>
+                           <div className="space-y-1">
+                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Inventory Status</p>
+                              <p className="text-xl font-black text-slate-900">{currentProduct.stock} Units</p>
+                           </div>
+                        </div>
+
+                         <div className="space-y-6">
+                            <button 
+                              onClick={() => {
+                                setIsDetailDrawerOpen(false);
+                                navigate(`/admin/shops/${currentProduct.store_id}`);
+                              }}
+                              className="w-full text-left p-6 bg-slate-50 rounded-3xl border border-slate-100 hover:border-primary-100 transition-all hover:bg-slate-100 group/merchant"
+                            >
+                               <div className="flex items-center justify-between mb-3">
+                                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover/merchant:text-primary-600 transition-colors">Merchant Provenance</p>
+                                  <ExternalLink size={14} className="text-slate-300 group-hover/merchant:text-primary-500 transition-all" />
                                </div>
-                             ))}
-                          </div>
-                       </div>
-                    </div>
+                               <div className="flex items-center gap-4">
+                                  <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center shadow-sm group-hover/merchant:scale-110 transition-transform">
+                                     <Users size={24} className="text-primary-600" />
+                                  </div>
+                                  <div>
+                                     <p className="text-sm font-black text-slate-900 uppercase italic group-hover/merchant:text-primary-700 transition-colors">{currentProduct.store_name}</p>
+                                     <p className="text-[10px] font-bold text-slate-400 uppercase">{currentProduct.vendor}</p>
+                                  </div>
+                               </div>
+                            </button>
 
-                    <div className="mt-10 pt-10 border-t border-slate-100 flex gap-4">
+                           <div className="space-y-4">
+                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Unit Meta Profile</p>
+                              <div className="grid grid-cols-2 gap-4">
+                                 {[
+                                   { label: 'Category Unit', val: currentProduct.category },
+                                   { label: 'OEM Protocol', val: currentProduct.oem },
+                                   { label: 'Platform ID', val: `#${currentProduct.id}` },
+                                   { label: 'Lifecycle', val: 'Active' }
+                                 ].map((m, i) => (
+                                   <div key={i} className="p-4 bg-white border border-slate-100 rounded-2xl">
+                                      <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest leading-none mb-1">{m.label}</p>
+                                      <p className="text-xs font-bold text-slate-600 uppercase">{m.val}</p>
+                                   </div>
+                                 ))}
+                              </div>
+                           </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="animate-in fade-in slide-in-from-right-4 duration-500 space-y-10">
+                         {/* Specs Grid */}
+                         <div className="space-y-4">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                               <Layers size={14} className="text-primary-500" /> Technical Parameters
+                            </p>
+                            <div className="grid grid-cols-1 gap-3">
+                               {currentProduct.specs && Object.keys(currentProduct.specs).length > 0 ? (
+                                 Object.entries(currentProduct.specs).map(([k, v], i) => (
+                                   <div key={i} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 group hover:bg-white hover:shadow-xl hover:shadow-slate-200/50 transition-all">
+                                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter italic">{k}</span>
+                                      <span className="text-xs font-black text-slate-900 uppercase">{String(v)}</span>
+                                   </div>
+                                 ))
+                               ) : (
+                                 <div className="p-8 bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-center">
+                                    <p className="text-xs font-bold text-slate-400 italic">No specific technical specs indexed for this unit.</p>
+                                 </div>
+                               )}
+                            </div>
+                         </div>
+
+                         {/* Documentation & Resources */}
+                         <div className="space-y-4">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                               <FileText size={14} className="text-emerald-500" /> Technical Library
+                            </p>
+                            <div className="grid grid-cols-1 gap-3">
+                               {currentProduct.technical_resources && currentProduct.technical_resources.length > 0 ? (
+                                 currentProduct.technical_resources.map((res, i) => (
+                                   <a 
+                                      key={i} 
+                                      href={res.url || res} 
+                                      target="_blank" 
+                                      className="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl hover:border-emerald-200 hover:shadow-xl hover:shadow-emerald-500/5 transition-all group"
+                                   >
+                                      <div className="flex items-center gap-4">
+                                         <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                                            <FileText size={20} />
+                                         </div>
+                                         <p className="text-xs font-black text-slate-900 uppercase truncate max-w-[200px]">{res.label || `Manual Revision ${i+1}`}</p>
+                                      </div>
+                                      <span className="text-[8px] font-black text-emerald-600 uppercase bg-emerald-50 px-2 py-1 rounded-lg">View PDF</span>
+                                   </a>
+                                 ))
+                               ) : (
+                                 <div className="p-8 bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-center text-xs font-bold text-slate-400 italic">
+                                    Official documentation is pending system index.
+                                 </div>
+                               )}
+                            </div>
+                         </div>
+
+                         {/* Compatibility Matrix */}
+                         <div className="space-y-4">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                               <ShieldCheck size={14} className="text-blue-500" /> Vehicle Compatibility
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                               {currentProduct.compatibility && currentProduct.compatibility.length > 0 ? (
+                                 currentProduct.compatibility.map((c, i) => (
+                                   <span key={i} className="px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl text-[10px] font-bold text-slate-600 uppercase tracking-tighter">
+                                      {c}
+                                   </span>
+                                 ))
+                               ) : (
+                                 <p className="text-xs font-bold text-slate-400 italic ml-1">Universal fitment protocol implied.</p>
+                               )}
+                            </div>
+                         </div>
+                      </div>
+                    )}
+
+                    <div className="mt-10 pt-10 border-t border-slate-100 flex gap-3">
+                       <button 
+                        onClick={() => { setIsDetailDrawerOpen(false); handleDeactivateRequest(currentProduct.id); }}
+                        className="flex-[2] bg-orange-600 text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-orange-500/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
+                       >
+                          <ShieldCheck size={16} /> Govern & Notify
+                       </button>
                        <button 
                         onClick={() => { setIsDetailDrawerOpen(false); handleEditProduct(currentProduct.id); }}
-                        className="flex-1 bg-slate-900 text-white py-4 rounded-2xl text-xs font-black shadow-lg shadow-slate-900/20 hover:scale-[1.02] active:scale-95 transition-all"
+                        className="flex-1 bg-slate-900 text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-slate-900/20 hover:scale-[1.02] active:scale-95 transition-all"
                        >
-                          Update Parameters
+                          Update
                        </button>
                        <button 
                         onClick={() => setIsDetailDrawerOpen(false)}
-                        className="px-8 py-4 rounded-2xl bg-slate-100 text-slate-400 text-xs font-black hover:bg-slate-200 transition-all"
+                        className="px-6 py-4 rounded-2xl bg-slate-100 text-slate-400 text-[10px] font-black uppercase tracking-widest hover:bg-slate-200 transition-all"
                        >
-                          Close
+                          Cancel
                        </button>
                     </div>
                   </div>
@@ -1103,6 +1469,78 @@ const Products = () => {
           </Portal>
         )}
       </AnimatePresence>
+
+      {/* ── Branded Print Template (Visible only during window.print()) ── */}
+      <div className="hidden print:block bg-white p-10 font-sans text-slate-900 relative">
+        {/* PDF Watermark */}
+        <div className="fixed inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none select-none z-0 rotate-[-45deg]">
+           <p className="text-[140px] font-black tracking-widest whitespace-nowrap">SPARENOVA CONFIDENTIAL</p>
+        </div>
+
+        <div className="relative z-10">
+          <div className="flex justify-between items-center border-b-2 border-slate-900 pb-8 mb-8">
+          <div>
+            <h1 className="text-4xl font-black tracking-tighter text-slate-900">SPARENOVA</h1>
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Intelligence Systems • Inventory Report</p>
+          </div>
+          <div className="text-right">
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest leading-none mb-1">Report Generated</p>
+            <p className="text-sm font-black text-slate-900">{new Date().toLocaleString()}</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-6 mb-10">
+          <div className="p-6 bg-slate-50 border border-slate-100 rounded-3xl">
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Unit Count</p>
+            <p className="text-2xl font-black text-slate-900">{printData.length}</p>
+          </div>
+          <div className="p-6 bg-slate-50 border border-slate-100 rounded-3xl">
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Filter Context</p>
+            <p className="text-xs font-bold text-slate-600 uppercase italic truncate">{searchTerm || 'Global Search'} • {filterStatus}</p>
+          </div>
+          <div className="p-6 bg-slate-50 border border-slate-100 rounded-3xl text-right">
+             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Authentication</p>
+             <p className="text-xs font-black text-emerald-600 uppercase">System Verified</p>
+          </div>
+        </div>
+
+        <table className="w-full border-collapse">
+          <thead>
+            <tr className="border-b-2 border-slate-900">
+              <th className="py-4 text-left text-[10px] font-black uppercase tracking-widest text-slate-400">ID</th>
+              <th className="py-4 text-left text-[10px] font-black uppercase tracking-widest text-slate-400">Specification</th>
+              <th className="py-4 text-left text-[10px] font-black uppercase tracking-widest text-slate-400">OEM</th>
+              <th className="py-4 text-left text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Commercials</th>
+              <th className="py-4 text-left text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Stock</th>
+              <th className="py-4 text-left text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Status</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {printData.map((p, i) => (
+              <tr key={i} className="break-inside-avoid">
+                <td className="py-4 text-[10px] font-black text-slate-400">#{p.id}</td>
+                <td className="py-4">
+                   <p className="text-xs font-black text-slate-900 uppercase italic">{p.title}</p>
+                   <p className="text-[9px] font-bold text-slate-400 uppercase">{p.category}</p>
+                </td>
+                <td className="py-4 text-[10px] font-bold text-slate-600 uppercase tracking-wider">{p.oem}</td>
+                <td className="py-4 text-right">
+                   <p className="text-xs font-black text-slate-900">KES {numberWithCommas(p.price)}</p>
+                </td>
+                <td className="py-4 text-right text-[10px] font-bold text-slate-600">{p.stock}</td>
+                <td className="py-4 text-right">
+                   <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 px-3 py-1 bg-slate-50 rounded-full border border-slate-100">{p.status}</span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+          <div className="mt-20 pt-8 border-t border-slate-100 text-center">
+            <p className="text-[8px] font-black text-slate-300 uppercase tracking-[0.5em]">This document is a system-generated asset of SpareNova Intelligence v5.0.1 • Security Classification: INTERNAL</p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

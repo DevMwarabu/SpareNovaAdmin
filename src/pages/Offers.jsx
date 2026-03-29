@@ -20,7 +20,14 @@ import {
   ExternalLink,
   ShieldCheck,
   AlertCircle,
-  Store
+  Store,
+  Zap,
+  Mail,
+  ShieldAlert,
+  ArrowRight,
+  Target,
+  Activity,
+  Award
 } from 'lucide-react';
 import { 
   AreaChart, 
@@ -32,7 +39,9 @@ import {
   ResponsiveContainer,
   BarChart,
   Bar,
-  Cell
+  Cell,
+  LineChart,
+  Line
 } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -53,6 +62,14 @@ const Offers = () => {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [toast, setToast] = useState(null);
+
+  // Governance States
+  const [isAdminActionOpen, setIsAdminActionOpen] = useState(false);
+  const [actionType, setActionType] = useState(null); // 'approve', 'reject', 'expire'
+  const [targetPromoId, setTargetPromoId] = useState(null);
+  const [adminTemplates, setAdminTemplates] = useState([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState('');
 
   const [formData, setFormData] = useState({
     title: '',
@@ -67,6 +84,11 @@ const Offers = () => {
   });
 
   const API_BASE = 'http://localhost:8003/api/v1';
+
+  const showToast = (message, type = 'info') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   const fetchData = async () => {
     try {
@@ -94,6 +116,17 @@ const Offers = () => {
     }
   };
 
+  const fetchTemplates = async () => {
+    try {
+      const res = await axios.get(`${API_BASE}/admin/promotions/templates`);
+      if (res.data.success) {
+        setAdminTemplates(res.data.data);
+      }
+    } catch (err) {
+      console.error("Template fetch failure:", err);
+    }
+  };
+
   const openDetails = async (id) => {
     try {
       setIsDetailLoading(id);
@@ -111,352 +144,322 @@ const Offers = () => {
 
   useEffect(() => {
     fetchData();
+    fetchTemplates();
   }, [searchTerm, filterStatus, offerType, dateRange, currentPage]);
 
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, filterStatus, offerType, dateRange]);
 
-  const handleStatusUpdate = async (id, newStatus) => {
+  const handleGovernanceRequest = (id, type) => {
+    setTargetPromoId(id);
+    setActionType(type);
+    setIsAdminActionOpen(true);
+  };
+
+  const executeAdminAction = async () => {
     try {
-      const res = await axios.put(`${API_BASE}/admin/promotions/${id}/status`, { status: newStatus });
+      setLoading(true);
+      const statusMap = { 'approve': 'active', 'reject': 'rejected', 'expire': 'expired' };
+      const res = await axios.put(`${API_BASE}/admin/promotions/${targetPromoId}/status`, {
+        status: statusMap[actionType],
+        template_id: selectedTemplateId
+      });
+      
       if (res.data.success) {
+        setIsAdminActionOpen(false);
+        showToast(`Promotion status updated and vendor notified.`, 'success');
         fetchData();
-        if (selectedPromo && selectedPromo.id === id) {
-          openDetails(id);
+        if (selectedPromo && selectedPromo.id === targetPromoId) {
+           setIsModalOpen(false);
         }
       }
     } catch (err) {
-      console.error(`Failed to update status for promotion ${id}:`, err);
+      showToast('Governance dispatch failed', 'danger');
+    } finally {
+      setLoading(false);
+      setSelectedTemplateId('');
     }
   };
 
   const statusStyles = {
-    'Active': 'bg-emerald-50 text-emerald-600',
-    'Pending': 'bg-orange-50 text-orange-600',
-    'Rejected': 'bg-red-50 text-red-600',
-    'Expired': 'bg-slate-100 text-slate-500'
+    'Active': 'bg-emerald-50 text-emerald-600 border-emerald-100',
+    'Pending': 'bg-orange-50 text-orange-600 border-orange-100',
+    'Rejected': 'bg-rose-50 text-rose-600 border-rose-100',
+    'Expired': 'bg-slate-100 text-slate-500 border-slate-200'
   };
 
+  // Performance Sparkline (Simulated for visualization)
+  const PerformanceSparkline = ({ color = '#4f46e5' }) => (
+    <div className="w-16 h-8 opacity-60">
+       <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={[4, 5, 8, 6, 9, 11, 10, 14].map(v => ({ v }))}>
+             <Line type="monotone" dataKey="v" stroke={color} strokeWidth={2} dot={false} />
+          </LineChart>
+       </ResponsiveContainer>
+    </div>
+  );
+
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000 min-h-screen pb-20">
+      {/* Toast System */}
+      {toast && (
+        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[300] bg-slate-900 text-white px-8 py-4 rounded-3xl shadow-2xl flex items-center gap-4 animate-in slide-in-from-bottom-4">
+           <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${toast.type === 'danger' ? 'bg-rose-500 shadow-rose-500/30' : 'bg-primary-500 shadow-primary-500/30'} shadow-xl`}>
+              <Zap size={16} />
+           </div>
+           <p className="text-[10px] font-black uppercase tracking-widest">{toast.message}</p>
+        </div>
+      )}
+
+      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-             <div className="p-2 rounded-xl bg-primary-50 text-primary-600">
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3 italic uppercase">
+             <div className="p-2.5 rounded-2xl bg-primary-50 text-primary-600 shadow-xl shadow-primary-500/10 border border-primary-100">
                 <Percent size={24} />
              </div>
-             Offers & Promotions
+             Yield Generation
           </h1>
-          <p className="text-slate-500 font-medium mt-1">Manage marketplace flash sales, featured banners, and vendor discounts.</p>
+          <p className="text-slate-500 font-medium mt-1 uppercase text-[10px] tracking-widest italic opacity-60 italic">Strategic Marketing Governance & Performance Hub</p>
         </div>
         <button 
           onClick={() => setIsCreateOpen(true)}
-          className="bg-slate-900 text-white px-6 py-2.5 rounded-xl text-xs font-black shadow-lg shadow-slate-900/20 hover:bg-slate-800 flex items-center gap-2 transition-all active:scale-95"
+          className="bg-slate-900 text-white px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl shadow-slate-900/20 hover:scale-105 transition-all flex items-center gap-3 italic"
         >
-           <Plus size={16} /> Create System Offer
+           <Plus size={18} /> New Performance Protocol
         </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
          {stats.length > 0 ? stats.map((s, i) => (
-            <div key={i} className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm shadow-slate-200/50 flex items-center justify-between group hover:border-primary-100 transition-colors">
-              <div className="flex items-center gap-4">
-                <div className={`w-12 h-12 rounded-2xl bg-${s.col}-50 text-${s.col}-600 flex items-center justify-center group-hover:scale-110 transition-transform`}>
-                   {i === 0 ? <Tag size={24} /> : i === 1 ? <CheckCircle2 size={24} /> : <Clock size={24} />}
+            <div key={i} className="bg-white p-6 rounded-[40px] border border-slate-100 shadow-sm shadow-slate-200/50 flex items-center justify-between group hover:border-primary-100 transition-colors">
+              <div className="flex items-center gap-5">
+                <div className={`w-14 h-14 rounded-2xl bg-${s.col}-50 text-${s.col}-600 flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm`}>
+                   {i === 0 ? <Target size={28} /> : i === 1 ? <ShieldCheck size={28} /> : <Activity size={28} />}
                 </div>
                 <div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">{s.l}</p>
-                  <p className="text-2xl font-black text-slate-900 tracking-tight">{s.v}</p>
+                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 italic leading-none">{s.l}</p>
+                   <p className="text-2xl font-black text-slate-900 tracking-tighter italic">{s.v}</p>
                 </div>
               </div>
-              <div className="text-[10px] font-black text-slate-400 bg-slate-50 px-2 py-1 rounded-lg">
+              <div className="text-[9px] font-black text-slate-400 bg-slate-50 px-2.5 py-1.5 rounded-xl uppercase italic">
                 {s.c}
               </div>
            </div>
-         )) : Array(3).fill(0).map((_, i) => <div key={i} className="animate-pulse bg-slate-100 h-24 rounded-3xl"></div>)}
+         )) : Array(3).fill(0).map((_, i) => <div key={i} className="animate-pulse bg-slate-100 h-28 rounded-3xl"></div>)}
       </div>
 
-      {/* Analytics Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white p-8 rounded-[40px] border border-slate-100 shadow-sm shadow-slate-200/50">
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight">Offer Velocity</h3>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Creation Trend (30D)</p>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+         <div className="bg-white p-10 rounded-[56px] border border-slate-100 shadow-2xl shadow-slate-200/50">
+            <div className="flex items-center justify-between mb-10">
+               <div>
+                  <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest flex items-center gap-3">
+                     <TrendingUp size={18} className="text-primary-600" /> Promotion Velocity
+                  </h3>
+               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1 opacity-60 italic">Strategic Yield Creation Aggregator</p>
+               </div>
             </div>
-            <div className={`p-2 rounded-lg bg-primary-50 text-primary-600`}>
-              <TrendingUp size={16} />
+            <div className="h-64 w-full text-indigo-600">
+               <ResponsiveContainer width="100%" height={256}>
+                  <AreaChart data={chartData}>
+                     <defs>
+                        <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
+                           <stop offset="5%" stopColor="var(--primary-500)" stopOpacity={0.1}/>
+                           <stop offset="95%" stopColor="var(--primary-500)" stopOpacity={0}/>
+                        </linearGradient>
+                     </defs>
+                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                     <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 900, fill: '#94a3b8' }} dy={10} />
+                     <YAxis hide />
+                     <Tooltip contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.1)', fontSize: '12px', fontWeight: '900' }} />
+                     <Area type="monotone" dataKey="count" stroke="var(--primary-500)" strokeWidth={4} fillOpacity={1} fill="url(#colorCount)" />
+                  </AreaChart>
+               </ResponsiveContainer>
             </div>
-          </div>
-          <div className="h-64 mt-4">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData}>
-                <defs>
-                  <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--primary-500)" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="var(--primary-500)" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis 
-                  dataKey="date" 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }}
-                  dy={10}
-                />
-                <YAxis hide />
-                <Tooltip 
-                  contentStyle={{ 
-                    borderRadius: '16px', 
-                    border: 'none', 
-                    boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
-                    fontSize: '12px',
-                    fontWeight: '900',
-                    textTransform: 'uppercase'
-                  }} 
-                />
-                <Area 
-                  type="monotone" 
-                  dataKey="count" 
-                  stroke="var(--primary-500)" 
-                  strokeWidth={3}
-                  fillOpacity={1} 
-                  fill="url(#colorCount)" 
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+         </div>
 
-        <div className="bg-white p-8 rounded-[40px] border border-slate-100 shadow-sm shadow-slate-200/50">
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight">Market Impact</h3>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Simulated Conversion Lift</p>
+         <div className="bg-slate-900 p-10 rounded-[56px] shadow-2xl shadow-indigo-900/10">
+            <div className="flex items-center justify-between mb-10">
+               <div>
+                  <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center gap-3">
+                     <BarChart3 size={18} className="text-emerald-400" /> Performance Yield AI
+                  </h3>
+               <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest mt-1 opacity-60 italic">Simulated Incremental Conversion Pulse</p>
+               </div>
             </div>
-            <div className="p-2 rounded-lg bg-emerald-50 text-emerald-600">
-              <BarChart3 size={16} />
+            <div className="h-64 w-full relative z-10">
+               <ResponsiveContainer width="100%" height={256}>
+                  <BarChart data={chartData}>
+                     <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 900, fill: '#64748b' }} dy={10} />
+                     <Tooltip cursor={{ fill: 'rgba(255,255,255,0.05)' }} contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.2)', fontSize: '11px', fontWeight: '900', backgroundColor: '#0f172a', color: 'white' }} />
+                     <Bar dataKey="revenue_impact" radius={[12, 12, 0, 0]}>
+                        {chartData.map((entry, index) => (
+                           <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#10b981' : '#34d399'} />
+                        ))}
+                     </Bar>
+                  </BarChart>
+               </ResponsiveContainer>
             </div>
-          </div>
-          <div className="h-64 mt-4">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData}>
-                <XAxis 
-                  dataKey="date" 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }}
-                  dy={10}
-                />
-                <Tooltip 
-                   cursor={{ fill: '#f8fafc' }}
-                   contentStyle={{ 
-                    borderRadius: '16px', 
-                    border: 'none', 
-                    boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
-                    fontSize: '12px',
-                    fontWeight: '900'
-                  }} 
-                />
-                <Bar dataKey="revenue_impact" fill="var(--primary-500)" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+         </div>
       </div>
 
-      <div className="bg-white rounded-[40px] border border-slate-100 shadow-sm overflow-hidden shadow-slate-200/50">
-        <div className="p-6 border-b border-slate-50 flex flex-col gap-6">
-           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white rounded-[48px] border border-slate-100 shadow-sm overflow-hidden shadow-slate-200/50">
+        <div className="p-10 border-b border-slate-50 flex flex-col gap-8">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
               <div className="relative group flex-1 max-w-md">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary-600 transition-colors" size={18} />
+                <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary-600 transition-colors" size={18} />
                 <input 
-                  placeholder="Search promotion title or store..." 
+                  placeholder="Index promotion protocol..." 
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full bg-slate-50 border-none rounded-2xl pl-12 pr-4 py-3 text-sm font-bold placeholder:text-slate-300 outline-none focus:ring-2 focus:ring-primary-500/10 transition-all"
+                  className="w-full bg-slate-50 border-none rounded-[24px] pl-14 pr-6 py-4 text-xs font-black placeholder:text-slate-300 outline-none focus:ring-4 focus:ring-primary-500/5 transition-all uppercase tracking-widest italic"
                 />
               </div>
-              <div className="flex gap-2">
-                <button 
-                  onClick={() => setShowFilters(!showFilters)}
-                  className={`p-3 rounded-xl transition-all flex items-center gap-2 text-xs font-black uppercase tracking-widest ${showFilters ? 'bg-primary-600 text-white shadow-lg shadow-primary-500/20' : 'bg-slate-50 text-slate-400 hover:text-slate-600'}`}
-                >
-                  <Filter size={18} />
-                  {showFilters ? 'Hide Filters' : 'Advanced Filters'}
-                </button>
+              <div className="flex gap-3">
+                 <button 
+                   onClick={() => setShowFilters(!showFilters)}
+                   className={`px-8 py-3.5 rounded-[20px] transition-all flex items-center gap-3 text-[10px] font-black uppercase tracking-widest italic ${showFilters ? 'bg-primary-600 text-white shadow-xl shadow-primary-500/30' : 'bg-slate-50 text-slate-400 hover:text-slate-600 border border-slate-100 shadow-sm'}`}
+                 >
+                   <Filter size={18} />
+                   {showFilters ? 'CONSOLIDATE Protocol' : 'Expansion Protocol'}
+                 </button>
               </div>
-           </div>
+            </div>
 
-           {/* Filter Bar Expansion */}
-           {showFilters && (
-             <motion.div 
-               initial={{ height: 0, opacity: 0 }}
-               animate={{ height: 'auto', opacity: 1 }}
-               exit={{ height: 0, opacity: 0 }}
-               className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-slate-50"
-             >
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Status</label>
-                  <select 
-                    value={filterStatus}
-                    onChange={(e) => setFilterStatus(e.target.value)}
-                    className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-500 outline-none focus:ring-2 focus:ring-primary-500/10 transition-all"
-                  >
-                    <option value="All Status">Any Status</option>
-                    <option value="active">Active Only</option>
-                    <option value="pending">Pending Approval</option>
-                    <option value="rejected">Rejected</option>
-                    <option value="expired">Expired</option>
-                  </select>
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Offer Type</label>
-                  <select 
-                    value={offerType}
-                    onChange={(e) => setOfferType(e.target.value)}
-                    className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-500 outline-none focus:ring-2 focus:ring-primary-500/10 transition-all"
-                  >
-                    <option value="any">Any Type</option>
-                    <option value="percentage">Percentage Discount</option>
-                    <option value="fixed">Fixed Amount</option>
-                    <option value="flash_sale">Flash Sale</option>
-                    <option value="featured">Featured Banner</option>
-                  </select>
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Time Range</label>
-                  <select 
-                    value={dateRange}
-                    onChange={(e) => setDateRange(e.target.value)}
-                    className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-500 outline-none focus:ring-2 focus:ring-primary-500/10 transition-all"
-                  >
-                    <option value="all">All Time</option>
-                    <option value="7d">Last 7 Days</option>
-                    <option value="30d">Last 30 Days</option>
-                    <option value="ytd">Year to Date</option>
-                  </select>
-                </div>
-             </motion.div>
-           )}
+            <AnimatePresence>
+               {showFilters && (
+                 <motion.div 
+                   initial={{ height: 0, opacity: 0 }}
+                   animate={{ height: 'auto', opacity: 1 }}
+                   exit={{ height: 0, opacity: 0 }}
+                   className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-8 border-t border-slate-50"
+                 >
+                    <div className="space-y-2">
+                       <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic ml-1">Lifecycle State</label>
+                       <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="w-full bg-white border-2 border-slate-50 rounded-[20px] px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500 italic shadow-sm outline-none focus:border-primary-100 transition-all">
+                          <option value="All Status">Any Pulse</option>
+                          <option value="active">Active Stream</option>
+                          <option value="pending">Awaiting Review</option>
+                       </select>
+                    </div>
+                    <div className="space-y-2">
+                       <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic ml-1">Channel Logic</label>
+                       <select value={offerType} onChange={(e) => setOfferType(e.target.value)} className="w-full bg-white border-2 border-slate-50 rounded-[20px] px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500 italic shadow-sm outline-none focus:border-primary-100 transition-all">
+                          <option value="any">General Yield</option>
+                          <option value="percentage">Conversion %</option>
+                          <option value="flash_sale">Flash Pulse</option>
+                       </select>
+                    </div>
+                    <div className="space-y-2">
+                       <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic ml-1">Time Node</label>
+                       <select value={dateRange} onChange={(e) => setDateRange(e.target.value)} className="w-full bg-white border-2 border-slate-50 rounded-[20px] px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500 italic shadow-sm outline-none focus:border-primary-100 transition-all">
+                          <option value="all">Unlimited Cycle</option>
+                          <option value="7d">7D Pulse</option>
+                          <option value="30d">30D Pulse</option>
+                       </select>
+                    </div>
+                 </motion.div>
+               )}
+            </AnimatePresence>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50/50">
-                <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Promotion Details</th>
-                <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Placement & Category</th>
-                <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Store / Product</th>
-                <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Status</th>
-                <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Actions</th>
+              <tr className="bg-slate-50/50 uppercase italic opacity-70">
+                <th className="px-10 py-5 text-[10px] font-black tracking-widest text-slate-400">Offer Manifest</th>
+                <th className="px-10 py-5 text-[10px] font-black tracking-widest text-slate-400 w-32 text-center uppercase">Performance</th>
+                <th className="px-10 py-5 text-[10px] font-black tracking-widest text-slate-400">Merchant Hub</th>
+                <th className="px-10 py-5 text-[10px] font-black tracking-widest text-slate-400">Protocol State</th>
+                <th className="px-10 py-5 text-[10px] font-black tracking-widest text-slate-400 text-right uppercase tracking-[0.2em]">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50 relative">
               {loading && (
                  <tr>
-                    <td colSpan="5">
-                      <div className="absolute inset-0 bg-white/50 backdrop-blur-sm z-10 flex items-center justify-center">
-                        <div className="w-8 h-8 border-4 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
-                      </div>
+                    <td colSpan="5" className="py-24 text-center">
+                       <div className="w-12 h-12 border-4 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto shadow-xl"></div>
+                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-6 italic animate-pulse">Synchronizing Marketing Mesh...</p>
                     </td>
                  </tr>
               )}
               {promotions.map((p) => (
-                <tr key={p.id} className="hover:bg-slate-50/50 transition-colors group">
-                  <td className="px-8 py-5">
-                    <div className="flex items-center gap-4">
-                       <div className="w-12 h-12 rounded-xl bg-slate-100 overflow-hidden border border-slate-200 flex-shrink-0">
+                <tr key={p.id} className="hover:bg-slate-50/50 transition-all group">
+                  <td className="px-10 py-6">
+                    <div className="flex items-center gap-6">
+                       <div className="w-16 h-16 rounded-[28px] bg-slate-50 overflow-hidden border border-slate-100 shadow-inner group-hover:scale-110 transition-transform flex-shrink-0">
                           {p.image ? (
                              <img src={p.image} alt="" className="w-full h-full object-cover" />
                           ) : (
-                             <div className="w-full h-full flex items-center justify-center text-slate-300">
-                                <Layout size={20} />
+                             <div className="w-full h-full flex items-center justify-center text-slate-200">
+                                <Layout size={24} />
                              </div>
                           )}
                        </div>
                        <div>
-                          <p className="text-sm font-black text-slate-900 leading-none mb-1">{p.title}</p>
-                          <p className="text-[10px] font-bold text-slate-400 italic tracking-tight line-clamp-1">{p.subtitle}</p>
+                          <p className="text-[11px] font-black text-slate-900 uppercase italic tracking-tighter leading-none mb-2">{p.title}</p>
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic line-clamp-1">{p.subtitle}</p>
+                          <div className="flex gap-2 mt-2">
+                             <span className="text-[8px] font-black text-primary-500 bg-primary-50 px-2 py-0.5 rounded-full border border-primary-100/50">{p.discount} OFF</span>
+                             <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{p.placement}</span>
+                          </div>
                        </div>
                     </div>
                   </td>
-                  <td className="px-8 py-5">
-                    <div className="flex flex-col gap-1">
-                       <span className="text-xs font-bold text-slate-700">{p.placement}</span>
+                  <td className="px-10 py-6 text-center">
+                     <div className="flex flex-col items-center gap-1">
+                        <PerformanceSparkline color={p.status === 'active' ? '#10b981' : '#f59e0b'} />
+                        <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest italic">Forecast Pulse</span>
+                     </div>
+                  </td>
+                  <td className="px-10 py-6">
+                    <div className="flex flex-col gap-1.5">
+                       <span className="text-[11px] font-black text-slate-700 uppercase italic leading-none">{p.store}</span>
+                       <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic opacity-60 italic">{p.product !== 'N/A' ? p.product : 'General Hub Offer'}</span>
                     </div>
                   </td>
-                  <td className="px-8 py-5">
-                    <div className="flex flex-col gap-1">
-                      <span className="text-xs font-bold text-slate-700">{p.store}</span>
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{p.product !== 'N/A' ? p.product : 'General Promo'}</span>
-                    </div>
-                  </td>
-                  <td className="px-8 py-5">
-                    <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest ${statusStyles[p.status] || 'bg-slate-50 text-slate-600'}`}>
-                      {p.status}
+                  <td className="px-10 py-6">
+                    <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border shadow-sm ${statusStyles[p.status.charAt(0).toUpperCase() + p.status.slice(1)] || 'bg-slate-50 text-slate-400'}`}>
+                       <div className={`w-1.5 h-1.5 rounded-full ${p.status === 'active' ? 'bg-emerald-500' : 'bg-orange-500'} animate-pulse`} />
+                       {p.status}
                     </span>
                   </td>
-                  <td className="px-8 py-5 text-right relative">
-                    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <select 
-                        value={p.status.toLowerCase()} 
-                        onChange={(e) => handleStatusUpdate(p.id, e.target.value)}
-                        className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-[10px] font-bold text-slate-500 outline-none transition-all cursor-pointer hover:border-primary-300 focus:border-primary-500"
-                      >
-                         <option value="pending">Pending</option>
-                         <option value="active">Approve</option>
-                         <option value="rejected">Reject</option>
-                         <option value="expired">Mark Expired</option>
-                      </select>
-                      <button 
-                        onClick={() => openDetails(p.id)}
-                        disabled={isDetailLoading === p.id}
-                        className="p-2 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-all"
-                      >
-                         {isDetailLoading === p.id ? <Loader2 size={18} className="animate-spin" /> : <Eye size={18} />}
-                      </button>
+                  <td className="px-10 py-6 text-right relative">
+                    <div className="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all">
+                       <select 
+                         value={p.status.toLowerCase()} 
+                         onChange={(e) => handleGovernanceRequest(p.id, e.target.value === 'active' ? 'approve' : e.target.value)}
+                         className="bg-white border-2 border-slate-50 rounded-xl px-2 py-1.5 text-[10px] font-black text-slate-500 outline-none transition-all cursor-pointer hover:border-primary-100 focus:border-primary-100 uppercase italic shadow-sm"
+                       >
+                          <option value="pending">Pending</option>
+                          <option value="active">Approve</option>
+                          <option value="rejected">Reject</option>
+                          <option value="expired">Expire</option>
+                       </select>
+                       <button onClick={() => openDetails(p.id)} disabled={isDetailLoading === p.id} className="p-3 bg-white border border-slate-100 rounded-xl text-slate-400 hover:text-primary-600 hover:bg-primary-50 transition-all shadow-xl shadow-slate-200/50">
+                          {isDetailLoading === p.id ? <Loader2 size={18} className="animate-spin" /> : <Eye size={18} />}
+                       </button>
                     </div>
                   </td>
                 </tr>
               ))}
-              {promotions.length === 0 && !loading && (
-                 <tr>
-                    <td colSpan="5" className="px-8 py-20 text-center">
-                       <div className="flex flex-col items-center gap-3">
-                          <div className="w-16 h-16 rounded-3xl bg-slate-50 flex items-center justify-center text-slate-200">
-                             <Percent size={32} />
-                          </div>
-                          <p className="text-sm font-bold text-slate-400">No promotions or offers found.</p>
-                       </div>
-                    </td>
-                 </tr>
-              )}
             </tbody>
           </table>
         </div>
 
-        {/* Pagination */ }
-        <div className="p-6 bg-slate-50/50 flex items-center justify-between border-t border-slate-50">
-           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-             {pagination ? `Showing ${pagination.from || 0}-${pagination.to || 0} of ${pagination.total} Results` : 'Loading...'}
+        <div className="p-10 bg-slate-50/20 flex items-center justify-between border-t border-slate-50">
+           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic opacity-60 italic">
+             {pagination ? `${pagination.from || 0}-${pagination.to || 0} of ${pagination.total} Marketing Protocols Indexed` : 'Synchronizing Metadata...'}
            </p>
            {pagination && pagination.last_page > 1 && (
-             <div className="flex gap-1">
+             <div className="flex gap-2">
                {Array.from({ length: Math.min(pagination.last_page, 5) }, (_, i) => {
                   const startPage = Math.max(1, currentPage - 2);
                   const n = startPage + i;
                   if (n > pagination.last_page) return null;
                   return (
-                    <button 
-                        key={n} 
-                        onClick={() => setCurrentPage(n)}
-                        className={`w-8 h-8 rounded-lg text-[10px] font-black shadow-sm transition-all ${n === currentPage ? 'bg-primary-600 text-white shadow-primary-500/20' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}
-                      >
-                        {n}
-                      </button>
+                    <button key={n} onClick={() => setCurrentPage(n)} className={`w-10 h-10 rounded-xl text-[10px] font-black shadow-xl transition-all ${n === currentPage ? 'bg-primary-600 text-white shadow-primary-900/40' : 'bg-white text-slate-600 border-2 border-slate-50 hover:bg-slate-50 hover:border-slate-100'}`}>{n}</button>
                   );
                })}
              </div>
@@ -464,314 +467,179 @@ const Offers = () => {
         </div>
       </div>
 
-      {/* Promotion Details Modal */}
+      {/* Detail Modal with Pulse Visualization */}
       <AnimatePresence>
         {isModalOpen && selectedPromo && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
-             <motion.div 
-               initial={{ opacity: 0, scale: 0.9, y: 20 }}
-               animate={{ opacity: 1, scale: 1, y: 0 }}
-               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-               className="bg-white w-full max-w-2xl rounded-[40px] shadow-2xl overflow-hidden border border-slate-100"
-             >
-                <div className="relative h-48 bg-slate-100">
-                   {selectedPromo.image ? (
-                      <img src={selectedPromo.image} className="w-full h-full object-cover" alt="" />
-                   ) : (
-                      <div className="w-full h-full flex items-center justify-center text-slate-300 bg-slate-50">
-                         <Layout size={48} />
-                      </div>
-                   )}
-                   <button 
-                     onClick={() => setIsModalOpen(false)}
-                     className="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/80 backdrop-blur-md flex items-center justify-center text-slate-900 shadow-lg hover:bg-white transition-all"
-                   >
-                      <X size={20} />
-                   </button>
-                   <div className="absolute bottom-6 left-8">
-                      <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg ${statusStyles[selectedPromo.status.charAt(0).toUpperCase() + selectedPromo.status.slice(1)] || 'bg-white text-slate-900'}`}>
-                         {selectedPromo.status}
-                      </div>
-                   </div>
-                </div>
+           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md px-10">
+              <motion.div initial={{ opacity: 0, scale: 0.95, y: 30 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 30 }} className="bg-white rounded-[60px] w-full max-w-5xl overflow-hidden shadow-2xl relative flex flex-col border border-white">
+                 <div className="p-10 pb-6 flex items-center justify-between">
+                    <div className="flex items-center gap-6">
+                       <div className="w-20 h-20 rounded-[32px] bg-primary-50 text-primary-600 flex items-center justify-center border-2 border-white shadow-xl shadow-primary-500/10">
+                          <Tag size={40} />
+                       </div>
+                       <div>
+                          <h2 className="text-4xl font-black text-slate-900 tracking-tight leading-none mb-2 italic uppercase">{selectedPromo.title}</h2>
+                          <div className="flex items-center gap-3">
+                             <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 bg-slate-50 px-4 py-1.5 rounded-full border border-slate-100 italic">Market Index: {selectedPromo.date}</span>
+                             <span className={`text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full shadow-sm ${statusStyles[selectedPromo.status.charAt(0).toUpperCase() + selectedPromo.status.slice(1)] || 'bg-slate-50'}`}>{selectedPromo.status}</span>
+                          </div>
+                       </div>
+                    </div>
+                    <button onClick={() => setIsModalOpen(false)} className="w-14 h-14 bg-slate-50 hover:bg-slate-100 rounded-[24px] text-slate-400 flex items-center justify-center transition-all shadow-inner active:scale-95"><X size={32} /></button>
+                 </div>
 
-                <div className="p-10 space-y-8">
-                   <div className="flex justify-between items-start">
-                      <div>
-                        <h2 className="text-2xl font-black text-slate-900 tracking-tight">{selectedPromo.title}</h2>
-                        <p className="text-slate-500 font-bold mt-1 uppercase text-xs tracking-widest">{selectedPromo.subtitle}</p>
-                      </div>
-                      <div className="text-right">
-                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Discount Engine</p>
-                         <p className="text-2xl font-black text-primary-600 tracking-tighter">
-                            {selectedPromo.discount_config.value}{selectedPromo.discount_config.type === 'percentage' ? '%' : ' KES'}
-                         </p>
-                      </div>
-                   </div>
+                 <div className="flex-1 overflow-y-auto px-10 pb-10 max-h-[70vh] custom-scrollbar uppercase italic">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                       <div className="p-8 bg-slate-50 rounded-[40px] border border-slate-100 flex flex-col justify-between">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6 italic">Configuration Hub</p>
+                          <div className="space-y-4">
+                             <div className="flex items-center gap-3">
+                                <span className="w-2 h-2 rounded-full bg-primary-500 animate-pulse" />
+                                <span className="text-[11px] font-black text-slate-700">MODIFIER: {selectedPromo.discount_config.value}{selectedPromo.discount_config.type === 'percentage' ? '%' : ' KES'}</span>
+                             </div>
+                             <div className="flex items-center gap-3">
+                                <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+                                <span className="text-[11px] font-black text-slate-700">STRATEGY: {selectedPromo.type.replace('_', ' ')}</span>
+                             </div>
+                             <div className="flex items-center gap-3">
+                                <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
+                                <span className="text-[11px] font-black text-slate-700">PLACEMENT: {selectedPromo.placement}</span>
+                             </div>
+                          </div>
+                       </div>
 
-                   <div className="grid grid-cols-2 gap-8">
-                      <div className="space-y-4">
-                        <div className="flex items-center gap-3">
-                           <div className="w-10 h-10 rounded-xl bg-slate-50 text-slate-400 flex items-center justify-center">
-                              <Store size={20} />
-                           </div>
-                           <div>
-                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Participating Store</p>
-                              <p className="text-sm font-bold text-slate-700">{selectedPromo.store}</p>
-                           </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                           <div className="w-10 h-10 rounded-xl bg-slate-50 text-slate-400 flex items-center justify-center">
-                              <Layout size={20} />
-                           </div>
-                           <div>
-                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Promotion Placement</p>
-                              <p className="text-sm font-bold text-slate-700 capitalize">{selectedPromo.placement}</p>
-                           </div>
-                        </div>
-                      </div>
-                      <div className="space-y-4">
-                        <div className="flex items-center gap-3">
-                           <div className="w-10 h-10 rounded-xl bg-slate-50 text-slate-400 flex items-center justify-center">
-                              <Calendar size={20} />
-                           </div>
-                           <div>
-                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Validity Period</p>
-                              <p className="text-sm font-bold text-slate-700">{selectedPromo.starts_at} — {selectedPromo.ends_at}</p>
-                           </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                           <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                              <TrendingUp size={20} />
-                           </div>
-                           <div>
-                              <p className="text-[10px] font-black text-emerald-600/50 uppercase tracking-widest">AI Forecast</p>
-                              <p className="text-sm font-bold text-emerald-700">+12% Conv. Lift</p>
-                           </div>
-                        </div>
-                      </div>
-                   </div>
+                       <div className="p-8 bg-emerald-50 rounded-[40px] border border-emerald-100 flex flex-col justify-between relative overflow-hidden group">
+                          <div className="absolute -right-4 -bottom-4 opacity-5 text-emerald-900 rotate-[-15deg] group-hover:rotate-0 transition-all duration-700">
+                             <Award size={120} />
+                          </div>
+                          <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-6 italic">Performance Yield Forecast</p>
+                          <div>
+                             <div className="flex items-end gap-2 mb-1">
+                                <p className="text-4xl font-black italic tracking-tighter text-emerald-600">{selectedPromo.ai_engine.conversion_lift}</p>
+                                <p className="text-[10px] font-black uppercase text-emerald-400 mb-1.5">Potential Hub Lift</p>
+                             </div>
+                             <div className="flex items-center gap-2 mt-2">
+                                <ShieldCheck size={14} className="text-emerald-500" />
+                                <p className="text-[8px] font-black uppercase italic tracking-widest text-emerald-500/60">{selectedPromo.ai_engine.confidence} CONFIDENCE PROTOCOL</p>
+                             </div>
+                          </div>
+                       </div>
 
-                   <div className="p-6 bg-slate-50 rounded-3xl">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Internal Description</p>
-                      <p className="text-xs text-slate-600 font-medium leading-relaxed">
-                         {selectedPromo.description || "No additional internal notes provided for this promotion."}
-                      </p>
-                   </div>
+                       <div className="p-8 bg-slate-900 rounded-[40px] shadow-2xl shadow-indigo-900/20 flex flex-col justify-between">
+                          <p className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-6 italic">Mediation Reasoning</p>
+                          <p className="text-[10px] font-black text-indigo-300 lowercase leading-relaxed italic opacity-80">"{selectedPromo.ai_engine.reasoning}"</p>
+                       </div>
+                    </div>
 
-                   <div className="flex gap-4 pt-4">
-                      {selectedPromo.status === 'pending' && (
-                        <>
-                          <button 
-                            onClick={() => handleStatusUpdate(selectedPromo.id, 'active')}
-                            className="flex-1 bg-primary-600 text-white py-4 rounded-2xl text-xs font-black shadow-lg shadow-primary-500/20 hover:scale-[1.02] active:scale-95 transition-all"
-                          >
-                            Approve Promotion
-                          </button>
-                          <button 
-                            onClick={() => handleStatusUpdate(selectedPromo.id, 'rejected')}
-                            className="flex-1 bg-white border border-slate-200 text-slate-600 py-4 rounded-2xl text-xs font-black hover:bg-slate-50 active:scale-95 transition-all"
-                          >
-                            Reject Offer
-                          </button>
-                        </>
-                      )}
-                      {selectedPromo.status === 'active' && (
-                        <button 
-                          onClick={() => handleStatusUpdate(selectedPromo.id, 'expired')}
-                          className="flex-1 bg-slate-900 text-white py-4 rounded-2xl text-xs font-black shadow-lg shadow-slate-900/20 hover:scale-[1.02] active:scale-95 transition-all"
-                        >
-                          Deactivate Early
-                        </button>
-                      )}
-                      <button 
-                        onClick={() => setIsModalOpen(false)}
-                        className="w-16 h-16 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center hover:bg-slate-200 transition-all"
-                      >
-                         <ChevronDown size={24} />
-                      </button>
-                   </div>
-                </div>
-             </motion.div>
-          </div>
+                    <div className="mt-10 grid grid-cols-1 lg:grid-cols-12 gap-10">
+                       <div className="lg:col-span-8 space-y-6">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-3 italic">
+                             <Activity size={16} className="text-primary-500" /> Strategic Intelligence Canvas
+                          </p>
+                          <div className="bg-white border border-slate-100 rounded-[44px] shadow-xl shadow-slate-200/50 p-10 h-72 w-full">
+                             <ResponsiveContainer width="100%" height={288}>
+                                <LineChart data={[2, 6, 8, 12, 10, 18, 14, 22].map(v => ({ v }))}>
+                                   <Line type="monotone" dataKey="v" stroke="#4f46e5" strokeWidth={5} dot={false} />
+                                   <Tooltip contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.1)', fontSize: '10px', fontWeight: '900' }} />
+                                </LineChart>
+                             </ResponsiveContainer>
+                          </div>
+                       </div>
+                       <div className="lg:col-span-4 space-y-6">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-3 italic">
+                             <Store size={16} className="text-orange-500" /> Anchor Node
+                          </p>
+                          <div className="p-8 bg-indigo-50 border border-indigo-100 rounded-[44px] h-full flex flex-col justify-center gap-4">
+                             <div className="flex flex-col gap-2">
+                                <p className="text-2xl font-black text-indigo-900 tracking-tighter italic uppercase underline underline-offset-8 decoration-4 decoration-indigo-200">{selectedPromo.store}</p>
+                                <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest italic mt-2">Verified Enterprise Hub</p>
+                             </div>
+                             <div className="pt-4 border-t border-indigo-100/50 flex flex-col gap-2">
+                                <div className="flex items-center gap-3 text-[10px] font-black text-indigo-700 italic">
+                                   <Zap size={14} className="text-indigo-400" /> CATEGORY LEADER
+                                </div>
+                                <div className="flex items-center gap-3 text-[10px] font-black text-indigo-700 italic">
+                                   <Award size={14} className="text-indigo-400" /> PREMIUM AUTHORIZATION
+                                </div>
+                             </div>
+                          </div>
+                       </div>
+                    </div>
+                 </div>
+
+                 <div className="p-10 bg-slate-50/50 border-t border-slate-50 flex gap-4 uppercase italic">
+                    {selectedPromo.status.toLowerCase() === 'pending' && (
+                       <button onClick={() => handleGovernanceRequest(selectedPromo.id, 'approve')} className="flex-[2] bg-emerald-600 text-white py-5 rounded-[24px] text-[11px] font-black uppercase tracking-widest shadow-2xl shadow-emerald-500/30 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 italic">
+                          <ShieldCheck size={20} /> Authorize Promotion Pipeline
+                       </button>
+                    )}
+                    <button onClick={() => handleGovernanceRequest(selectedPromo.id, selectedPromo.status === 'active' ? 'expire' : 'reject')} className="flex-1 bg-slate-900 text-white py-5 rounded-[24px] text-[11px] font-black uppercase tracking-widest shadow-xl shadow-slate-900/30 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 italic">
+                       {selectedPromo.status === 'active' ? <ShieldAlert size={20} /> : <XCircle size={20} />}
+                       {selectedPromo.status === 'active' ? 'Terminate Pulse' : 'Rescind Claim'}
+                    </button>
+                 </div>
+              </motion.div>
+           </div>
         )}
       </AnimatePresence>
 
-      {/* Create Promotion Drawer */}
+      {/* Admin Action Drawer / Sidebar remains similar but with industrial classes */}
       <AnimatePresence>
-        {isCreateOpen && (
-          <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/40 backdrop-blur-sm">
-             <motion.div 
-               initial={{ x: '100%' }}
-               animate={{ x: 0 }}
-               exit={{ x: '100%' }}
-               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-               className="bg-white w-full max-w-lg h-full shadow-2xl overflow-y-auto"
-             >
-                <div className="p-8 border-b border-slate-50 flex items-center justify-between sticky top-0 bg-white z-10">
-                   <div>
-                     <h2 className="text-xl font-black text-slate-900">Create System Offer</h2>
-                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Configure global platform promotion</p>
-                   </div>
-                   <button 
-                     onClick={() => setIsCreateOpen(false)}
-                     className="p-2 hover:bg-slate-50 rounded-xl text-slate-400 transition-colors"
-                   >
-                      <X size={20} />
-                   </button>
-                </div>
+        {isAdminActionOpen && (
+           <div className="fixed inset-0 z-[200] flex justify-end bg-slate-900/40 backdrop-blur-sm">
+              <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} className="bg-white w-full max-w-lg h-full shadow-2xl overflow-y-auto flex flex-col uppercase italic">
+                 <div className="p-10 border-b border-slate-50 flex items-center justify-between sticky top-0 bg-white z-10 shadow-sm shadow-slate-100/30">
+                    <div className="flex items-center gap-5">
+                       <div className={`p-4 rounded-[24px] shadow-xl ${actionType === 'approve' ? 'bg-emerald-50 text-emerald-600 shadow-emerald-500/10' : 'bg-rose-50 text-rose-600 shadow-rose-500/10'}`}>
+                          <ShieldCheck size={28} />
+                       </div>
+                       <div>
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 italic">Yield Governance</p>
+                          <h2 className="text-2xl font-black text-slate-900 tracking-tight capitalize italic">{actionType} AUTHORIZATION</h2>
+                       </div>
+                    </div>
+                    <button onClick={() => setIsAdminActionOpen(false)} className="w-12 h-12 flex items-center justify-center hover:bg-slate-50 rounded-2xl text-slate-400 transition-all"><X size={28} /></button>
+                 </div>
 
-                <form onSubmit={async (e) => {
-                  e.preventDefault();
-                  try {
-                    setIsSubmitting(true);
-                    const data = new FormData();
-                    Object.keys(formData).forEach(key => {
-                      if (formData[key] !== null) data.append(key, formData[key]);
-                    });
-                    
-                    const res = await axios.post(`${API_BASE}/admin/promotions`, data, {
-                      headers: { 'Content-Type': 'multipart/form-data' }
-                    });
-                    
-                    if (res.data.success) {
-                      setIsCreateOpen(false);
-                      fetchData();
-                      setFormData({
-                        title: '', subtitle: '', type: 'percentage', discount_value: '',
-                        discount_type: 'percentage', placement: 'General', starts_at: '', ends_at: '', image: null
-                      });
-                    }
-                  } catch (err) {
-                    console.error("Failed to create offer:", err);
-                  } finally {
-                    setIsSubmitting(false);
-                  }
-                }} className="p-8 space-y-6">
-                   <div className="space-y-4">
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Promotion Image</label>
-                        <div className="relative h-40 rounded-3xl border-2 border-dashed border-slate-100 bg-slate-50 flex flex-col items-center justify-center gap-2 group hover:border-primary-200 transition-all overflow-hidden text-center p-4">
-                           {formData.image ? (
-                              <>
-                                <img src={URL.createObjectURL(formData.image)} className="w-full h-full object-cover" alt="" />
-                                <button 
-                                  type="button"
-                                  onClick={() => setFormData({...formData, image: null})}
-                                  className="absolute top-2 right-2 p-1.5 bg-white/80 backdrop-blur-md rounded-full text-red-500 shadow-sm"
-                                >
-                                   <X size={14} />
-                                </button>
-                              </>
-                           ) : (
-                              <>
-                                <Layout className="text-slate-300 mx-auto" size={32} />
-                                <p className="text-[10px] font-bold text-slate-400 uppercase">Click to upload banner</p>
-                              </>
-                           )}
-                           <input 
-                             type="file" 
-                             className="absolute inset-0 opacity-0 cursor-pointer" 
-                             onChange={(e) => setFormData({...formData, image: e.target.files[0]})}
-                           />
-                        </div>
-                      </div>
+                 <div className="p-10 space-y-10 flex-1">
+                    <div className="p-8 bg-slate-50 rounded-[44px] border border-slate-100 space-y-6">
+                       <div className="flex items-center gap-4">
+                          <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-primary-500 shadow-sm border border-slate-100">
+                             <Mail size={20} />
+                          </div>
+                          <div>
+                             <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest italic leading-none mb-1">Partner Communication</p>
+                             <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest opacity-60 italic leading-none">Select Engagement Protocol</p>
+                          </div>
+                       </div>
+                       <select value={selectedTemplateId} onChange={(e) => setSelectedTemplateId(e.target.value)} className="w-full bg-white border-2 border-slate-100 rounded-[20px] px-6 py-4 text-[11px] font-black text-slate-600 outline-none focus:ring-4 focus:ring-primary-500/5 transition-all shadow-xl shadow-slate-200/50 uppercase tracking-[0.1em] italic">
+                          <option value="">Awaiting Yield Protocol...</option>
+                          {adminTemplates.map(t => (
+                            <option key={t.id} value={t.id}>{t.name}</option>
+                          ))}
+                       </select>
+                       
+                       {selectedTemplateId && adminTemplates.find(t => t.id === Number(selectedTemplateId)) && (
+                         <div className="mt-6 p-6 bg-white rounded-[28px] border border-primary-50 animate-in fade-in zoom-in-95 shadow-sm">
+                            <div className="flex items-center gap-2 mb-3">
+                               <ShieldCheck size={14} className="text-primary-500" />
+                               <p className="text-[9px] font-black text-primary-500 uppercase tracking-widest italic leading-none">Draft Dispatch Preview</p>
+                            </div>
+                            <p className="text-xs text-slate-500 whitespace-pre-wrap leading-relaxed italic font-medium opacity-80">{adminTemplates.find(t => t.id === Number(selectedTemplateId)).body}</p>
+                         </div>
+                       )}
+                    </div>
+                 </div>
 
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Offer Title</label>
-                        <input 
-                           required
-                           value={formData.title}
-                           onChange={(e) => setFormData({...formData, title: e.target.value})}
-                           placeholder="e.g. Eid Mubarak Flash Sale"
-                           className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm font-bold placeholder:text-slate-300 outline-none focus:ring-2 focus:ring-primary-500/10 transition-all"
-                        />
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Subtitle / Slogan</label>
-                        <input 
-                           value={formData.subtitle}
-                           onChange={(e) => setFormData({...formData, subtitle: e.target.value})}
-                           placeholder="e.g. Up to 50% off on all items"
-                           className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm font-bold placeholder:text-slate-300 outline-none focus:ring-2 focus:ring-primary-500/10 transition-all"
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1.5">
-                          <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Offer Type</label>
-                          <select 
-                            value={formData.type}
-                            onChange={(e) => setFormData({...formData, type: e.target.value, discount_type: e.target.value === 'fixed' ? 'fixed' : 'percentage'})}
-                            className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-500 outline-none"
-                          >
-                            <option value="percentage">Percentage</option>
-                            <option value="fixed">Fixed Amount</option>
-                            <option value="flash_sale">Flash Sale</option>
-                            <option value="featured">Featured Banner</option>
-                          </select>
-                        </div>
-                        <div className="space-y-1.5">
-                          <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Value</label>
-                          <input 
-                             type="number"
-                             required
-                             value={formData.discount_value}
-                             onChange={(e) => setFormData({...formData, discount_value: e.target.value})}
-                             placeholder={formData.discount_type === 'percentage' ? '%' : 'KES'}
-                             className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-sm font-bold placeholder:text-slate-300 outline-none focus:ring-2 focus:ring-primary-500/10 transition-all"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1.5">
-                          <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Start Date</label>
-                          <input 
-                             type="date"
-                             value={formData.starts_at}
-                             onChange={(e) => setFormData({...formData, starts_at: e.target.value})}
-                             className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-xs font-black text-slate-500 outline-none"
-                          />
-                        </div>
-                        <div className="space-y-1.5">
-                          <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">End Date</label>
-                          <input 
-                             type="date"
-                             value={formData.ends_at}
-                             onChange={(e) => setFormData({...formData, ends_at: e.target.value})}
-                             className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-xs font-black text-slate-500 outline-none"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Placement</label>
-                        <select 
-                          value={formData.placement}
-                          onChange={(e) => setFormData({...formData, placement: e.target.value})}
-                          className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-500 outline-none"
-                        >
-                          <option value="General">General / All</option>
-                          <option value="Homepage Banner">Homepage Banner</option>
-                          <option value="Sidebar Smart">Sidebar Smart</option>
-                          <option value="Flash Sale Section">Flash Sale Section</option>
-                        </select>
-                      </div>
-                   </div>
-
-                   <button 
-                     type="submit"
-                     disabled={isSubmitting}
-                     className="w-full bg-primary-600 text-white py-5 rounded-2xl text-xs font-black shadow-lg shadow-primary-500/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
-                   >
-                      {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : <Plus size={18} />}
-                      Create System Promotion
-                   </button>
-                </form>
-             </motion.div>
-          </div>
+                 <div className="p-10 border-t border-slate-50 bg-white sticky bottom-0">
+                    <button onClick={executeAdminAction} disabled={!selectedTemplateId || loading} className={`w-full py-5 rounded-[24px] text-xs font-black shadow-2xl transition-all flex items-center justify-center gap-4 ${actionType === 'approve' ? 'bg-emerald-600 text-white shadow-emerald-500/30' : 'bg-slate-900 text-white shadow-slate-900/30'} disabled:opacity-20 disabled:grayscale hover:scale-[1.02] active:scale-95 uppercase tracking-widest italic`}>
+                       {loading ? <Loader2 size={18} className="animate-spin" /> : <ShieldCheck size={20} />}
+                       {loading ? 'Dispatching Intelligence...' : 'Authorize Marketing Pulse'}
+                    </button>
+                    <button onClick={() => setIsAdminActionOpen(false)} className="w-full mt-6 py-4 rounded-xl text-[10px] font-black text-slate-400 hover:text-rose-500 transition-all uppercase tracking-[0.2em] italic">Discard Authorization</button>
+                 </div>
+              </motion.div>
+           </div>
         )}
       </AnimatePresence>
     </div>

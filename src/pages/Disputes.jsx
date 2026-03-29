@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { 
   Gavel, 
@@ -14,7 +15,17 @@ import {
   Scale,
   XCircle,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  X,
+  ShieldCheck,
+  ShieldAlert,
+  Loader2,
+  Mail,
+  Zap,
+  Briefcase,
+  History,
+  Image as ImageIcon,
+  ExternalLink
 } from 'lucide-react';
 
 const Disputes = () => {
@@ -26,8 +37,22 @@ const Disputes = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
+  const [toast, setToast] = useState(null);
+
+  // Governance States
+  const [isAdminActionOpen, setIsAdminActionOpen] = useState(false);
+  const [adminTemplates, setAdminTemplates] = useState([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState('');
+  const [resolutionType, setResolutionType] = useState(null); // 'resolved', 'rejected', 'under_review'
+  const [targetId, setTargetId] = useState(null);
+  const [adminNotes, setAdminNotes] = useState('');
 
   const API_BASE = 'http://localhost:8003/api/v1';
+
+  const showToast = (message, type = 'blue') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   const fetchData = async () => {
     try {
@@ -47,219 +72,295 @@ const Disputes = () => {
     }
   };
 
+  const fetchTemplates = async () => {
+    try {
+      const res = await axios.get(`${API_BASE}/admin/disputes/templates`);
+      if (res.data.success) {
+        setAdminTemplates(res.data.data);
+      }
+    } catch (err) {
+      console.error("Templates fetch failed:", err);
+    }
+  };
+
   useEffect(() => {
     fetchData();
+    fetchTemplates();
   }, [searchTerm, filterStatus, currentPage]);
 
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, filterStatus]);
+  const handleGovernanceRequest = (id, resolution) => {
+    setTargetId(id);
+    setResolutionType(resolution);
+    setIsAdminActionOpen(true);
+  };
 
-  const handleResolve = async (id, status, notes) => {
+  const executeResolution = async () => {
     try {
-      const res = await axios.put(`${API_BASE}/admin/disputes/${id}/resolve`, { 
-        status, 
-        admin_notes: notes,
-        resolution: `Dispute ${status} by Admin`
+      setLoading(true);
+      const res = await axios.put(`${API_BASE}/admin/disputes/${targetId}/resolve`, { 
+        status: resolutionType, 
+        admin_notes: adminNotes,
+        template_id: selectedTemplateId
       });
       if (res.data.success) {
+        setIsAdminActionOpen(false);
+        showToast('Mediation resolution authoritative protocol dispatched', 'emerald');
         fetchData();
         setExpandedId(null);
       }
     } catch (err) {
-      console.error(`Failed to resolve dispute ${id}:`, err);
+      showToast('Mediation protocol failed', 'rose');
+    } finally {
+      setLoading(false);
+      setSelectedTemplateId('');
+      setAdminNotes('');
     }
   };
 
   const statusStyles = {
-    'Pending': 'bg-orange-50 text-orange-600',
-    'Under_review': 'bg-blue-50 text-blue-600',
-    'Resolved': 'bg-emerald-50 text-emerald-600',
-    'Rejected': 'bg-red-50 text-red-600',
-    'Closed': 'bg-slate-100 text-slate-500'
+    'Pending': 'bg-orange-50 text-orange-600 border-orange-100',
+    'Under_review': 'bg-blue-50 text-blue-600 border-blue-100',
+    'Resolved': 'bg-emerald-50 text-emerald-600 border-emerald-100',
+    'Rejected': 'bg-red-50 text-red-600 border-red-100',
+    'Closed': 'bg-slate-100 text-slate-500 border-slate-200'
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000 min-h-screen pb-20">
+      {/* Toast System */}
+      {toast && (
+        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[300] bg-slate-900 text-white px-8 py-4 rounded-3xl shadow-2xl flex items-center gap-4 animate-in slide-in-from-bottom-4">
+           <div className={`w-8 h-8 rounded-lg flex items-center justify-center bg-${toast.type}-500 shadow-xl shadow-${toast.type}-500/20`}>
+              <Zap size={16} />
+           </div>
+           <p className="text-[10px] font-black uppercase tracking-widest">{toast.message}</p>
+        </div>
+      )}
+
+      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-             <div className="p-2 rounded-xl bg-red-50 text-red-600">
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3 italic uppercase">
+             <div className="p-2.5 rounded-2xl bg-rose-50 text-rose-600 shadow-xl shadow-rose-500/10 border border-rose-100">
                 <Gavel size={24} />
              </div>
-             Dispute Resolution Center
+             Conflict Mitigation Hub
           </h1>
-          <p className="text-slate-500 font-medium mt-1">Manage marketplace conflicts, review evidence and issue resolutions.</p>
+          <p className="text-slate-500 font-medium mt-1 uppercase text-[10px] tracking-widest italic opacity-60 italic">Marketplace Dispute Resolution & Evidence Analytics</p>
+        </div>
+        <div className="flex gap-2">
+           <div className="flex items-center gap-2 bg-emerald-50 text-emerald-600 px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-emerald-100 shadow-xl shadow-emerald-500/10">
+              <Scale size={16} className="animate-pulse" /> Live Mediation Mode ACTIVE
+           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
          {stats.length > 0 ? stats.map((s, i) => (
-           <div key={i} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className={`w-12 h-12 rounded-2xl bg-${s.col}-50 text-${s.col}-600 flex items-center justify-center`}>
-                   {i === 0 ? <Scale size={24} /> : i === 1 ? <AlertTriangle size={24} /> : <CheckCircle2 size={24} />}
+            <div key={i} className="bg-white p-6 rounded-[40px] border border-slate-100 shadow-sm shadow-slate-200/50 flex items-center justify-between group hover:border-primary-100 transition-colors">
+              <div className="flex items-center gap-5">
+                <div className={`w-14 h-14 rounded-2xl bg-${s.col}-50 text-${s.col}-600 flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm`}>
+                   {i === 0 ? <Scale size={28} /> : i === 1 ? <AlertTriangle size={28} /> : <CheckCircle2 size={28} />}
                 </div>
                 <div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{s.l}</p>
-                  <p className="text-xl font-black text-slate-900 tracking-tight">{s.v}</p>
+                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 italic leading-none">{s.l}</p>
+                   <p className="text-2xl font-black text-slate-900 tracking-tight italic">{s.v}</p>
                 </div>
               </div>
-              <div className="text-[10px] font-black text-slate-400 bg-slate-50 px-2 py-1 rounded-lg">
+              <div className="text-[9px] font-black text-slate-400 bg-slate-50 px-2.5 py-1.5 rounded-xl uppercase italic">
                 {s.c}
               </div>
            </div>
          )) : Array(3).fill(0).map((_, i) => <div key={i} className="animate-pulse bg-slate-100 h-24 rounded-3xl"></div>)}
       </div>
 
-      <div className="bg-white rounded-[40px] border border-slate-100 shadow-sm overflow-hidden shadow-slate-200/50">
-        <div className="p-6 border-b border-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white rounded-[48px] border border-slate-100 shadow-sm overflow-hidden shadow-slate-200/50">
+        <div className="p-8 border-b border-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-6">
            <div className="relative group flex-1 max-w-md">
-             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-red-600 transition-colors" size={18} />
+             <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-rose-600 transition-colors" size={18} />
              <input 
-               placeholder="Search by Order ID, Reason or User..." 
+               placeholder="Index Case ID, Reason or Hub..." 
                value={searchTerm}
                onChange={(e) => setSearchTerm(e.target.value)}
-               className="w-full bg-slate-50 border-none rounded-2xl pl-12 pr-4 py-3 text-sm font-bold placeholder:text-slate-300 outline-none focus:ring-2 focus:ring-red-500/10 transition-all"
+               className="w-full bg-slate-50 border-none rounded-[24px] pl-14 pr-6 py-4 text-xs font-black placeholder:text-slate-300 outline-none focus:ring-4 focus:ring-rose-500/5 transition-all uppercase tracking-widest italic"
              />
            </div>
            <div className="flex gap-2">
-             <button className="p-3 bg-slate-50 text-slate-400 hover:text-slate-600 rounded-xl transition-colors"><Filter size={18} /></button>
-             <select 
-               value={filterStatus}
-               onChange={(e) => setFilterStatus(e.target.value)}
-               className="bg-slate-50 border-none rounded-xl px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-500 outline-none"
-             >
-                <option value="All Disputes">All Case Status</option>
-                <option value="pending">Pending</option>
-                <option value="under_review">Under Review</option>
-                <option value="resolved">Resolved</option>
-                <option value="rejected">Rejected</option>
-             </select>
+              <select 
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="bg-slate-50 border-none rounded-[20px] px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500 outline-none focus:ring-4 focus:ring-rose-500/5 transition-all italic shadow-sm"
+              >
+                 <option value="All Disputes">All Case Protocols</option>
+                 <option value="pending">Awaiting Mediation</option>
+                 <option value="under_review">Active Analysis</option>
+                 <option value="resolved">Resolved Hubs</option>
+                 <option value="rejected">Rejected Claims</option>
+              </select>
            </div>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50/50">
-                <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 w-16 text-center"></th>
-                <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Order & Date</th>
-                <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Common Parties</th>
-                <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Dispute Reason</th>
-                <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Status</th>
-                <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Case ID</th>
+              <tr className="bg-slate-50/50 uppercase italic opacity-70">
+                <th className="px-10 py-5 text-[10px] font-black tracking-widest text-slate-400 w-20 text-center italic">Hub</th>
+                <th className="px-10 py-5 text-[10px] font-black tracking-widest text-slate-400 italic">Dispute Manifest & Date</th>
+                <th className="px-10 py-5 text-[10px] font-black tracking-widest text-slate-400 italic">Hub Entities</th>
+                <th className="px-10 py-5 text-[10px] font-black tracking-widest text-slate-400 italic">Mitigation Status</th>
+                <th className="px-10 py-5 text-[10px] font-black tracking-widest text-slate-400 text-right italic uppercase tracking-[0.2em]">Protocol ID</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50 relative">
               {loading && (
                  <tr>
-                    <td colSpan="6">
-                      <div className="absolute inset-0 bg-white/50 backdrop-blur-sm z-10 flex items-center justify-center">
-                        <div className="w-8 h-8 border-4 border-red-500 border-t-transparent rounded-full animate-spin"></div>
-                      </div>
+                    <td colSpan="5" className="py-24 text-center">
+                       <div className="w-12 h-12 border-4 border-rose-600 border-t-transparent rounded-full animate-spin mx-auto shadow-xl"></div>
+                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-6 italic animate-pulse">Synchronizing Mediation Database...</p>
                     </td>
                  </tr>
               )}
               {disputes.map((d) => (
                 <React.Fragment key={d.id}>
-                  <tr className="hover:bg-slate-50/50 transition-colors group cursor-pointer" onClick={() => setExpandedId(expandedId === d.id ? null : d.id)}>
-                    <td className="px-8 py-5 text-center">
-                       {expandedId === d.id ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                  <tr 
+                    className={`hover:bg-slate-50/80 transition-all group cursor-pointer ${expandedId === d.id ? 'bg-slate-50/50' : ''}`} 
+                    onClick={() => setExpandedId(expandedId === d.id ? null : d.id)}
+                  >
+                    <td className="px-10 py-6 text-center">
+                       <div className={`p-2 rounded-lg transition-transform ${expandedId === d.id ? 'bg-rose-600 text-white rotate-180' : 'bg-slate-100 text-slate-400 group-hover:scale-110'}`}>
+                          <ChevronDown size={14} />
+                       </div>
                     </td>
-                    <td className="px-8 py-5">
+                    <td className="px-10 py-6">
                        <div className="flex flex-col">
-                          <span className="text-sm font-black text-slate-900">{d.order_number}</span>
-                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{d.date}</span>
+                          <span className="text-[11px] font-black text-slate-900 italic tracking-tighter leading-none mb-1 uppercase">ORDER #{d.order_number}</span>
+                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic leading-none">{d.date}</span>
+                          <span className="text-[9px] font-black text-rose-500 uppercase tracking-widest mt-2 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-100/50 w-fit">{d.reason}</span>
                        </div>
                     </td>
-                    <td className="px-8 py-5">
-                       <div className="flex flex-col gap-1">
-                          <div className="flex items-center gap-1.5 text-xs font-black text-slate-700">
-                             <User size={10} className="text-slate-400" /> {d.customer}
+                    <td className="px-10 py-6">
+                       <div className="flex flex-col gap-1.5">
+                          <div className="flex items-center gap-1.5 text-[11px] font-black text-slate-700 italic">
+                             <User size={12} className="text-primary-400" /> {d.customer}
                           </div>
-                          <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-tight">
-                             <Store size={10} /> {d.store}
+                          <div className="flex items-center gap-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest opacity-60">
+                             <Store size={12} className="text-secondary-400" /> {d.store}
                           </div>
                        </div>
                     </td>
-                    <td className="px-8 py-5">
-                       <span className="text-xs font-black text-red-600 line-clamp-1 italic">{d.reason}</span>
-                    </td>
-                    <td className="px-8 py-5">
-                       <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest ${statusStyles[d.status] || 'bg-slate-50 text-slate-600'}`}>
-                         {d.status}
+                    <td className="px-10 py-6">
+                       <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border shadow-sm ${statusStyles[d.status] || 'bg-slate-50 text-slate-500'}`}>
+                          <div className={`w-1.5 h-1.5 rounded-full ${d.status === 'Resolved' ? 'bg-emerald-500' : 'bg-orange-500'} animate-pulse`} />
+                          {d.status}
                        </span>
                     </td>
-                    <td className="px-8 py-5 text-right font-mono text-[10px] font-black text-slate-300">
+                    <td className="px-10 py-6 text-right font-black text-slate-300 text-[10px] italic tracking-widest uppercase">
                        DS-{d.id.toString().padStart(4, '0')}
                     </td>
                   </tr>
-                  {expandedId === d.id && (
-                    <tr className="bg-slate-50/30">
-                       <td colSpan="6" className="px-8 py-8 border-t border-slate-100">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-                             <div className="space-y-6">
-                                <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
-                                   <MessageSquare size={12} /> Case Details & Evidence
-                                </h4>
-                                <div className="p-6 bg-white rounded-3xl border border-slate-100 shadow-sm italic text-sm text-slate-700 font-medium leading-relaxed">
-                                   "{d.customer_notes}"
-                                </div>
-                                <div className="grid grid-cols-3 gap-3">
-                                   {/* Evidence Placeholders */}
-                                   <div className="aspect-square rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-300"><FileText size={20} /></div>
-                                   <div className="aspect-square rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-300"><FileText size={20} /></div>
-                                </div>
-                             </div>
-                             <div className="space-y-6">
-                                <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
-                                   <Scale size={12} /> Admin Intervention
-                                </h4>
-                                <textarea 
-                                   placeholder="Add internal notes or resolution summary..."
-                                   defaultValue={d.admin_notes}
-                                   className="w-full bg-white border border-slate-200 rounded-3xl p-6 text-sm font-medium outline-none focus:ring-4 focus:ring-red-500/5 min-h-[120px] transition-all"
-                                />
-                                <div className="flex gap-3">
-                                   <button 
-                                      onClick={() => handleResolve(d.id, 'resolved', 'Refund processed')}
-                                      className="flex-1 bg-emerald-600 text-white py-3 rounded-2xl text-xs font-black shadow-lg shadow-emerald-500/20 hover:bg-emerald-700 transition-all active:scale-95 flex items-center justify-center gap-2"
-                                   >
-                                      <CheckCircle2 size={16} /> Resolve Dispute
-                                   </button>
-                                   <button 
-                                      onClick={() => handleResolve(d.id, 'rejected', 'Evidence insufficient')}
-                                      className="flex-1 bg-red-600 text-white py-3 rounded-2xl text-xs font-black shadow-lg shadow-red-500/20 hover:bg-red-700 transition-all active:scale-95 flex items-center justify-center gap-2"
-                                   >
-                                      <XCircle size={16} /> Reject Case
-                                   </button>
-                                </div>
-                             </div>
-                          </div>
-                       </td>
-                    </tr>
-                  )}
+                  <AnimatePresence>
+                    {expandedId === d.id && (
+                      <tr>
+                         <td colSpan="5" className="px-10 py-10 bg-slate-50/50 shadow-inner overflow-hidden uppercase italic">
+                            <motion.div 
+                              initial={{ opacity: 0, y: -10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -10 }}
+                              className="grid grid-cols-1 lg:grid-cols-12 gap-12"
+                            >
+                               <div className="lg:col-span-4 space-y-8">
+                                  <div className="p-8 bg-white rounded-[44px] border border-slate-100 shadow-xl shadow-slate-200/40 relative overflow-hidden">
+                                     <div className="absolute top-0 right-0 p-8 opacity-5">
+                                        <MessageSquare size={80} />
+                                     </div>
+                                     <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-6 flex items-center gap-2">
+                                        <Briefcase size={14} className="text-orange-500" /> Client Intelligence
+                                     </h4>
+                                     <div className="p-6 bg-slate-50 rounded-[32px] border border-slate-100 text-[11px] text-slate-600 font-black leading-relaxed italic relative z-10">
+                                        "{d.customer_notes || 'No verbalization provided by dispatch'}"
+                                     </div>
+                                  </div>
+                                  
+                                  <div className="p-8 bg-white rounded-[44px] border border-slate-100 shadow-xl shadow-slate-200/40">
+                                     <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-6 flex items-center gap-2">
+                                        <ImageIcon size={14} className="text-rose-500" /> Evidence Vault
+                                     </h4>
+                                     <div className="grid grid-cols-2 gap-4">
+                                        {[1, 2].map(i => (
+                                          <div key={i} className="group relative aspect-square bg-slate-50 rounded-[28px] border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-2 hover:border-rose-200 transition-all overflow-hidden shadow-inner">
+                                             <FileText size={24} className="text-slate-300 group-hover:scale-110 transition-all duration-500" />
+                                             <span className="text-[8px] font-black text-slate-400 tracking-widest opacity-60">HUB DATA {i}</span>
+                                             <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center backdrop-blur-sm">
+                                                <button className="p-3 bg-white rounded-xl text-slate-900 shadow-2xl hover:scale-110 active:scale-95 transition-all">
+                                                   <ExternalLink size={16} />
+                                                </button>
+                                             </div>
+                                          </div>
+                                        ))}
+                                     </div>
+                                  </div>
+                               </div>
+
+                               <div className="lg:col-span-8 bg-white/50 p-10 rounded-[56px] border border-slate-100 shadow-2xl shadow-slate-200/50 flex flex-col gap-10">
+                                  <div className="flex items-center justify-between">
+                                     <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-3">
+                                        <History size={16} className="text-primary-500" /> Mediation Accountability Ledger
+                                     </h4>
+                                     <div className="flex gap-2">
+                                        <span className="text-[9px] font-black text-emerald-500 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100/50 shadow-sm">Verified Node</span>
+                                        <span className="text-[9px] font-black text-blue-500 bg-blue-50 px-3 py-1 rounded-full border border-blue-100/50 shadow-sm">Case Sync 100%</span>
+                                     </div>
+                                  </div>
+
+                                  <div className="space-y-6 flex-1">
+                                     <div className="p-8 bg-white rounded-[40px] border border-slate-100 shadow-sm space-y-4">
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 italic">Admin Investigative Synthesis</p>
+                                        <div className="flex flex-col gap-4">
+                                           <div className="flex items-start gap-4">
+                                              <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400 shrink-0">
+                                                 <User size={14} />
+                                              </div>
+                                              <div className="flex-1 p-5 rounded-[24px] bg-slate-50 border border-slate-100 text-[10px] font-black text-slate-500 lowercase leading-relaxed">
+                                                 "{d.admin_notes || 'Indexing system analysis...'}"
+                                              </div>
+                                           </div>
+                                        </div>
+                                     </div>
+                                  </div>
+
+                                  <div className="mt-auto pt-10 border-t border-slate-100 grid grid-cols-2 gap-5 text-center">
+                                     <button 
+                                       onClick={() => handleGovernanceRequest(d.id, 'resolved')}
+                                       className="bg-emerald-600 text-white py-5 rounded-[32px] text-[11px] font-black uppercase tracking-[0.2em] shadow-2xl shadow-emerald-500/30 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3"
+                                     >
+                                        <CheckCircle2 size={20} /> Authorize Resolve
+                                     </button>
+                                     <button 
+                                       onClick={() => handleGovernanceRequest(d.id, 'rejected')}
+                                       className="bg-white border-2 border-slate-100 text-slate-500 py-5 rounded-[32px] text-[11px] font-black uppercase tracking-[0.2em] hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all active:scale-95 flex items-center justify-center gap-3"
+                                     >
+                                        <ShieldAlert size={20} /> Reject Protocol
+                                     </button>
+                                  </div>
+                               </div>
+                            </motion.div>
+                         </td>
+                      </tr>
+                    )}
+                  </AnimatePresence>
                 </React.Fragment>
               ))}
-              {disputes.length === 0 && !loading && (
-                 <tr>
-                    <td colSpan="6" className="px-8 py-20 text-center text-sm font-bold text-slate-400 italic">
-                        No active disputes found in this category.
-                    </td>
-                 </tr>
-              )}
             </tbody>
           </table>
         </div>
-
+        
         {/* Pagination */ }
-        <div className="p-6 bg-slate-50/50 flex items-center justify-between border-t border-slate-50">
-           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-             {pagination ? `Showing ${pagination.from || 0}-${pagination.to || 0} of ${pagination.total} Results` : 'Loading...'}
+        <div className="p-8 bg-slate-50/20 flex items-center justify-between border-t border-slate-50">
+           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic opacity-60">
+             {pagination ? `${pagination.from || 0}-${pagination.to || 0} of ${pagination.total} Case Files Indexed` : 'Synchronizing Metadata...'}
            </p>
            {pagination && pagination.last_page > 1 && (
-             <div className="flex gap-1">
+             <div className="flex gap-2">
                {Array.from({ length: Math.min(pagination.last_page, 5) }, (_, i) => {
                   const startPage = Math.max(1, currentPage - 2);
                   const n = startPage + i;
@@ -268,7 +369,7 @@ const Disputes = () => {
                     <button 
                         key={n} 
                         onClick={() => setCurrentPage(n)}
-                        className={`w-8 h-8 rounded-lg text-[10px] font-black shadow-sm transition-all ${n === currentPage ? 'bg-red-600 text-white shadow-red-500/20' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}
+                        className={`w-10 h-10 rounded-xl text-[10px] font-black shadow-xl transition-all ${n === currentPage ? 'bg-rose-600 text-white shadow-rose-900/40' : 'bg-white text-slate-600 border-2 border-slate-50 hover:bg-slate-50 hover:border-slate-100'}`}
                       >
                         {n}
                       </button>
@@ -278,6 +379,101 @@ const Disputes = () => {
            )}
         </div>
       </div>
+
+      {/* Governance Drawer / Admin Action Sidebar */}
+      <AnimatePresence>
+        {isAdminActionOpen && (
+           <div className="fixed inset-0 z-[200] flex justify-end bg-slate-900/40 backdrop-blur-sm">
+              <motion.div 
+                initial={{ x: '100%' }}
+                animate={{ x: 0 }}
+                exit={{ x: '100%' }}
+                className="bg-white w-full max-w-lg h-full shadow-2xl overflow-y-auto flex flex-col uppercase italic"
+              >
+                 <div className="p-10 border-b border-slate-50 flex items-center justify-between sticky top-0 bg-white z-10 shadow-sm shadow-slate-100/30">
+                    <div className="flex items-center gap-5">
+                       <div className={`p-4 rounded-[24px] shadow-xl ${resolutionType === 'resolved' ? 'bg-emerald-50 text-emerald-600 shadow-emerald-500/10' : 'bg-rose-50 text-rose-600 shadow-rose-500/10'}`}>
+                          <Scale size={28} />
+                       </div>
+                       <div>
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Conflict Mediation</p>
+                          <h2 className="text-2xl font-black text-slate-900 tracking-tight capitalize">{resolutionType} AUTHORIZATION</h2>
+                       </div>
+                    </div>
+                    <button onClick={() => setIsAdminActionOpen(false)} className="w-12 h-12 flex items-center justify-center hover:bg-slate-50 rounded-2xl text-slate-400 transition-all">
+                       <X size={28} />
+                    </button>
+                 </div>
+
+                 <div className="p-10 space-y-10 flex-1">
+                    <div className="p-8 bg-slate-50 rounded-[44px] border border-slate-100 space-y-8">
+                       <div className="flex items-center gap-4">
+                          <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-rose-500 shadow-sm border border-slate-100">
+                             <Mail size={20} />
+                          </div>
+                          <div>
+                             <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest leading-none mb-1">Client Dispatch</p>
+                             <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest opacity-60 leading-none italic">Select Resolution Protocol</p>
+                          </div>
+                       </div>
+                       <select 
+                         value={selectedTemplateId}
+                         onChange={(e) => setSelectedTemplateId(e.target.value)}
+                         className="w-full bg-white border-2 border-slate-100 rounded-[20px] px-6 py-4 text-[11px] font-black text-slate-600 outline-none focus:ring-4 focus:ring-rose-500/5 transition-all shadow-xl shadow-slate-200/50 uppercase tracking-[0.1em] italic"
+                       >
+                          <option value="">Awaiting Mediation Protocol...</option>
+                          {adminTemplates.map(t => (
+                            <option key={t.id} value={t.id}>{t.name}</option>
+                          ))}
+                       </select>
+                       
+                       {selectedTemplateId && adminTemplates.find(t => t.id === Number(selectedTemplateId)) && (
+                         <div className="mt-6 p-6 bg-white rounded-[28px] border border-rose-50 animate-in fade-in zoom-in-95 shadow-sm">
+                            <div className="flex items-center gap-2 mb-3">
+                               <ShieldCheck size={14} className="text-rose-500" />
+                               <p className="text-[9px] font-black text-rose-500 uppercase tracking-widest italic leading-none">Draft Mediation Preview</p>
+                            </div>
+                            <p className="text-xs text-slate-500 whitespace-pre-wrap leading-relaxed italic font-medium opacity-80">{adminTemplates.find(t => t.id === Number(selectedTemplateId)).body}</p>
+                         </div>
+                       )}
+
+                       <div className="pt-4 border-t border-slate-100">
+                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 block">Internal Disposition Notes</label>
+                          <textarea 
+                             value={adminNotes}
+                             onChange={(e) => setAdminNotes(e.target.value)}
+                             placeholder="Document technical reasoning for this authorized resolution..."
+                             className="w-full bg-white border-2 border-slate-100 rounded-[24px] p-6 text-[11px] font-black text-slate-700 outline-none focus:ring-4 focus:ring-rose-500/5 transition-all min-h-[140px] italic shadow-inner"
+                          />
+                       </div>
+                    </div>
+
+                    <div className="p-8 bg-blue-50/50 rounded-[32px] border border-blue-100 flex items-start gap-5">
+                       <Zap size={24} className="text-blue-600 shrink-0 mt-1 shadow-sm" />
+                       <div>
+                          <p className="text-[12px] font-black text-blue-900 uppercase tracking-widest mb-1.5 leading-none">Mitigation Accountability Module</p>
+                          <p className="text-[10px] text-blue-700 font-black leading-relaxed tracking-tight uppercase opacity-50 italic">Authorizing this resolution protocol will finalize the case file and dispatch technical notices to all verified hubs involved. This action is permanently recorded in the moderation mesh.</p>
+                       </div>
+                    </div>
+                 </div>
+
+                 <div className="p-10 border-t border-slate-50 bg-white sticky bottom-0">
+                    <button 
+                      onClick={executeResolution}
+                      disabled={!selectedTemplateId || loading}
+                      className={`w-full py-5 rounded-[24px] text-xs font-black shadow-2xl transition-all flex items-center justify-center gap-4 ${resolutionType === 'resolved' ? 'bg-emerald-600 text-white shadow-emerald-500/30' : 'bg-slate-900 text-white shadow-slate-900/30'} disabled:opacity-20 disabled:grayscale hover:scale-[1.02] active:scale-95 uppercase tracking-widest italic`}
+                    >
+                       {loading ? <Loader2 size={18} className="animate-spin" /> : <ShieldCheck size={20} />}
+                       {loading ? 'Dispatching Mediation Intel...' : 'Authorize Resolution Decision'}
+                    </button>
+                    <button onClick={() => setIsAdminActionOpen(false)} className="w-full mt-6 py-4 rounded-xl text-[10px] font-black text-slate-400 hover:text-rose-500 transition-all uppercase tracking-[0.2em] italic">
+                       Discard Mediation Request
+                    </button>
+                 </div>
+              </motion.div>
+           </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
