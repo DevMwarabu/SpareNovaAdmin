@@ -225,7 +225,7 @@ const Offers = () => {
         </div>
         <button 
           onClick={() => setIsCreateOpen(true)}
-          className="bg-slate-900 text-white px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl shadow-slate-900/20 hover:scale-105 transition-all flex items-center gap-3 italic"
+          className="bg-slate-900 text-white px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-2xl shadow-slate-900/30 hover:scale-[1.05] transition-all flex items-center gap-3 italic border-t border-white/10 active:scale-95 z-10"
         >
            <Plus size={18} /> New Performance Protocol
         </button>
@@ -272,7 +272,24 @@ const Offers = () => {
                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                      <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 900, fill: '#94a3b8' }} dy={10} />
                      <YAxis hide />
-                     <Tooltip contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.1)', fontSize: '12px', fontWeight: '900' }} />
+                     <Tooltip 
+                        content={({ active, payload, label }) => {
+                          if (active && payload && payload.length) {
+                             return (
+                                <div className="bg-white/95 backdrop-blur-xl border border-white shadow-2xl p-5 rounded-[24px] shadow-primary-500/10 animate-in fade-in zoom-in-95 duration-300 italic uppercase">
+                                   <p className="text-[10px] font-black text-slate-400 mb-2 tracking-widest leading-none border-b border-slate-50 pb-2 italic">{label}</p>
+                                   <div className="flex items-center gap-3">
+                                      <div className="w-2 h-2 rounded-full bg-primary-500 animate-pulse" />
+                                      <p className="text-sm font-black text-slate-900 tracking-tighter italic">
+                                         {payload[0].value} <span className="text-[10px] text-slate-400 ml-1">DEPLOYMENTS</span>
+                                      </p>
+                                   </div>
+                                </div>
+                             );
+                          }
+                          return null;
+                        }}
+                     />
                      <Area type="monotone" dataKey="count" stroke="var(--primary-500)" strokeWidth={4} fillOpacity={1} fill="url(#colorCount)" />
                   </AreaChart>
                </ResponsiveContainer>
@@ -292,7 +309,26 @@ const Offers = () => {
                <ResponsiveContainer width="100%" height={256}>
                   <BarChart data={chartData}>
                      <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 900, fill: '#64748b' }} dy={10} />
-                     <Tooltip cursor={{ fill: 'rgba(255,255,255,0.05)' }} contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.2)', fontSize: '11px', fontWeight: '900', backgroundColor: '#0f172a', color: 'white' }} />
+                     <Tooltip 
+                        cursor={{ fill: 'rgba(255,255,255,0.05)' }} 
+                        content={({ active, payload, label }) => {
+                          if (active && payload && payload.length) {
+                             return (
+                                <div className="bg-white/95 backdrop-blur-xl border border-white shadow-2xl p-5 rounded-[24px] shadow-emerald-500/10 animate-in fade-in zoom-in-95 duration-300 italic uppercase">
+                                   <p className="text-[10px] font-black text-slate-400 mb-2 tracking-widest leading-none border-b border-slate-50 pb-2 italic">{label}</p>
+                                   <div className="flex items-center gap-3">
+                                      <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                                      <p className="text-sm font-black text-slate-900 tracking-tighter italic">
+                                         <span className="text-[10px] text-emerald-600 mr-1">KES</span>
+                                         {payload[0].value.toLocaleString()}
+                                      </p>
+                                   </div>
+                                </div>
+                             );
+                          }
+                          return null;
+                        }}
+                     />
                      <Bar dataKey="revenue_impact" radius={[12, 12, 0, 0]}>
                         {chartData.map((entry, index) => (
                            <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#10b981' : '#34d399'} />
@@ -540,7 +576,7 @@ const Offers = () => {
                              <ResponsiveContainer width="100%" height={288}>
                                 <LineChart data={[2, 6, 8, 12, 10, 18, 14, 22].map(v => ({ v }))}>
                                    <Line type="monotone" dataKey="v" stroke="#4f46e5" strokeWidth={5} dot={false} />
-                                   <Tooltip contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.1)', fontSize: '10px', fontWeight: '900' }} />
+                                   <Tooltip contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.1)', fontSize: '10px', fontWeight: '900', backgroundColor: 'white', color: '#1e293b' }} />
                                 </LineChart>
                              </ResponsiveContainer>
                           </div>
@@ -640,6 +676,128 @@ const Offers = () => {
                  </div>
               </motion.div>
            </div>
+        )}
+      </AnimatePresence>
+      {/* New Performance Protocol Drawer */}
+      <AnimatePresence>
+        {isCreateOpen && (
+          <div className="fixed inset-0 z-[200] flex justify-end bg-slate-900/60 backdrop-blur-md">
+            <motion.div 
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              className="bg-white w-full max-w-xl h-full shadow-2xl overflow-y-auto flex flex-col"
+            >
+              <div className="p-10 border-b border-slate-50 flex items-center justify-between sticky top-0 bg-white/80 backdrop-blur-md z-10">
+                <div className="flex items-center gap-5">
+                  <div className="p-4 rounded-[28px] bg-primary-50 text-primary-600 shadow-xl shadow-primary-500/10 border border-primary-100">
+                    <Zap size={28} />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 italic">Tactical Deployment</p>
+                    <h2 className="text-2xl font-black text-slate-900 tracking-tight italic uppercase leading-none">New Performance Protocol</h2>
+                  </div>
+                </div>
+                <button onClick={() => setIsCreateOpen(false)} className="w-12 h-12 flex items-center justify-center hover:bg-slate-50 rounded-2xl text-slate-400 transition-all active:scale-95">
+                  <X size={28} />
+                </button>
+              </div>
+
+              <div className="p-10 space-y-12 flex-1 pb-32">
+                {/* Protocol Identity */}
+                <div className="space-y-6">
+                  <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest flex items-center gap-2 italic">
+                    <Layout size={14} className="text-primary-500" /> Identity Assignment
+                  </p>
+                  <div className="space-y-4">
+                    <div className="group">
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-4 mb-2 block italic">Protocol Designation (Title)</label>
+                      <input 
+                        type="text"
+                        placeholder="e.g. Easter Maintenance Sunder"
+                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-[24px] px-6 py-4 text-xs font-black text-slate-900 outline-none focus:ring-4 focus:ring-primary-500/5 transition-all shadow-inner italic"
+                      />
+                    </div>
+                    <div className="group">
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-4 mb-2 block italic">Strategic Narrative (Subtitle)</label>
+                      <textarea 
+                        rows="3"
+                        placeholder="Communication brief for merchants and users..."
+                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-[32px] px-6 py-4 text-xs font-black text-slate-900 outline-none focus:ring-4 focus:ring-primary-500/5 transition-all shadow-inner italic resize-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Configuration Matrix */}
+                <div className="space-y-6">
+                  <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest flex items-center gap-2 italic">
+                    <Target size={14} className="text-primary-500" /> Yield Matrix configuration
+                  </p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-6 bg-slate-50 rounded-[32px] border border-slate-100 space-y-4">
+                       <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block italic">Discount Vector</label>
+                       <div className="flex gap-2">
+                          <button className="flex-1 py-3 bg-white rounded-xl text-[10px] font-black text-primary-600 border border-primary-100 shadow-sm shadow-primary-500/5">PERCENT %</button>
+                          <button className="flex-1 py-3 bg-slate-100/50 rounded-xl text-[10px] font-black text-slate-400">FIXED KES</button>
+                       </div>
+                    </div>
+                    <div className="p-6 bg-slate-50 rounded-[32px] border border-slate-100 space-y-4">
+                       <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block italic">Yield Magnitude</label>
+                       <div className="relative">
+                          <input 
+                            type="number"
+                            placeholder="0"
+                            className="w-full bg-white border-2 border-slate-100 rounded-xl px-4 py-3 text-xs font-black text-slate-900 outline-none shadow-sm"
+                          />
+                          <Tag size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300" />
+                       </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Deployment Parameters */}
+                <div className="space-y-6">
+                  <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest flex items-center gap-2 italic">
+                    <Calendar size={14} className="text-primary-500" /> Temporal Deployment
+                  </p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="group">
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-4 mb-2 block italic">Mission Start (Date)</label>
+                      <input type="date" className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 text-xs font-black text-slate-900 outline-none shadow-inner" />
+                    </div>
+                    <div className="group">
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-4 mb-2 block italic">Mission End (Date)</label>
+                      <input type="date" className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 text-xs font-black text-slate-900 outline-none shadow-inner" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-8 bg-emerald-50/50 rounded-[44px] border border-emerald-100 flex items-start gap-4 shadow-inner">
+                   <ShieldCheck size={24} className="text-emerald-600 shrink-0 mt-1" />
+                   <div>
+                      <p className="text-[11px] font-black text-emerald-900 uppercase tracking-widest mb-1 italic">Protocol Integrity Verified</p>
+                      <p className="text-[9px] text-emerald-700 font-black leading-tight uppercase opacity-60 italic">Standard yield governance applies. All merchants under this protocol will be notified via the primary communication tunnel.</p>
+                   </div>
+                </div>
+              </div>
+
+              <div className="p-10 border-t border-slate-50 bg-white/80 backdrop-blur-md sticky bottom-0">
+                <button 
+                  onClick={() => setIsCreateOpen(false)}
+                  className="w-full py-5 bg-primary-600 text-white rounded-[28px] text-xs font-black uppercase tracking-widest shadow-2xl shadow-primary-500/30 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-4 italic"
+                >
+                  <Zap size={20} /> Deploy Performance Protocol
+                </button>
+                <button 
+                  onClick={() => setIsCreateOpen(false)}
+                  className="w-full mt-6 py-4 text-[10px] font-black text-slate-400 hover:text-rose-500 transition-all uppercase tracking-[0.2em] italic"
+                >
+                  Discard Initiation
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>

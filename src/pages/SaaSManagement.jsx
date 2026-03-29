@@ -211,7 +211,7 @@ const SaaSManagement = () => {
                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                      <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 900, fill: '#94a3b8' }} dy={10} />
                      <YAxis hide />
-                     <Tooltip contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.1)', fontSize: '11px', fontWeight: '900' }} />
+                     <Tooltip contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.1)', fontSize: '11px', fontWeight: '900', backgroundColor: 'white', color: '#1e293b' }} />
                      <Area type="monotone" dataKey="mrr" stroke="#4f46e5" strokeWidth={4} fillOpacity={1} fill="url(#colorMRR)" />
                   </AreaChart>
                </ResponsiveContainer>
@@ -250,11 +250,11 @@ const SaaSManagement = () => {
                         contentStyle={{ 
                            borderRadius: '24px', 
                            border: 'none', 
-                           boxShadow: '0 25px 50px -12px rgb(0 0(0,0,0,0.25)', 
+                           boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.2)', 
                            fontSize: '11px', 
                            fontWeight: '900',
-                           backgroundColor: '#0f172a',
-                           color: 'white'
+                           backgroundColor: 'white',
+                           color: '#1e293b'
                         }} 
                      />
                   </PieChart>

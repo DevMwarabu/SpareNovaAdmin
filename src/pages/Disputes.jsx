@@ -286,17 +286,25 @@ const Disputes = () => {
                                         <ImageIcon size={14} className="text-rose-500" /> Evidence Vault
                                      </h4>
                                      <div className="grid grid-cols-2 gap-4">
-                                        {[1, 2].map(i => (
-                                          <div key={i} className="group relative aspect-square bg-slate-50 rounded-[28px] border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-2 hover:border-rose-200 transition-all overflow-hidden shadow-inner">
-                                             <FileText size={24} className="text-slate-300 group-hover:scale-110 transition-all duration-500" />
-                                             <span className="text-[8px] font-black text-slate-400 tracking-widest opacity-60">HUB DATA {i}</span>
+                                        {d.evidence && d.evidence.length > 0 ? d.evidence.map((path, i) => (
+                                          <div key={i} className="group relative aspect-square bg-slate-50 rounded-[28px] border border-slate-100 flex items-center justify-center overflow-hidden shadow-inner hover:border-rose-200 transition-all">
+                                             <img 
+                                               src={`http://localhost:8003/storage/${path}`} 
+                                               alt={`Evidence ${i}`} 
+                                               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                                             />
                                              <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center backdrop-blur-sm">
-                                                <button className="p-3 bg-white rounded-xl text-slate-900 shadow-2xl hover:scale-110 active:scale-95 transition-all">
+                                                <a href={`http://localhost:8003/storage/${path}`} target="_blank" rel="noopener noreferrer" className="p-3 bg-white rounded-xl text-slate-900 shadow-2xl hover:scale-110 active:scale-95 transition-all">
                                                    <ExternalLink size={16} />
-                                                </button>
+                                                </a>
                                              </div>
                                           </div>
-                                        ))}
+                                        )) : (
+                                          <div className="col-span-2 py-10 rounded-[28px] bg-slate-50 border-2 border-dashed border-slate-100 flex flex-col items-center justify-center gap-3 opacity-60">
+                                             <ShieldAlert size={24} className="text-slate-300" />
+                                             <p className="text-[8px] font-black uppercase tracking-[0.2em] text-slate-400 text-center uppercase font-black">No Evidence Provided</p>
+                                          </div>
+                                        )}
                                      </div>
                                   </div>
                                </div>

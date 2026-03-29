@@ -24,7 +24,14 @@ import {
   Zap,
   ShieldAlert,
   Users,
-  Clock
+  Clock,
+  Phone,
+  Globe,
+  Facebook,
+  Instagram,
+  Twitter,
+  Linkedin,
+  MessageSquare
 } from 'lucide-react';
 import { 
   AreaChart, 
@@ -276,14 +283,22 @@ const BusinessUnitList = ({ title, type, icon: Icon, color }) => {
                 />
                 <YAxis hide />
                 <Tooltip 
-                  contentStyle={{ 
-                    borderRadius: '24px', 
-                    border: 'none', 
-                    boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)',
-                    fontSize: '11px',
-                    fontWeight: '900',
-                    textTransform: 'uppercase'
-                  }} 
+                  content={({ active, payload, label }) => {
+                    if (active && payload && payload.length) {
+                      return (
+                        <div className="bg-white/95 backdrop-blur-xl border border-white shadow-2xl p-5 rounded-[24px] shadow-primary-500/10 animate-in fade-in zoom-in-95 duration-300 italic uppercase">
+                          <p className="text-[10px] font-black text-slate-400 mb-2 tracking-widest leading-none border-b border-slate-50 pb-2 italic">{label}</p>
+                          <div className="flex items-center gap-3">
+                            <div className="w-2 h-2 rounded-full bg-primary-500 animate-pulse" />
+                            <p className="text-sm font-black text-slate-900 tracking-tighter italic">
+                              {payload[0].value} <span className="text-[10px] text-slate-400 ml-1">DEPLOYMENTS</span>
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
                 />
                 <Area 
                   type="monotone" 
@@ -320,13 +335,23 @@ const BusinessUnitList = ({ title, type, icon: Icon, color }) => {
                 />
                 <Tooltip 
                    cursor={{ fill: '#f8fafc' }}
-                   contentStyle={{ 
-                    borderRadius: '24px', 
-                    border: 'none', 
-                    boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)',
-                    fontSize: '11px',
-                    fontWeight: '900'
-                  }} 
+                   content={({ active, payload, label }) => {
+                    if (active && payload && payload.length) {
+                      return (
+                        <div className="bg-white/95 backdrop-blur-xl border border-white shadow-2xl p-5 rounded-[24px] shadow-emerald-500/10 animate-in fade-in zoom-in-95 duration-300 italic uppercase">
+                          <p className="text-[10px] font-black text-slate-400 mb-2 tracking-widest leading-none border-b border-slate-50 pb-2 italic">{label}</p>
+                          <div className="flex items-center gap-3">
+                            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                            <p className="text-sm font-black text-slate-900 tracking-tighter italic">
+                              <span className="text-[10px] text-emerald-600 mr-1">KES</span>
+                              {payload[0].value.toLocaleString()}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
                 />
                 <Bar dataKey="revenue" fill="var(--primary-500)" radius={[6, 6, 0, 0]} />
               </BarChart>
@@ -692,10 +717,33 @@ const BusinessUnitList = ({ title, type, icon: Icon, color }) => {
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                            <div className="p-8 bg-slate-50 rounded-[40px] border border-slate-100 flex flex-col justify-between">
                               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6 italic">Partner Control</p>
-                              <div>
-                                 <p className="text-xl font-black text-slate-900 uppercase italic tracking-tight">{selectedUnit.owner}</p>
-                                 <p className="text-xs font-bold text-slate-500 mt-2 flex items-center gap-2"><Mail size={14} className="text-primary-400" /> {selectedUnit.email}</p>
-                                 <p className="text-xs font-bold text-slate-500 mt-1 flex items-center gap-2"><Zap size={14} className="text-primary-400" /> {selectedUnit.phone || 'System Indexing...'}</p>
+                              <div className="space-y-4">
+                                 <div>
+                                    <p className="text-xl font-black text-slate-900 uppercase italic tracking-tight">{selectedUnit.owner}</p>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 italic">Authorized Representative</p>
+                                 </div>
+                                 <div className="space-y-2">
+                                    <div className="flex items-center gap-3 bg-white p-3 rounded-2xl border border-slate-100 shadow-sm">
+                                       <div className="w-8 h-8 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center shadow-inner">
+                                          <Mail size={14} />
+                                       </div>
+                                       <p className="text-[11px] font-black text-slate-600 truncate">{selectedUnit.email}</p>
+                                    </div>
+                                    <div className="flex items-center gap-3 bg-white p-3 rounded-2xl border border-slate-100 shadow-sm">
+                                       <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shadow-inner">
+                                          <Phone size={14} />
+                                       </div>
+                                       <p className="text-[11px] font-black text-slate-600 truncate">{selectedUnit.phone || 'N/A'}</p>
+                                    </div>
+                                    {selectedUnit.whatsapp && (
+                                       <div className="flex items-center gap-3 bg-emerald-600 text-white p-3 rounded-2xl shadow-lg shadow-emerald-500/20">
+                                          <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center">
+                                             <MessageSquare size={14} />
+                                          </div>
+                                          <p className="text-[11px] font-black uppercase italic tracking-widest">WhatsApp Protocol Active</p>
+                                       </div>
+                                    )}
+                                 </div>
                               </div>
                            </div>
                            <div className="p-8 bg-emerald-50/30 rounded-[40px] border border-emerald-100 flex flex-col justify-between group hover:bg-emerald-50 transition-all">
@@ -727,22 +775,55 @@ const BusinessUnitList = ({ title, type, icon: Icon, color }) => {
                         </div>
 
                         {/* AI Intelligence / Sub-meta */}
-                        <div className="space-y-6">
-                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 italic">
-                              <Zap size={14} className="text-primary-500" /> Advanced Telemetry Index
-                           </p>
-                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                              {[
-                                 { label: 'Platform ID', val: `#UNIT-${selectedUnit.id}` },
-                                 { label: 'Reliability Index', val: 'GOLD 98.4%' },
-                                 { label: 'Service Velocity', val: 'High-Response' },
-                                 { label: 'Market Tier', val: 'Enterprise' }
-                              ].map((m, i) => (
-                                 <div key={i} className="p-5 bg-white border border-slate-100 rounded-3xl group hover:border-primary-100 transition-all shadow-sm">
-                                    <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest mb-1 italic">{m.label}</p>
-                                    <p className="text-xs font-black text-slate-700 uppercase italic tracking-tighter">{m.val}</p>
-                                 </div>
-                              ))}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                           <div className="space-y-6">
+                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 italic">
+                                 <Zap size={14} className="text-primary-500" /> Advanced Telemetry Index
+                              </p>
+                              <div className="grid grid-cols-2 gap-4">
+                                 {[
+                                    { label: 'Platform ID', val: `#UNIT-${selectedUnit.id}` },
+                                    { label: 'Reliability Index', val: 'GOLD 98.4%' },
+                                    { label: 'Service Velocity', val: 'High-Response' },
+                                    { label: 'Market Tier', val: 'Enterprise' }
+                                 ].map((m, i) => (
+                                    <div key={i} className="p-5 bg-white border border-slate-100 rounded-3xl group hover:border-primary-100 transition-all shadow-sm">
+                                       <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest mb-1 italic">{m.label}</p>
+                                       <p className="text-xs font-black text-slate-700 uppercase italic tracking-tighter">{m.val}</p>
+                                    </div>
+                                 ))}
+                              </div>
+                           </div>
+                           
+                           <div className="space-y-6">
+                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 italic">
+                                 <Globe size={14} className="text-primary-500" /> Social Connectivity Hub
+                              </p>
+                              <div className="bg-slate-50/50 rounded-[44px] p-10 border border-slate-100 flex flex-wrap gap-5 shadow-inner">
+                                 {[
+                                    { icon: Globe, val: selectedUnit.website, label: 'Website', c: 'blue' },
+                                    { icon: Facebook, val: selectedUnit.socials?.facebook, label: 'Facebook', c: 'indigo' },
+                                    { icon: Instagram, val: selectedUnit.socials?.instagram, label: 'Instagram', c: 'rose' },
+                                    { icon: Twitter, val: selectedUnit.socials?.twitter, label: 'Twitter', c: 'sky' },
+                                    { icon: Linkedin, val: selectedUnit.socials?.linkedin, label: 'LinkedIn', c: 'blue' }
+                                 ].map((social, i) => (
+                                    <a 
+                                      key={i}
+                                      href={social.val ? (social.val.startsWith('http') ? social.val : `https://${social.val}`) : '#'}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className={`w-16 h-16 rounded-[24px] flex items-center justify-center transition-all shadow-sm ${social.val ? `bg-white text-${social.c}-600 hover:scale-110 hover:shadow-2xl hover:shadow-${social.c}-500/10 border border-slate-50` : 'bg-slate-200/40 text-slate-300 grayscale pointer-events-none opacity-50'}`}
+                                      title={social.label}
+                                    >
+                                       <social.icon size={26} />
+                                    </a>
+                                 ))}
+                                 {!Object.values(selectedUnit.socials || {}).some(v => v) && (
+                                   <div className="w-full py-4 text-center">
+                                      <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest italic leading-none">Social Protocols Offline</p>
+                                   </div>
+                                 )}
+                              </div>
                            </div>
                         </div>
                      </motion.div>
