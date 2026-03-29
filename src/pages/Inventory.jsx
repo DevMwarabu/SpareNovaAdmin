@@ -11,8 +11,10 @@ import {
   Database,
   BarChart3,
   RefreshCw,
-  Archive
+  Archive,
+  X
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const Inventory = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -21,6 +23,10 @@ const Inventory = () => {
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState(null);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [filterStatus, setFilterStatus] = useState('');
+  const [minPrice, setMinPrice] = useState('');
+  const [maxPrice, setMaxPrice] = useState('');
 
   const API_BASE = 'http://localhost:8003/api/v1';
 
@@ -28,7 +34,14 @@ const Inventory = () => {
     try {
       setLoading(true);
       const res = await axios.get(`${API_BASE}/admin/inventory`, {
-        params: { search: searchTerm, page: currentPage, per_page: 8 }
+        params: { 
+          search: searchTerm, 
+          page: currentPage, 
+          per_page: 8,
+          status: filterStatus,
+          min_price: minPrice,
+          max_price: maxPrice
+        }
       });
       if (res.data.success) {
         setInventory(res.data.data);
@@ -44,11 +57,11 @@ const Inventory = () => {
 
   useEffect(() => {
     fetchData();
-  }, [searchTerm, currentPage]);
+  }, [searchTerm, currentPage, filterStatus, minPrice, maxPrice]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm]);
+  }, [searchTerm, filterStatus, minPrice, maxPrice]);
 
   const getStatusColor = (status) => {
     if (status === 'Out of Stock') return 'bg-red-50 text-red-600';
@@ -102,8 +115,78 @@ const Inventory = () => {
                className="w-full bg-slate-50 border-none rounded-2xl pl-12 pr-4 py-3 text-sm font-bold placeholder:text-slate-300 outline-none focus:ring-2 focus:ring-primary-500/10 transition-all"
              />
            </div>
-           <div className="flex gap-2">
-             <button className="p-3 bg-slate-50 text-slate-400 hover:text-slate-600 rounded-xl transition-colors"><Filter size={18} /></button>
+           <div className="relative">
+             <button 
+               onClick={() => setIsFilterOpen(!isFilterOpen)}
+               className={`p-3 rounded-xl transition-colors ${isFilterOpen ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-50 text-slate-400 hover:text-slate-600'}`}
+             >
+               <Filter size={18} />
+             </button>
+
+             <AnimatePresence>
+                {isFilterOpen && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    className="absolute top-full right-0 mt-3 w-80 bg-white rounded-3xl shadow-2xl shadow-indigo-500/10 border border-slate-100 p-6 z-50 text-left"
+                  >
+                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 italic">Advanced Telemetry Filter</p>
+                     
+                     <div className="space-y-5">
+                       <div>
+                         <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest block mb-2 italic">Stock Protocol</label>
+                         <select 
+                            value={filterStatus} 
+                            onChange={(e) => setFilterStatus(e.target.value)}
+                            className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-xs font-black text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/20 italic uppercase"
+                         >
+                            <option value="">All Stock Levels</option>
+                            <option value="In Stock">In Stock (Healthy)</option>
+                            <option value="Low Stock">Low Stock (Critical)</option>
+                            <option value="Out of Stock">Out of Stock</option>
+                         </select>
+                       </div>
+
+                       <div>
+                         <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest block mb-2 italic">Price Threshold (KES)</label>
+                         <div className="flex items-center gap-3">
+                            <input 
+                              type="number" 
+                              placeholder="Min" 
+                              value={minPrice}
+                              onChange={(e) => setMinPrice(e.target.value)}
+                              className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-xs font-black text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/20 placeholder:text-slate-300 placeholder:italic italic"
+                            />
+                            <span className="text-slate-300 font-black">-</span>
+                            <input 
+                              type="number" 
+                              placeholder="Max" 
+                              value={maxPrice}
+                              onChange={(e) => setMaxPrice(e.target.value)}
+                              className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-xs font-black text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/20 placeholder:text-slate-300 placeholder:italic italic"
+                            />
+                         </div>
+                       </div>
+                       
+                       <div className="pt-2 flex items-center justify-between border-t border-slate-50 mt-2">
+                          <button 
+                            onClick={() => { setFilterStatus(''); setMinPrice(''); setMaxPrice(''); }}
+                            className="text-[10px] font-black text-slate-400 hover:text-slate-600 transition-colors uppercase tracking-widest italic"
+                          >
+                             Reset Params
+                          </button>
+                          <button 
+                             onClick={() => setIsFilterOpen(false)}
+                             className="bg-indigo-600 text-white px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-500/20 italic"
+                          >
+                             Apply Matrix
+                          </button>
+                       </div>
+                     </div>
+                  </motion.div>
+                )}
+             </AnimatePresence>
            </div>
         </div>
 
