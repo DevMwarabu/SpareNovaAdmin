@@ -277,10 +277,10 @@ const Payments = () => {
                     </span>
                   </td>
                   <td className="px-10 py-6 text-right relative">
-                    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all text-slate-900">
                        <select 
                          value={t.status.toLowerCase()} 
-                         onChange={(e) => handleGovernanceRequest(t.id, e.target.value)}
+                         onChange={(e) => handleGovernanceRequest(t.internal_id, e.target.value)}
                          className="bg-white border-2 border-slate-50 rounded-xl px-2 py-1.5 text-[10px] font-black text-slate-500 outline-none transition-all cursor-pointer hover:border-emerald-100 focus:border-emerald-500 uppercase italic shadow-sm"
                        >
                           <option value="pending">Pending</option>
