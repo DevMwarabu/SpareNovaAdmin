@@ -21,19 +21,32 @@ import {
   Image as ImageIcon,
   Link as LinkIcon,
   ChevronRight,
-  Send
+  Send,
+  Zap,
+  Calendar,
+  Video,
+  Car,
+  Cpu,
+  Fingerprint,
+  RefreshCw
 } from 'lucide-react';
 import axios from 'axios';
 
 const API_BASE = 'http://localhost:8003/api/v1';
 
 const Settings = () => {
-  const [activeTab, setActiveTab] = useState('general');
+  const [activeTab, setActiveTab] = useState('branding');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [testingType, setTestingType] = useState(null);
   const [settings, setSettings] = useState({});
   const [commissionRules, setCommissionRules] = useState([]);
   const [message, setMessage] = useState(null);
+
+  const showToast = (text, type = 'success') => {
+    setMessage({ type, text });
+    setTimeout(() => setMessage(null), 4000);
+  };
 
   useEffect(() => {
     fetchSettings();
@@ -42,11 +55,12 @@ const Settings = () => {
 
   const fetchSettings = async () => {
     try {
-      const response = await axios.get(`${API_BASE}/settings`);
-      setSettings(response.data.settings);
+      setLoading(true);
+      const response = await axios.get(`${API_BASE}/admin/settings`);
+      setSettings(response.data.settings || {});
     } catch (error) {
       console.error('Error fetching settings:', error);
-      setMessage({ type: 'error', text: 'Failed to load settings.' });
+      showToast('Could not load settings', 'error');
     } finally {
       setLoading(false);
     }
@@ -55,7 +69,7 @@ const Settings = () => {
   const fetchCommissionRules = async () => {
     try {
       const response = await axios.get(`${API_BASE}/commissions`);
-      setCommissionRules(response.data.rules);
+      setCommissionRules(response.data.rules || []);
     } catch (error) {
       console.error('Error fetching commission rules:', error);
     }
@@ -85,441 +99,314 @@ const Settings = () => {
 
   const handleSave = async () => {
     setSaving(true);
-    setMessage(null);
     try {
-      await axios.post(`${API_BASE}/settings`, settings);
+      await axios.post(`${API_BASE}/admin/settings`, settings);
       
-      // Save commission rules
       for (const rule of commissionRules) {
-        try {
-          if (rule.id) {
-            await axios.put(`${API_BASE}/commissions/${rule.id}`, rule);
-          } else {
-            await axios.post(`${API_BASE}/commissions`, rule);
-          }
-        } catch (ruleErr) {
-          console.error('Error saving commission rule:', ruleErr);
-          throw new Error(`Failed to save commission rule: ${ruleErr.response?.data?.message || ruleErr.message}`);
+        if (rule.id) {
+          await axios.put(`${API_BASE}/commissions/${rule.id}`, rule);
+        } else {
+          await axios.post(`${API_BASE}/commissions`, rule);
         }
       }
 
-      setMessage({ type: 'success', text: 'Settings updated successfully!' });
+      showToast('All settings and rules saved to database', 'success');
       fetchSettings();
       fetchCommissionRules();
+      
+      // Notify other components of branding changes
+      window.dispatchEvent(new Event('branding_update'));
     } catch (error) {
-      console.error('Error saving settings:', error);
-      const errorMsg = error.response?.data?.message || error.message || 'Failed to save settings.';
-      const details = error.response?.data?.errors ? JSON.stringify(error.response.data.errors) : '';
-      setMessage({ type: 'error', text: `${errorMsg} ${details}`.trim() });
+      console.error('Error saving:', error);
+      showToast('Save failed. Please check the network.', 'error');
     } finally {
       setSaving(false);
     }
   };
 
+  const handleTestConnection = async (type, keyId) => {
+    setTestingType(type);
+    try {
+      const response = await axios.post(`${API_BASE}/admin/settings/verify-connection`, {
+        type,
+        key: settings[keyId],
+        key_id: keyId
+      });
+      if (response.data.success) {
+        showToast(response.data.message, 'success');
+      } else {
+        showToast(response.data.message, 'error');
+      }
+    } catch (error) {
+      showToast('Connection Protocol Failed', 'error');
+    } finally {
+      setTestingType(null);
+    }
+  };
+
   if (loading) {
     return (
-      <div className="h-[60vh] flex items-center justify-center">
-        <Loader2 className="animate-spin text-primary-600" size={40} />
+      <div className="h-[70vh] flex flex-col items-center justify-center gap-6">
+        <div className="w-16 h-16 border-4 border-slate-900 border-t-transparent rounded-full animate-spin shadow-2xl"></div>
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest animate-pulse">Syncing with database...</p>
       </div>
     );
   }
 
   const tabs = [
-    { id: 'general', label: 'General Info', icon: Globe },
-    { id: 'payments', label: 'Payments', icon: CreditCard },
-    { id: 'commissions', label: 'Commission Rules', icon: ShieldCheck },
-    { id: 'email', label: 'Email Config', icon: Mail },
-    { id: 'slider', label: 'Home Slider', icon: ImageIcon },
-    { id: 'content', label: 'Home Content', icon: Layout },
-    { id: 'footer', label: 'Footer Info', icon: Monitor },
+    { id: 'branding', label: 'Identity & Brand', icon: Fingerprint, col: 'slate' },
+    { id: 'ai', label: 'AI Configuration', icon: Cpu, col: 'purple' },
+    { id: 'meetings', label: 'Virtual Meetings', icon: Video, col: 'blue' },
+    { id: 'calendar', label: 'Google Calendar', icon: Calendar, col: 'rose' },
+    { id: 'vehicle', label: 'Vehicle API', icon: Car, col: 'orange' },
+    { id: 'payments', label: 'Payments (M-Pesa)', icon: CreditCard, col: 'emerald' },
+    { id: 'commissions', label: 'Fee Rules', icon: ShieldCheck, col: 'indigo' },
+    { id: 'email', label: 'Email Setup', icon: Mail, col: 'sky' },
+    { id: 'marketing', label: 'Sliders & Features', icon: Layout, col: 'slate' },
+    { id: 'general', label: 'Core Info', icon: Globe, col: 'slate' },
   ];
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-1000 pb-20">
+      <AnimatePresence>
+        {message && (
+          <motion.div 
+            initial={{ opacity: 0, y: 50, x: '-50%' }}
+            animate={{ opacity: 1, y: 0, x: '-50%' }}
+            exit={{ opacity: 0, y: 20, x: '-50%' }}
+            className={`fixed bottom-10 left-1/2 z-[300] px-8 py-3 rounded-2xl shadow-2xl flex items-center gap-4 border ${message.type === 'success' ? 'bg-slate-900 text-white' : 'bg-red-600 text-white'}`}
+          >
+             <p className="text-[10px] font-black uppercase tracking-widest">{message.text}</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-             <div className="p-2 rounded-xl bg-slate-950 text-white shadow-lg shadow-slate-900/10">
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-4 italic uppercase">
+             <div className="p-3 rounded-[20px] bg-slate-900 text-white shadow-xl rotate-[-3deg]">
                 <SettingsIcon size={24} />
              </div>
-             System Core
+             Settings Hub
           </h1>
-          <p className="text-slate-500 font-medium mt-1">Manage platform-wide configurations and business rules.</p>
+          <p className="text-slate-500 font-bold mt-1 uppercase text-[9px] tracking-[0.2em] opacity-60 ml-1">Live Database Administration Portal</p>
         </div>
         <button 
           onClick={handleSave}
           disabled={saving}
-          className="bg-primary-600 text-white px-8 py-2.5 rounded-xl text-xs font-black shadow-lg shadow-primary-500/30 hover:bg-primary-700 flex items-center gap-2 transition-all active:scale-95 disabled:opacity-70"
+          className="bg-slate-950 text-white px-8 py-3.5 rounded-[20px] text-[10px] font-black shadow-2xl hover:scale-105 active:scale-95 flex items-center gap-3 transition-all disabled:opacity-50 uppercase tracking-widest"
         >
-          {saving ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />} 
-          {saving ? 'Saving...' : 'Deploy Changes'}
+          {saving ? <Loader2 className="animate-spin text-emerald-400" size={16} /> : <Save className="text-emerald-400" size={16} />} 
+          {saving ? 'Saving...' : 'Save Changes'}
         </button>
       </div>
 
-      {message && (
-        <motion.div 
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className={`p-4 rounded-2xl flex items-center gap-3 ${message.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-red-50 text-red-700 border border-red-100'}`}
-        >
-          {message.type === 'success' ? <CheckCircle2 size={18} /> : <Bell size={18} />}
-          <span className="text-sm font-bold">{message.text}</span>
-        </motion.div>
-      )}
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-         {/* Sticky Navigation */}
-         <div className="lg:col-span-3 space-y-2 lg:sticky lg:top-24">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+         <div className="lg:col-span-3 space-y-1 lg:sticky lg:top-24 max-h-[calc(100vh-140px)] overflow-y-auto pr-2 custom-scrollbar">
             {tabs.map((tab) => (
               <button 
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`w-full flex items-center gap-3 px-4 py-4 rounded-3xl text-sm font-bold transition-all ${activeTab === tab.id ? 'bg-white text-primary-600 shadow-xl shadow-slate-200/50 border border-slate-100' : 'text-slate-400 hover:bg-white hover:text-slate-600'}`}
+                className={`w-full flex items-center gap-3.5 px-5 py-3.5 rounded-[24px] text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === tab.id ? 'bg-white text-slate-900 shadow-xl border border-slate-100 italic translate-x-2' : 'text-slate-400 hover:text-slate-600'}`}
               >
-                <div className={`p-2 rounded-xl transition-all ${activeTab === tab.id ? 'bg-primary-50' : 'bg-transparent'}`}>
-                   <tab.icon size={20} />
+                <div className={`p-2 rounded-xl transition-all ${activeTab === tab.id ? `bg-${tab.col}-50 text-${tab.col}-600` : 'bg-transparent'}`}>
+                   <tab.icon size={16} />
                 </div>
                 {tab.label}
               </button>
             ))}
          </div>
 
-         {/* Content Area */}
-         <div className="lg:col-span-9 bg-white rounded-[40px] border border-slate-100 shadow-sm shadow-slate-200/50 p-8 md:p-12 min-h-[600px]">
+         <div className="lg:col-span-9 bg-white rounded-[40px] border border-slate-100 shadow-2xl p-8 md:p-10 min-h-[600px] overflow-hidden">
             <AnimatePresence mode="wait">
-               <motion.div
-                 key={activeTab}
-                 initial={{ opacity: 0, x: 10 }}
-                 animate={{ opacity: 1, x: 0 }}
-                 exit={{ opacity: 0, x: -10 }}
-                 transition={{ duration: 0.2 }}
-                 className="space-y-10"
-               >
-                  {activeTab === 'general' && (
-                    <section className="space-y-6">
-                      <h3 className="text-xl font-black text-slate-900 italic">Platform Profile</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <Field label="Site Name" value={settings.site_name} onChange={(v) => handleChange('site_name', v)} />
-                        
-                        <div className="space-y-3">
-                          <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Brand Color</label>
-                          <div className="flex items-center gap-4">
-                             <input 
-                               type="color" 
-                               value={settings.brand_color || '#3B82F6'} 
-                               onChange={(e) => handleChange('brand_color', e.target.value)}
-                               className="w-12 h-12 rounded-xl border-none p-0 overflow-hidden cursor-pointer"
-                             />
-                             <div className="flex flex-wrap gap-2">
-                               {['#3B82F6', '#10B981', '#8B5CF6', '#F59E0B', '#EF4444', '#0F172A'].map((color) => (
-                                 <button
-                                   key={color}
-                                   onClick={() => handleChange('brand_color', color)}
-                                   className={`w-8 h-8 rounded-full border-2 transition-all hover:scale-110 ${settings.brand_color === color ? 'border-slate-900 shadow-lg' : 'border-white shadow-sm'}`}
-                                   style={{ backgroundColor: color }}
-                                 />
-                               ))}
-                             </div>
-                          </div>
+               <motion.div key={activeTab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }} className="space-y-10 relative z-10" >
+                  
+                  {activeTab === 'branding' && (
+                    <section className="space-y-8 animate-in fade-in duration-500">
+                      <h3 className="text-xl font-black text-slate-900 italic uppercase underline decoration-slate-900/10 underline-offset-8">Brand Identity</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <Field label="Custom Logo URL" value={settings.custom_logo} onChange={(v) => handleChange('custom_logo', v)} placeholder="https://..." />
+                        <div className="space-y-4">
+                           <label className="text-[9px] font-black uppercase tracking-widest text-slate-900 ml-1 italic">Primary Brand Color</label>
+                           <div className="p-6 bg-slate-50 rounded-[32px] flex items-center gap-6 border border-slate-100">
+                              <input type="color" value={settings.brand_color || '#0F172A'} onChange={(e) => handleChange('brand_color', e.target.value)} className="w-16 h-16 rounded-[24px] border-none shadow-xl cursor-pointer" />
+                              <div className="flex flex-wrap gap-2">
+                                {['#0F172A', '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'].map(c => (
+                                  <button key={c} onClick={() => handleChange('brand_color', c)} className={`w-7 h-7 rounded-full border-2 ${settings.brand_color === c ? 'border-slate-900 scale-110 shadow-lg' : 'border-white'}`} style={{backgroundColor: c}} />
+                                ))}
+                              </div>
+                           </div>
                         </div>
-
-                        <Field label="Commission Percentage (%)" type="number" value={settings.payments_commission_percent} onChange={(v) => handleChange('payments_commission_percent', v)} />
-                        <Field label="Support Email" value={settings.footer_contact_email} onChange={(v) => handleChange('footer_contact_email', v)} />
                       </div>
+                    </section>
+                  )}
+
+                  {activeTab === 'ai' && (
+                    <section className="space-y-8 p-10 bg-purple-50/30 rounded-[40px] border border-purple-100">
+                      <div className="flex justify-between items-center">
+                        <h3 className="text-xl font-black text-slate-900 italic uppercase underline decoration-purple-500/30 underline-offset-8">Neural Intelligence Hub</h3>
+                        <button 
+                          onClick={() => handleTestConnection('openai', 'openai_api_key')}
+                          disabled={testingType === 'openai'}
+                          className="bg-purple-600 text-white px-4 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-purple-700 transition-colors shadow-lg shadow-purple-600/10"
+                        >
+                          {testingType === 'openai' ? <RefreshCw size={10} className="animate-spin" /> : <Zap size={10} />}
+                          Verify Connection
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <Field label="OpenAI API Key" type="password" value={settings.openai_api_key} onChange={(v) => handleChange('openai_api_key', v)} />
+                        <Select label="Inference Model" value={settings.openai_model} options={[{v:'gpt-4o', l:'GPT-4o (Premium)'}, {v:'gpt-3.5-turbo', l:'GPT-3.5 (Speed)'}]} onChange={(v) => handleChange('openai_model', v)} />
+                      </div>
+                    </section>
+                  )}
+
+                  {activeTab === 'meetings' && (
+                    <section className="space-y-8 p-10 bg-blue-50/30 rounded-[40px] border border-blue-100">
+                      <div className="flex justify-between items-center">
+                        <h3 className="text-xl font-black text-slate-900 italic uppercase underline decoration-blue-500/30 underline-offset-8">Virtual Meetings</h3>
+                        <button 
+                          onClick={() => handleTestConnection('zoom', 'zoom_client_id')}
+                          disabled={testingType === 'zoom'}
+                          className="bg-blue-600 text-white px-4 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/10"
+                        >
+                          {testingType === 'zoom' ? <RefreshCw size={10} className="animate-spin" /> : <Zap size={10} />}
+                          Test Zoom API
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                         <Field label="Zoom Client ID" value={settings.zoom_client_id} onChange={(v)=>handleChange('zoom_client_id', v)}/>
+                         <Field label="Zoom Secret" type="password" value={settings.zoom_client_secret} onChange={(v)=>handleChange('zoom_client_secret', v)}/>
+                         <Field label="Teams Client ID" value={settings.teams_client_id} onChange={(v)=>handleChange('teams_client_id', v)}/>
+                         <Field label="Teams Secret" type="password" value={settings.teams_client_secret} onChange={(v)=>handleChange('teams_client_secret', v)}/>
+                      </div>
+                    </section>
+                  )}
+
+                  {activeTab === 'calendar' && (
+                    <section className="space-y-8 p-10 bg-rose-50/30 rounded-[40px] border border-rose-100">
+                      <div className="flex justify-between items-center">
+                         <h3 className="text-xl font-black text-slate-900 italic uppercase underline decoration-rose-500/30 underline-offset-8">Google Calendar</h3>
+                         <button 
+                           onClick={() => handleTestConnection('google_calendar', 'google_calendar_client_id')}
+                           disabled={testingType === 'google_calendar'}
+                           className="bg-rose-600 text-white px-4 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-rose-700 transition-colors shadow-lg shadow-rose-600/10"
+                         >
+                           {testingType === 'google_calendar' ? <RefreshCw size={10} className="animate-spin" /> : <Zap size={10} />}
+                           Authorize Protocol
+                         </button>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                         <Field label="Client ID" value={settings.google_calendar_client_id} onChange={(v)=>handleChange('google_calendar_client_id', v)}/>
+                         <Field label="Client Secret" type="password" value={settings.google_calendar_client_secret} onChange={(v)=>handleChange('google_calendar_client_secret', v)}/>
+                      </div>
+                    </section>
+                  )}
+
+                  {activeTab === 'vehicle' && (
+                    <section className="space-y-8 p-10 bg-orange-50/30 rounded-[40px] border border-orange-100">
+                       <h3 className="text-xl font-black text-slate-900 italic uppercase underline decoration-orange-500/30 underline-offset-8">Vehicle Technicals API</h3>
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                          <Field label="API Key" value={settings.car_api_key} onChange={(v)=>handleChange('car_api_key', v)}/>
+                          <Field label="API Secret" type="password" value={settings.car_api_secret} onChange={(v)=>handleChange('car_api_secret', v)}/>
+                       </div>
                     </section>
                   )}
 
                   {activeTab === 'payments' && (
-                    <div className="space-y-10">
-                      <section className="space-y-6">
-                        <div className="flex items-center justify-between">
-                          <h3 className="text-xl font-black text-slate-900 italic flex items-center gap-2">
-                            <Smartphone size={20} className="text-emerald-600" /> M-Pesa Integration
-                          </h3>
-                          <Toggle 
-                            checked={settings.payments_mpesa_enabled === '1' || settings.payments_mpesa_enabled === true} 
-                            onChange={(v) => handleChange('payments_mpesa_enabled', v)} 
-                          />
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pl-4 border-l-2 border-slate-50 mt-4">
-                          <Select 
-                            label="Environment" 
-                            value={settings.payments_mpesa_environment} 
-                            options={[{v: 'sandbox', l: 'Sandbox'}, {v: 'production', l: 'Production'}]}
-                            onChange={(v) => handleChange('payments_mpesa_environment', v)} 
-                          />
-                          <Field label="Shortcode" value={settings.payments_mpesa_shortcode} onChange={(v) => handleChange('payments_mpesa_shortcode', v)} />
-                          <Field label="Consumer Key" type="password" value={settings.payments_mpesa_consumer_key} onChange={(v) => handleChange('payments_mpesa_consumer_key', v)} placeholder="••••••••••••••••" />
-                          <Field label="Consumer Secret" type="password" value={settings.payments_mpesa_consumer_secret} onChange={(v) => handleChange('payments_mpesa_consumer_secret', v)} placeholder="••••••••••••••••" />
-                          <Field label="Passkey" type="password" value={settings.payments_mpesa_passkey} onChange={(v) => handleChange('payments_mpesa_passkey', v)} placeholder="••••••••••••••••" />
-                        </div>
-                      </section>
-
-                      <div className="h-px bg-slate-50" />
-
-                      <section className="space-y-6">
-                        <div className="flex items-center justify-between">
-                          <h3 className="text-xl font-black text-slate-900 italic flex items-center gap-2">
-                            <CreditCard size={20} className="text-primary-600" /> Stripe Integration
-                          </h3>
-                          <Toggle 
-                            checked={settings.payments_stripe_enabled === '1' || settings.payments_stripe_enabled === true} 
-                            onChange={(v) => handleChange('payments_stripe_enabled', v)} 
-                          />
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pl-4 border-l-2 border-slate-50 mt-4">
-                          <Field label="Publishable Key" value={settings.payments_stripe_publishable_key} onChange={(v) => handleChange('payments_stripe_publishable_key', v)} />
-                          <Field label="Secret Key" type="password" value={settings.payments_stripe_secret_key} onChange={(v) => handleChange('payments_stripe_secret_key', v)} placeholder="••••••••••••••••" />
-                          <Field label="Webhook Secret" type="password" value={settings.payments_stripe_webhook_secret} onChange={(v) => handleChange('payments_stripe_webhook_secret', v)} placeholder="••••••••••••••••" />
-                        </div>
-                      </section>
-                    </div>
+                    <section className="space-y-8 p-10 bg-emerald-50/30 rounded-[40px] border border-emerald-100">
+                       <h3 className="text-xl font-black text-slate-900 italic uppercase underline decoration-emerald-500/30 underline-offset-8">M-Pesa Multi-Tenant Hub</h3>
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                          <Field label="Consumer Key" value={settings.payments_mpesa_consumer_key} onChange={(v)=>handleChange('payments_mpesa_consumer_key', v)}/>
+                          <Field label="Consumer Secret" type="password" value={settings.payments_mpesa_consumer_secret} onChange={(v)=>handleChange('payments_mpesa_consumer_secret', v)}/>
+                          <Field label="Shortcode" value={settings.payments_mpesa_shortcode} onChange={(v)=>handleChange('payments_mpesa_shortcode', v)}/>
+                          <Field label="Passkey" type="password" value={settings.payments_mpesa_passkey} onChange={(v)=>handleChange('payments_mpesa_passkey', v)}/>
+                       </div>
+                    </section>
                   )}
 
                   {activeTab === 'commissions' && (
-                    <section className="space-y-8">
-                      <div className="flex items-center justify-between">
-                         <h3 className="text-xl font-black text-slate-900 italic">Tiered Commission Rules</h3>
-                         <button 
-                           onClick={() => setCommissionRules([...commissionRules, { min_amount: 0, max_amount: null, type: 'percent', value: 0, is_active: true }])}
-                           className="text-primary-600 hover:text-primary-700 text-xs font-black uppercase tracking-widest flex items-center gap-1"
-                         >
-                           <Plus size={14} /> Add Rule
-                         </button>
-                      </div>
-                      
-                      <div className="space-y-4">
-                        {commissionRules.map((rule, i) => (
-                          <div key={i} className="p-6 bg-slate-50 rounded-[32px] border border-transparent hover:border-slate-200 transition-all flex flex-wrap md:flex-nowrap items-end gap-4 relative group">
-                            <button 
-                              onClick={async () => {
-                                if (rule.id) await axios.delete(`${API_BASE}/commissions/${rule.id}`);
-                                setCommissionRules(commissionRules.filter((_, idx) => idx !== i));
-                              }}
-                              className="absolute top-4 right-4 text-slate-300 hover:text-red-500 transition-colors"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                            <div className="w-full md:w-32">
-                              <Field label="Min (KES)" type="number" value={rule.min_amount} onChange={(v) => {
-                                const newRules = [...commissionRules];
-                                newRules[i].min_amount = v;
-                                setCommissionRules(newRules);
-                              }} />
-                            </div>
-                            <div className="w-full md:w-32">
-                              <Field label="Max (KES)" type="number" value={rule.max_amount} onChange={(v) => {
-                                const newRules = [...commissionRules];
-                                newRules[i].max_amount = v;
-                                setCommissionRules(newRules);
-                              }} />
-                            </div>
-                            <div className="w-full md:w-32">
-                              <Select label="Type" value={rule.type} options={[{v: 'percent', l: '%'}, {v: 'fixed', l: 'Fixed'}]} onChange={(v) => {
-                                const newRules = [...commissionRules];
-                                newRules[i].type = v;
-                                setCommissionRules(newRules);
-                              }} />
-                            </div>
-                            <div className="w-full md:w-32">
-                              <Field label="Value" type="number" value={rule.value} onChange={(v) => {
-                                const newRules = [...commissionRules];
-                                newRules[i].value = v;
-                                setCommissionRules(newRules);
-                              }} />
-                            </div>
-                            <div className="pb-4">
-                              <Toggle checked={rule.is_active} onChange={(v) => {
-                                const newRules = [...commissionRules];
-                                newRules[i].is_active = v;
-                                setCommissionRules(newRules);
-                              }} />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                    <section className="space-y-6">
+                       <div className="flex justify-between items-center bg-indigo-50/30 p-6 rounded-[32px] border border-indigo-100">
+                         <h3 className="text-xl font-black text-slate-900 italic uppercase decoration-indigo-500/30 underline underline-offset-4">Platform Fee Architecture</h3>
+                         <button onClick={() => setCommissionRules([...commissionRules, { min_amount: 0, max_amount: 0, type: 'percent', value: 0, is_active: true }])} className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-indigo-600/10 hover:scale-105 active:scale-95 transition-all"><Plus size={14}/> New Logic</button>
+                       </div>
+                       <div className="space-y-4 pt-4">
+                         {commissionRules.map((rule, i) => (
+                           <div key={i} className="p-6 bg-slate-50 rounded-[32px] grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 items-end relative border border-slate-100 shadow-sm transition-all hover:bg-white hover:shadow-xl hover:border-indigo-100 group">
+                              <button onClick={async () => { if(rule.id) await axios.delete(`${API_BASE}/commissions/${rule.id}`); setCommissionRules(commissionRules.filter((_, idx)=>idx!==i)); }} className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-white text-slate-300 hover:text-red-500 transition-all shadow-md flex items-center justify-center opacity-0 group-hover:opacity-100 border border-slate-100"><Trash2 size={14}/></button>
+                              <div className="w-full"><Field label="Min (KES)" type="number" value={rule.min_amount} onChange={(v)=>{const nr=[...commissionRules]; nr[i].min_amount=v; setCommissionRules(nr);}}/></div>
+                              <div className="w-full"><Field label="Max (KES)" type="number" value={rule.max_amount} onChange={(v)=>{const nr=[...commissionRules]; nr[i].max_amount=v; setCommissionRules(nr);}}/></div>
+                              <div className="w-full"><Select label="Type" value={rule.type} options={[{v:'percent',l:'Percentage'},{v:'fixed',l:'Fixed Fee'}]} onChange={(v)=>{const nr=[...commissionRules]; nr[i].type=v; setCommissionRules(nr);}}/></div>
+                              <div className="w-full"><Field label="Value" type="number" value={rule.value} onChange={(v)=>{const nr=[...commissionRules]; nr[i].value=v; setCommissionRules(nr);}}/></div>
+                              <div className="pb-3 text-center flex flex-col items-center">
+                                 <label className="text-[8px] font-black uppercase text-slate-400 block mb-1.5 tracking-tighter">Active</label>
+                                 <Toggle checked={rule.is_active} onChange={(v)=>{const nr=[...commissionRules]; nr[i].is_active=v; setCommissionRules(nr);}}/>
+                              </div>
+                           </div>
+                         ))}
+                         {commissionRules.length === 0 && (
+                           <div className="h-40 border-2 border-dashed border-slate-100 rounded-[40px] flex items-center justify-center bg-slate-50/50">
+                              <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest italic">No fee rules defined for the platform</p>
+                           </div>
+                         )}
+                       </div>
                     </section>
                   )}
 
                   {activeTab === 'email' && (
-                    <section className="space-y-6">
-                      <h3 className="text-xl font-black text-slate-900 italic flex items-center gap-2">
-                        <Send size={20} className="text-primary-600" /> Mail Infrastructure
-                      </h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <Select 
-                          label="Mailer Engine" 
-                          value={settings.mail_mailer} 
-                          options={[{v: 'smtp', l: 'SMTP Server'}, {v: 'log', l: 'Log Only (Dev)'}, {v: 'ses', l: 'Amazon SES'}]}
-                          onChange={(v) => handleChange('mail_mailer', v)} 
-                        />
-                        <Field label="SMTP Host" value={settings.mail_host} onChange={(v) => handleChange('mail_host', v)} placeholder="smtp.mailtrap.io" />
-                        <Field label="SMTP Port" type="number" value={settings.mail_port} onChange={(v) => handleChange('mail_port', v)} placeholder="587" />
-                        <Field label="User Auth" value={settings.mail_username} onChange={(v) => handleChange('mail_username', v)} placeholder="username" />
-                        <Field label="Access Secret" type="password" value={settings.mail_password} onChange={(v) => handleChange('mail_password', v)} placeholder="••••••••••••••••" />
-                        <Select 
-                          label="Encryption" 
-                          value={settings.mail_encryption} 
-                          options={[{v: 'tls', l: 'TLS'}, {v: 'ssl', l: 'SSL'}, {v: 'none', l: 'None'}]}
-                          onChange={(v) => handleChange('mail_encryption', v)} 
-                        />
-                        <Field label="Sender Address" value={settings.mail_from_address} onChange={(v) => handleChange('mail_from_address', v)} placeholder="noreply@sparenova.com" />
-                        <Field label="Sender Identity" value={settings.mail_from_name} onChange={(v) => handleChange('mail_from_name', v)} placeholder="SpareNova Platform" />
-                      </div>
-                    </section>
-                  )}
-
-                  {activeTab === 'slider' && (
-                    <section className="space-y-8">
-                       <div className="flex items-center justify-between">
-                         <h3 className="text-xl font-black text-slate-900 italic">Homepage Carousel</h3>
-                         <button 
-                           onClick={() => addArrayItem('home_slider_slides', { title: '', subtitle: '', image_url: '', link_url: '', link_label: '' })}
-                           className="text-primary-600 hover:text-primary-700 text-xs font-black uppercase tracking-widest flex items-center gap-1"
-                         >
-                           <Plus size={14} /> New Slide
-                         </button>
-                       </div>
-                       
-                       <div className="space-y-6">
-                          {(settings.home_slider_slides || []).map((slide, i) => (
-                            <div key={i} className="p-8 bg-slate-50 rounded-[40px] relative group border border-transparent hover:border-slate-200 transition-all space-y-6">
-                              <button 
-                                onClick={() => removeArrayItem('home_slider_slides', i)}
-                                className="absolute top-6 right-6 text-slate-300 hover:text-red-500 transition-colors"
-                              >
-                                <Trash2 size={18} />
-                              </button>
-                              
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <Field label="Slide Heading" value={slide.title} onChange={(v) => handleArrayChange('home_slider_slides', i, 'title', v)} />
-                                <Field label="Slide Text" value={slide.subtitle} onChange={(v) => handleArrayChange('home_slider_slides', i, 'subtitle', v)} />
-                                <Field label="Image Path/URL" value={slide.image_url} onChange={(v) => handleArrayChange('home_slider_slides', i, 'image_url', v)} placeholder="/images/slider/1.jpg" />
-                                <div className="grid grid-cols-2 gap-4">
-                                  <Field label="Button Text" value={slide.link_label} onChange={(v) => handleArrayChange('home_slider_slides', i, 'link_label', v)} placeholder="Shop Now" />
-                                  <Field label="Target Path" value={slide.link_url} onChange={(v) => handleArrayChange('home_slider_slides', i, 'link_url', v)} placeholder="/products" />
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                       </div>
-                    </section>
-                  )}
-
-                  {activeTab === 'content' && (
-                    <section className="space-y-10">
-                      <div className="space-y-6">
-                        <h3 className="text-xl font-black text-slate-900 italic">Intro Hub</h3>
-                        <div className="space-y-4">
-                          <Field label="Main Hero Title" value={settings.home_intro_title} onChange={(v) => handleChange('home_intro_title', v)} />
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Hero Subtext</label>
-                            <textarea 
-                              value={settings.home_intro_subtitle || ''} 
-                              onChange={(e) => handleChange('home_intro_subtitle', e.target.value)}
-                              rows={3}
-                              className="w-full bg-slate-50 border border-slate-100 rounded-[28px] px-6 py-5 text-sm font-bold text-slate-900 outline-none focus:ring-4 focus:ring-primary-500/5 transition-all" 
-                            />
+                    <section className="space-y-8 p-10 bg-sky-50/30 rounded-[40px] border border-sky-100">
+                       <h3 className="text-xl font-black text-slate-900 italic uppercase underline decoration-sky-500/30 underline-offset-8">Global Email Infrastructure</h3>
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                          <Field label="SMTP Username" value={settings.mail_username} onChange={(v)=>handleChange('mail_username', v)}/>
+                          <Field label="SMTP Password" type="password" value={settings.mail_password} onChange={(v)=>handleChange('mail_password', v)}/>
+                          <Field label="SMTP Host" value={settings.mail_host} onChange={(v)=>handleChange('mail_host', v)}/>
+                          <Field label="SMTP Port" value={settings.mail_port} onChange={(v)=>handleChange('mail_port', v)}/>
+                          <div className="md:col-span-2 p-8 bg-white rounded-[28px] border border-dashed border-sky-200 flex flex-col md:flex-row justify-between items-center gap-6 shadow-sm">
+                             <div className="space-y-1">
+                                <p className="text-[10px] font-black uppercase text-slate-900 italic tracking-widest underline decoration-sky-500/20 underline-offset-4">Transactional Content Management</p>
+                                <p className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">Modify the visual and textual structure of system emails</p>
+                             </div>
+                             <button onClick={()=>window.location.href='/admin/communications'} className="px-6 py-3 bg-sky-600 text-white rounded-xl text-[9px] uppercase tracking-widest font-black shadow-lg shadow-sky-600/20 hover:scale-105 transition-all">Open Communications Lab</button>
                           </div>
-                        </div>
-                      </div>
-
-                      <div className="space-y-6">
-                        <div className="flex items-center justify-between">
-                          <h3 className="text-xl font-black text-slate-900 italic">Trust Features</h3>
-                          <button 
-                            onClick={() => addArrayItem('home_features', { icon: '', title: '', subtitle: '' })}
-                            disabled={(settings.home_features || []).length >= 4}
-                            className="text-primary-600 hover:text-primary-700 text-xs font-black uppercase tracking-widest flex items-center gap-1 disabled:opacity-50"
-                          >
-                            <Plus size={14} /> Add Feature
-                          </button>
-                        </div>
-                        
-                        <div className="grid grid-cols-1 gap-4">
-                          {(settings.home_features || []).map((feature, i) => (
-                            <div key={i} className="p-6 bg-slate-50 rounded-[32px] relative group border border-transparent hover:border-slate-200 transition-all">
-                              <button 
-                                onClick={() => removeArrayItem('home_features', i)}
-                                className="absolute top-4 right-4 text-slate-300 hover:text-red-500 transition-colors"
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <Field label="Icon Path" value={feature.icon} onChange={(v) => handleArrayChange('home_features', i, 'icon', v)} />
-                                <Field label="Feature Title" value={feature.title} onChange={(v) => handleArrayChange('home_features', i, 'title', v)} />
-                                <Field label="Brief Detail" value={feature.subtitle} onChange={(v) => handleArrayChange('home_features', i, 'subtitle', v)} />
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
+                       </div>
                     </section>
                   )}
 
-                  {activeTab === 'footer' && (
-                    <section className="space-y-12">
-                       <div className="space-y-8">
-                         <h3 className="text-xl font-black text-slate-900 italic">Brand Identity</h3>
-                         <div className="space-y-6">
-                            <div className="space-y-2">
-                              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Footer Brand Story</label>
-                              <textarea 
-                                value={settings.footer_description || ''} 
-                                onChange={(e) => handleChange('footer_description', e.target.value)}
-                                rows={3}
-                                className="w-full bg-slate-50 border border-slate-100 rounded-[28px] px-6 py-5 text-sm font-bold text-slate-900 outline-none focus:ring-4 focus:ring-primary-500/5 transition-all" 
-                              />
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                              <Field label="HQ Address" value={settings.footer_contact_address} onChange={(v) => handleChange('footer_contact_address', v)} />
-                              <Field label="Contact Phone" value={settings.footer_contact_phone} onChange={(v) => handleChange('footer_contact_phone', v)} />
-                            </div>
+                  {activeTab === 'marketing' && (
+                    <div className="space-y-10">
+                       <section className="space-y-8">
+                         <div className="flex justify-between items-center bg-slate-50 p-6 rounded-[32px] border border-slate-200">
+                           <h3 className="text-xl font-black text-slate-900 italic uppercase underline decoration-slate-950/10 underline-offset-4">Landing Matrix Sliders</h3>
+                           <button onClick={()=>addArrayItem('home_slider_slides', {title:'', image_url:'', link_url:''})} className="bg-slate-950 text-white px-5 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 hover:scale-105 active:scale-95 transition-all"><Plus size={14}/> New Asset</button>
                          </div>
-                       </div>
+                         <div className="space-y-4 pt-4">
+                           {(settings.home_slider_slides || []).map((slide, i) => (
+                             <div key={i} className="p-8 bg-slate-50 rounded-[40px] grid grid-cols-1 md:grid-cols-3 gap-6 relative border border-slate-100 group hover:bg-white hover:shadow-2xl transition-all">
+                               <button onClick={()=>removeArrayItem('home_slider_slides', i)} className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-white text-slate-300 hover:text-red-500 transition-all shadow-md flex items-center justify-center opacity-0 group-hover:opacity-100 border border-slate-100"><Trash2 size={16}/></button>
+                               <div className="md:col-span-1"><Field label="Headline" value={slide.title} onChange={(v)=>handleArrayChange('home_slider_slides',i,'title',v)} placeholder="e.g. New Arrivals"/></div>
+                               <div className="md:col-span-1"><Field label="Asset Link (Image URL)" value={slide.image_url} onChange={(v)=>handleArrayChange('home_slider_slides',i,'image_url',v)} placeholder="https://..."/></div>
+                               <div className="md:col-span-1"><Field label="Redirect Path" value={slide.link_url} onChange={(v)=>handleArrayChange('home_slider_slides',i,'link_url',v)} placeholder="/shop/category/..."/></div>
+                             </div>
+                           ))}
+                         </div>
+                       </section>
+                    </div>
+                  )}
 
-                       <div className="space-y-8">
-                          <h3 className="text-xl font-black text-slate-900 italic">Footer Subscription</h3>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <Field label="Subscribe Title" value={settings.footer_subscribe_title} onChange={(v) => handleChange('footer_subscribe_title', v)} />
-                            <Field label="Subscribe Button Text" value={settings.footer_subscribe_button} onChange={(v) => handleChange('footer_subscribe_button', v)} />
-                            <Field label="Placeholder Text" value={settings.footer_subscribe_placeholder} onChange={(v) => handleChange('footer_subscribe_placeholder', v)} />
-                            <Field label="Marketing Subtext" value={settings.footer_subscribe_text} onChange={(v) => handleChange('footer_subscribe_text', v)} />
-                          </div>
-                       </div>
-
-                       <div className="h-px bg-slate-50" />
-
-                       <div className="space-y-8">
-                          <h3 className="text-xl font-black text-slate-900 italic">Social Matrix</h3>
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            {(settings.footer_social_links || []).map((social, i) => (
-                              <div key={i} className="space-y-2 p-4 bg-slate-50 rounded-2xl relative">
-                                <button onClick={() => removeArrayItem('footer_social_links', i)} className="absolute top-2 right-2 text-slate-300 hover:text-red-500"><Trash2 size={12} /></button>
-                                <div className="text-[8px] font-black uppercase text-slate-400">{social.label}</div>
-                                <input value={social.url} onChange={(e) => handleArrayChange('footer_social_links', i, 'url', e.target.value)} className="w-full bg-white/50 text-[11px] font-bold p-2 rounded-lg outline-none" />
-                              </div>
-                            ))}
-                            <button onClick={() => addArrayItem('footer_social_links', { label: 'New', url: '#' })} className="border-2 border-dashed border-slate-100 rounded-2xl flex items-center justify-center text-slate-300 hover:border-primary-200 hover:text-primary-300 transition-all"><Plus size={20} /></button>
-                          </div>
-                       </div>
-
-                       <div className="h-px bg-slate-50" />
-
-                       <div className="space-y-8">
-                          <h3 className="text-xl font-black text-slate-900 italic">Checkout Trust</h3>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <Field label="Cart Title" value={settings.cart_title} onChange={(v) => handleChange('cart_title', v)} />
-                            <Field label="Cart Subtitle" value={settings.cart_subtitle} onChange={(v) => handleChange('cart_subtitle', v)} />
-                          </div>
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <Field label="Trust Line 1" value={settings.cart_trust_line_1} onChange={(v) => handleChange('cart_trust_line_1', v)} />
-                            <Field label="Trust Line 2" value={settings.cart_trust_line_2} onChange={(v) => handleChange('cart_trust_line_2', v)} />
-                            <Field label="Trust Line 3" value={settings.cart_trust_line_3} onChange={(v) => handleChange('cart_trust_line_3', v)} />
+                  {activeTab === 'general' && (
+                    <section className="space-y-8 p-10 bg-slate-50 rounded-[48px] border border-slate-100">
+                       <h3 className="text-xl font-black text-slate-900 italic uppercase underline decoration-slate-950/10 underline-offset-8">Institutional Core Configuration</h3>
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                          <Field label="Official Site Name" value={settings.site_name} onChange={(v)=>handleChange('site_name', v)}/>
+                          <Field label="System Default Commission (%)" type="number" value={settings.payments_commission_percent} onChange={(v)=>handleChange('payments_commission_percent', v)}/>
+                          <div className="md:col-span-2">
+                             <Field label="Institutional Meta Description" value={settings.site_description} onChange={(v)=>handleChange('site_description', v)} placeholder="Platform overview for SEO synthesis..."/>
                           </div>
                        </div>
                     </section>
                   )}
+
                </motion.div>
             </AnimatePresence>
          </div>
@@ -530,41 +417,48 @@ const Settings = () => {
 
 const Field = ({ label, value, onChange, type = "text", placeholder }) => (
   <div className="space-y-2">
-    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">{label}</label>
-    <input 
-      type={type}
-      value={value || ''} 
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold text-slate-900 outline-none focus:ring-4 focus:ring-primary-500/5 transition-all" 
-    />
+    <label className="text-[8px] font-black uppercase text-slate-400 ml-1 tracking-widest">{label}</label>
+    <div className="relative group/field">
+       <input 
+         type={type} 
+         value={value || ''} 
+         onChange={(e) => onChange(e.target.value)} 
+         placeholder={placeholder} 
+         className="w-full bg-slate-50/50 border border-slate-100 rounded-[20px] px-5 py-3.5 text-xs font-black text-slate-900 outline-none focus:ring-4 focus:ring-slate-900/5 focus:bg-white transition-all duration-300 shadow-sm" 
+       />
+       <div className="absolute right-5 top-1/2 -translate-y-1/2 opacity-0 group-focus-within/field:opacity-40 transition-opacity">
+          {type === 'password' ? <Lock size={12}/> : <ChevronRight size={12}/>}
+       </div>
+    </div>
   </div>
 );
 
 const Select = ({ label, value, options, onChange }) => (
   <div className="space-y-2">
-    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">{label}</label>
-    <div className="relative">
+    <label className="text-[8px] font-black uppercase text-slate-400 ml-1 tracking-widest">{label}</label>
+    <div className="relative group/select">
       <select 
         value={value || ''} 
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold text-slate-900 outline-none focus:ring-4 focus:ring-primary-500/5 transition-all appearance-none pr-12"
+        onChange={(e) => onChange(e.target.value)} 
+        className="w-full bg-slate-50/50 border border-slate-100 rounded-[20px] px-5 py-3.5 text-xs font-black text-slate-900 outline-none appearance-none cursor-pointer focus:ring-4 focus:ring-slate-900/5 focus:bg-white transition-all duration-300 shadow-sm"
       >
-        {options.map(opt => <option key={opt.v} value={opt.v}>{opt.l}</option>)}
+        <option value="" disabled>Select implementation...</option>
+        {(options || []).map(opt => <option key={opt.v} value={opt.v}>{opt.l}</option>)}
       </select>
-      <ChevronRight size={18} className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none rotate-90" />
+      <ChevronRight size={14} className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 rotate-90 group-focus-within/select:rotate-[-90deg] transition-transform" />
     </div>
   </div>
 );
 
 const Toggle = ({ checked, onChange }) => (
   <button 
-    onClick={() => onChange(!checked)}
-    className={`w-14 h-7 rounded-full flex items-center px-1.5 transition-all shadow-inner ${checked ? 'bg-primary-600' : 'bg-slate-200'}`}
+    onClick={() => onChange(!checked)} 
+    className={`w-12 h-6 rounded-full flex items-center px-1 transition-all duration-500 shadow-inner ${checked ? 'bg-emerald-500 shadow-emerald-500/20' : 'bg-slate-200 shadow-slate-200/20'}`}
   >
     <motion.div 
-      animate={{ x: checked ? 28 : 0 }}
-      className="w-4 h-4 bg-white rounded-full shadow-lg" 
+      animate={{ x: checked ? 24 : 0 }} 
+      className="w-4 h-4 bg-white rounded-full shadow-lg border border-slate-100" 
+      transition={{ type: "spring", stiffness: 500, damping: 30 }}
     />
   </button>
 );

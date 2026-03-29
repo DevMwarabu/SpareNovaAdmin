@@ -93,17 +93,35 @@ const Sidebar = () => {
     ])
   ];
 
+  const [logo, setLogo] = React.useState(localStorage.getItem('platform_logo'));
+
+  React.useEffect(() => {
+    const handleBrandingUpdate = () => {
+      setLogo(localStorage.getItem('platform_logo'));
+    };
+    window.addEventListener('branding_update', handleBrandingUpdate);
+    return () => window.removeEventListener('branding_update', handleBrandingUpdate);
+  }, []);
+
   return (
     <aside className="w-64 bg-sidebar-dark h-screen flex flex-col border-r border-sidebar-border relative z-40 select-none">
       {/* Logo Header - Fixed */}
       <div className="p-6 pb-2">
-        <div className="flex items-center gap-2 mb-6">
-          <div className="w-8 h-8 rounded-lg bg-primary-500 flex items-center justify-center shadow-lg shadow-primary-500/20">
-            <span className="text-white font-black text-xl">S</span>
-          </div>
-          <span className="text-xl font-black text-white tracking-tight">Spare<span className="text-primary-500">Nova</span></span>
+        <div className="flex items-center gap-2 mb-6 transition-all duration-500">
+          {logo ? (
+             <img src={logo} alt="Logo" className="max-h-12 w-auto object-contain object-left max-w-[180px] animate-in fade-in duration-1000" />
+          ) : (
+
+             <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-primary-500 flex items-center justify-center shadow-lg shadow-primary-500/20 animate-in zoom-in duration-700">
+                  <span className="text-white font-black text-xl italic">S</span>
+                </div>
+                <span className="text-xl font-black text-white tracking-tight italic">Spare<span className="text-primary-500">Nova</span></span>
+             </div>
+          )}
         </div>
       </div>
+
 
       {/* Scrollable Content */}
       <div className="flex-1 overflow-y-auto px-6 py-4 custom-scrollbar">

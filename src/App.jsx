@@ -32,18 +32,31 @@ const API_BASE = 'http://localhost:8003/api/v1';
 
 function App() {
   useEffect(() => {
-    const fetchBrandColor = async () => {
+    const fetchBranding = async () => {
       try {
         const response = await axios.get(`${API_BASE}/settings`);
-        const color = response.data.settings.brand_color;
-        if (color) {
-          document.documentElement.style.setProperty('--dynamic-brand-color', color);
+        const { brand_color, custom_logo, site_name } = response.data.settings;
+        
+        if (brand_color) {
+          document.documentElement.style.setProperty('--dynamic-brand-color', brand_color);
+        }
+        
+        if (custom_logo) {
+          localStorage.setItem('platform_logo', custom_logo);
+          // Dispatch custom event to notify Sidebar/Navbar
+          window.dispatchEvent(new Event('branding_update'));
+        } else {
+          localStorage.removeItem('platform_logo');
+        }
+
+        if (site_name) {
+          document.title = `${site_name} | Admin Control Hub`;
         }
       } catch (error) {
-        console.error('Failed to fetch brand color:', error);
+        console.error('Failed to fetch branding settings:', error);
       }
     };
-    fetchBrandColor();
+    fetchBranding();
   }, []);
 
   return (
@@ -80,9 +93,7 @@ function App() {
         <Route path="/" element={<Navigate to="/auth" replace />} />
       </Routes>
     </Router>
-
   );
 }
 
 export default App;
-
