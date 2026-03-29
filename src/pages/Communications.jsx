@@ -22,9 +22,11 @@ import {
   Zap,
   Radio,
   Signal,
-  Loader2
+  Loader2,
+  Trash
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 const Communications = () => {
   const [activeTab, setActiveTab] = useState('broadcasts'); // 'broadcasts' or 'templates'
@@ -50,6 +52,15 @@ const Communications = () => {
     body: ''
   });
 
+  // Confirmation States
+  const [confirmDialog, setConfirmDialog] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+    type: 'warning'
+  });
+
   const API_BASE = 'http://localhost:8003/api/v1';
 
   const showToast = (message, type = 'info') => {
@@ -65,7 +76,8 @@ const Communications = () => {
         setNotifications(res.data.data);
       }
     } catch (err) {
-      console.error(`Failed to fetch notifications:`, err);
+      console.error(`Failed to fetch notifications:`, err.response?.data?.message || err.message);
+      showToast('Ledger synchronization failed', 'danger');
     } finally {
       setLoading(false);
     }
@@ -79,7 +91,8 @@ const Communications = () => {
         setTemplates(res.data.data);
       }
     } catch (err) {
-      console.error(`Failed to fetch templates:`, err);
+      console.error(`Failed to fetch templates:`, err.response?.data?.message || err.message);
+      showToast('Protocol synchronization failed', 'danger');
     } finally {
       setLoading(false);
     }
@@ -131,17 +144,24 @@ const Communications = () => {
   };
 
   const deleteTemplate = async (id) => {
-    if (!window.confirm('Permanently decommission this governance protocol?')) return;
-    try {
-      setLoading(true);
-      await axios.delete(`${API_BASE}/admin/email-templates/${id}`);
-      fetchTemplates();
-      showToast('Protocol decommissioned', 'success');
-    } catch (err) {
-      showToast('Decommission failure', 'danger');
-    } finally {
-      setLoading(false);
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Decommission Protocol?',
+      message: 'Are you sure you want to permanently decommission this governance protocol? This action cannot be reversed.',
+      type: 'danger',
+      onConfirm: async () => {
+        try {
+          setLoading(true);
+          await axios.delete(`${API_BASE}/admin/email-templates/${id}`);
+          fetchTemplates();
+          showToast('Protocol decommissioned', 'success');
+        } catch (err) {
+          showToast('Decommission failure', 'danger');
+        } finally {
+          setLoading(false);
+        }
+      }
+    });
   };
 
   const getPriorityColor = (p) => {
@@ -358,6 +378,7 @@ const Communications = () => {
                       stroke="#3b82f6" 
                       strokeWidth="1"
                       animate={{ r: [50, 150], opacity: [0.5, 0] }}
+                      initial={{ r: 50, opacity: 0.5 }}
                       transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
                     />
                     <motion.circle 
@@ -366,6 +387,7 @@ const Communications = () => {
                       stroke="#3b82f6" 
                       strokeWidth="1"
                       animate={{ r: [50, 150], opacity: [0.5, 0] }}
+                      initial={{ r: 50, opacity: 0.5 }}
                       transition={{ duration: 4, repeat: Infinity, delay: 2, ease: "linear" }}
                     />
                   </svg>
@@ -596,6 +618,11 @@ const Communications = () => {
           </div>
         )}
       </AnimatePresence>
+
+      <ConfirmDialog 
+        {...confirmDialog}
+        onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
+      />
     </div>
   );
 };
