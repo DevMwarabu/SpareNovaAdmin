@@ -41,6 +41,8 @@ const Products = () => {
   
   // Advanced Search State
   const [isAdvancedSearchOpen, setIsAdvancedSearchOpen] = useState(false);
+  const [isExportOpen, setIsExportOpen] = useState(false);
+  const exportBtnRef = useRef(null);
   const [categories, setCategories] = useState([]);
   const [advancedFilters, setAdvancedFilters] = useState({
     categoryId: 'all',
@@ -118,7 +120,7 @@ const Products = () => {
     fetchProducts(true);
   };
 
-  const handleExport = () => {
+  const handleExportCSV = () => {
     if (products.length === 0) return;
     const headers = ['ID', 'Title', 'OEM', 'Category', 'Price', 'Stock', 'Store', 'Vendor', 'Status'];
     const csvData = products.map(p => [
@@ -134,6 +136,12 @@ const Products = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    setIsExportOpen(false);
+  };
+
+  const handleExportPDF = () => {
+    window.print(); // Simple clean industrial print for PDF
+    setIsExportOpen(false);
   };
 
   const handleAddProduct = () => {
@@ -282,12 +290,52 @@ const Products = () => {
             <RefreshCcw size={18} className={`group-hover:rotate-180 transition-transform duration-500 ${refreshing ? 'animate-spin' : ''}`} />
           </button>
           <div className="h-10 w-px bg-slate-200 mx-1" />
-          <button 
-            onClick={handleExport}
-            className="bg-white border border-slate-200 px-5 py-3 rounded-2xl text-xs font-black text-slate-700 shadow-sm hover:bg-slate-50 flex items-center gap-2 transition-all"
-          >
-            <Download size={16} /> Export
-          </button>
+          <div className="relative">
+            <button 
+              ref={exportBtnRef}
+              onClick={() => setIsExportOpen(!isExportOpen)}
+              className={`bg-white border px-5 py-3 rounded-2xl text-xs font-black flex items-center gap-2 transition-all ${isExportOpen ? 'border-primary-600 text-primary-600' : 'border-slate-200 text-slate-700 hover:bg-slate-50'}`}
+            >
+              <Download size={16} /> Export
+              <ChevronDown size={14} className={`transition-transform duration-300 ${isExportOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {isExportOpen && (
+              <Portal>
+                 <div className="fixed inset-0 z-[150]" onClick={() => setIsExportOpen(false)} />
+                 <motion.div 
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    style={{ 
+                      position: 'fixed', 
+                      top: exportBtnRef.current?.getBoundingClientRect().bottom + 8,
+                      left: exportBtnRef.current?.getBoundingClientRect().left - 100
+                    }}
+                    className="w-56 bg-white border border-slate-100 rounded-3xl shadow-2xl z-[151] p-3 space-y-2 overflow-hidden"
+                 >
+                    <button 
+                      onClick={handleExportCSV}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 hover:text-emerald-600 rounded-2xl transition-all"
+                    >
+                       <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                          <Layers size={14} />
+                       </div>
+                       Format: Excel / CSV
+                    </button>
+                    <button 
+                      onClick={handleExportPDF}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 hover:text-rose-600 rounded-2xl transition-all"
+                    >
+                       <div className="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center">
+                          <Zap size={14} />
+                       </div>
+                       Format: Visual PDF
+                    </button>
+                 </motion.div>
+              </Portal>
+            )}
+          </div>
+
           <button 
             onClick={handleAddProduct}
             className="bg-primary-600 text-white px-6 py-3 rounded-2xl text-xs font-black shadow-xl shadow-primary-500/20 hover:bg-primary-700 flex items-center gap-2 transition-all active:scale-95"
@@ -746,7 +794,7 @@ const Products = () => {
                       <div className="w-16 h-16 rounded-2xl bg-white border border-slate-100 flex items-center justify-center overflow-hidden shrink-0 shadow-sm group-hover:scale-105 transition-transform">
                         {p.image ? (
                           <img 
-                            src={p.image.startsWith('http') ? p.image : `http://localhost:8003/storage/${p.image}`} 
+                            src={p.image} 
                             alt={p.title} 
                             className="w-full h-full object-cover"
                             onError={(e) => { e.target.src = 'https://placehold.co/100?text=Part'; }}
@@ -964,7 +1012,7 @@ const Products = () => {
 
                     <div className="aspect-video w-full rounded-3xl bg-slate-50 border border-slate-100 mb-8 overflow-hidden relative group">
                        <img 
-                          src={currentProduct.image?.startsWith('http') ? currentProduct.image : `http://localhost:8003/storage/${currentProduct.image}`} 
+                          src={currentProduct.image || 'https://placehold.co/600x400?text=No+Preview'} 
                           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
                           alt="" 
                        />
