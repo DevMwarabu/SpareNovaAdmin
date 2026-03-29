@@ -43,6 +43,9 @@ const Reports = () => {
   const [loading, setLoading] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
   const [toast, setToast] = useState(null);
+  const [isAnalysisModalOpen, setIsAnalysisModalOpen] = useState(false);
+  const [analysisForm, setAnalysisForm] = useState({ name: '', interval: 'DAILY', type: 'Financial' });
+  const [generatedAsset, setGeneratedAsset] = useState(null);
 
   const API_BASE = 'http://localhost:8003/api/v1';
 
@@ -73,13 +76,24 @@ const Reports = () => {
       setIsExporting(report.id);
       const res = await axios.get(`${API_BASE}/admin/reports/export`, { params: { id: report.id } });
       if (res.data.success) {
-         showToast(`Branded Executive Asset Generated: ${report.name}`, 'emerald');
+         setGeneratedAsset({
+           name: report.name,
+           url: res.data.download_url,
+           metadata: res.data.metadata
+         });
+         showToast(`Branded Executive Asset Generated`, 'emerald');
       }
     } catch (err) {
       showToast('Export Protocol Failed', 'rose');
     } finally {
       setIsExporting(false);
     }
+  };
+
+  const handleSaveAnalysisTask = () => {
+    showToast('Analytical Task Synchronized', 'indigo');
+    setIsAnalysisModalOpen(false);
+    fetchData();
   };
 
   useEffect(() => {
@@ -251,10 +265,16 @@ const Reports = () => {
                Executive Branded Asset Inventory
             </h3>
             <div className="flex gap-3">
-               <button className="p-3 bg-slate-50 text-slate-400 hover:text-indigo-600 rounded-xl transition-all shadow-sm">
+               <button 
+                 onClick={fetchData}
+                 className="p-3 bg-slate-50 text-slate-400 hover:text-indigo-600 rounded-xl transition-all shadow-sm"
+               >
                   <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
                </button>
-               <button className="bg-slate-900 text-white px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl hover:scale-105 transition-all active:scale-95 flex items-center gap-3 italic">
+               <button 
+                 onClick={() => setIsAnalysisModalOpen(true)}
+                 className="bg-slate-900 text-white px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl hover:scale-105 transition-all active:scale-95 flex items-center gap-3 italic"
+               >
                   <Plus size={18} /> New Analysis Task
                </button>
             </div>
@@ -308,6 +328,149 @@ const Reports = () => {
            </div>
         </div>
       </div>
+      {/* New Analysis Task Modal */}
+      <AnimatePresence>
+        {isAnalysisModalOpen && (
+          <div className="fixed inset-0 z-[400] flex items-center justify-center p-6">
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setIsAnalysisModalOpen(false)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="relative bg-white w-full max-w-xl rounded-[48px] shadow-2xl p-12 overflow-hidden border border-slate-100 italic uppercase"
+            >
+              <div className="flex items-center gap-4 mb-8">
+                <div className="p-3 rounded-2xl bg-indigo-50 text-indigo-600"><FileText size={24} /></div>
+                <div>
+                  <h2 className="text-2xl font-black text-slate-900 tracking-tight">Analytical Architecture</h2>
+                  <p className="text-[10px] font-black text-slate-400 tracking-widest">Defining Strategic Performance Intervals</p>
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                <div>
+                  <label className="text-[10px] font-black text-slate-500 tracking-widest mb-2 block">Task Nomenclature</label>
+                  <input 
+                    value={analysisForm.name}
+                    onChange={(e) => setAnalysisForm({...analysisForm, name: e.target.value})}
+                    placeholder="e.g. Q3 REVENUE SECURE AUDIT"
+                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 text-xs font-black text-slate-900 placeholder:text-slate-300 focus:border-indigo-500 transition-all outline-none"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] font-black text-slate-500 tracking-widest mb-2 block">Sampling Interval</label>
+                    <select 
+                      value={analysisForm.interval}
+                      onChange={(e) => setAnalysisForm({...analysisForm, interval: e.target.value})}
+                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 text-xs font-black text-slate-900 focus:border-indigo-500 transition-all outline-none appearance-none"
+                    >
+                      <option value="HOURLY">HOURLY TELEMETRY</option>
+                      <option value="DAILY">DAILY AGGREGATE</option>
+                      <option value="WEEKLY">WEEKLY SNAPSHOT</option>
+                      <option value="MONTHLY">QUARTERLY AUDIT</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black text-slate-500 tracking-widest mb-2 block">Analysis Sector</label>
+                    <select 
+                      value={analysisForm.type}
+                      onChange={(e) => setAnalysisForm({...analysisForm, type: e.target.value})}
+                      className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 text-xs font-black text-slate-900 focus:border-indigo-500 transition-all outline-none appearance-none"
+                    >
+                      <option value="Financial">FINANCIAL INTEGRITY</option>
+                      <option value="Logistics">LOGISTICS VELOCITY</option>
+                      <option value="Governance">GOVERNANCE COMPLIANCE</option>
+                      <option value="Inventory">INVENTORY FORECAST</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-12 flex gap-4">
+                <button onClick={() => setIsAnalysisModalOpen(false)} className="flex-1 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-900 transition-all">Abort Synchronization</button>
+                <button onClick={handleSaveAnalysisTask} className="flex-1 bg-slate-900 text-white rounded-[24px] py-4 text-[10px] font-black uppercase tracking-widest shadow-xl shadow-slate-900/20 hover:scale-105 transition-all outline-none border-t border-white/10">Authorize Analysis</button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+      {/* Branded Executive Asset Viewer */}
+      <AnimatePresence>
+        {generatedAsset && (
+          <div className="fixed inset-0 z-[500] flex items-center justify-center p-6">
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setGeneratedAsset(null)}
+              className="absolute inset-0 bg-slate-900/80 backdrop-blur-xl"
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 40 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 40 }}
+              className="relative bg-white w-full max-w-2xl rounded-[64px] shadow-2xl overflow-hidden italic border border-slate-100 uppercase"
+            >
+              <div className="bg-slate-900 p-12 text-white relative">
+                 <div className="absolute top-0 right-0 p-12 opacity-10 rotate-12">
+                   <ShieldCheck size={160} />
+                 </div>
+                 <div className="relative z-10">
+                    <div className="w-16 h-16 bg-indigo-500 rounded-3xl flex items-center justify-center mb-6 shadow-2xl shadow-indigo-500/40">
+                       <FileText size={32} />
+                    </div>
+                    <h2 className="text-3xl font-black tracking-tight mb-2 leading-none">{generatedAsset.name}</h2>
+                    <p className="text-[10px] font-black text-indigo-300 tracking-[0.3em]">Branded Strategic Performance Asset</p>
+                 </div>
+              </div>
+
+              <div className="p-12 space-y-10">
+                 <div className="grid grid-cols-2 gap-10">
+                    <div>
+                       <label className="text-[10px] font-black text-slate-400 tracking-widest mb-3 block">Security Pulse (Hash)</label>
+                       <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                          <p className="text-[9px] font-black text-slate-900 break-all font-mono opacity-60 leading-relaxed">{generatedAsset.metadata.security_hash}</p>
+                       </div>
+                    </div>
+                    <div className="space-y-6">
+                       <div>
+                          <label className="text-[10px] font-black text-slate-400 tracking-widest mb-2 block">Authorized Node</label>
+                          <p className="text-sm font-black text-slate-900 italic">{generatedAsset.metadata.authorized_by}</p>
+                       </div>
+                       <div>
+                          <label className="text-[10px] font-black text-slate-400 tracking-widest mb-2 block">Generation Matrix</label>
+                          <p className="text-sm font-black text-slate-900 italic">{generatedAsset.metadata.timestamp}</p>
+                       </div>
+                    </div>
+                 </div>
+
+                 <div className="bg-orange-50/50 border border-orange-100 p-6 rounded-3xl flex items-center gap-5">
+                    <div className="w-10 h-10 bg-orange-500 text-white rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/20">
+                       <ShieldCheck size={20} />
+                    </div>
+                    <p className="text-[10px] font-black text-orange-700 leading-tight">Watermark Applied: "SPARENOVA ADMINISTRATIVE PROPERTY"</p>
+                 </div>
+
+                 <div className="flex gap-6 mt-12 pb-6">
+                    <button onClick={() => setGeneratedAsset(null)} className="flex-1 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-900 transition-all border-2 border-transparent">Discard Preview</button>
+                    <a 
+                      href={generatedAsset.url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="flex-1 bg-slate-900 text-white rounded-[28px] py-5 text-[10px] font-black uppercase tracking-widest shadow-2xl shadow-slate-900/30 hover:scale-105 transition-all flex items-center justify-center gap-3 border-t border-white/10"
+                    >
+                       <Download size={18} /> Download Secured Asset
+                    </a>
+                 </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
