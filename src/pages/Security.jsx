@@ -26,6 +26,7 @@ import {
   Fingerprint
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 
 const Security = () => {
   const [stats, setStats] = useState([]);
@@ -35,6 +36,7 @@ const Security = () => {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [adminNotes, setAdminNotes] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
+  const navigate = useNavigate();
 
   const API_BASE = 'http://localhost:8003/api/v1';
 
@@ -208,6 +210,17 @@ const Security = () => {
                               </td>
                            </tr>
                         ))}
+                        {!loading && alerts.length === 0 && (
+                           <tr>
+                              <td colSpan="4" className="py-24 text-center">
+                                 <div className="w-16 h-16 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4 border border-emerald-100 shadow-xl shadow-emerald-500/20">
+                                    <ShieldCheck size={32} />
+                                 </div>
+                                 <p className="text-[12px] font-black text-slate-900 tracking-tight uppercase italic mb-1">No Anomalies Detected</p>
+                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic opacity-60">The intelligence mesh is clear.</p>
+                              </td>
+                           </tr>
+                        )}
                      </tbody>
                   </table>
                </div>
@@ -278,9 +291,18 @@ const Security = () => {
                     <div className="p-4 rounded-[24px] bg-rose-50 text-rose-600 shadow-xl shadow-rose-500/10 border border-rose-100">
                        <ShieldAlert size={28} />
                     </div>
-                    <div>
+                    <div className="flex flex-col items-start">
                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Risk Investigation</p>
-                       <h2 className="text-2xl font-black text-slate-900 tracking-tight leading-none truncate max-w-[240px]">{selectedAlert.target}</h2>
+                       <button 
+                          onClick={() => {
+                             setIsDrawerOpen(false);
+                             if (selectedAlert.type.includes('User')) navigate(`/admin/users?id=${selectedAlert.id.replace('USR-', '')}`);
+                             else navigate(`/admin/orders?id=${selectedAlert.id}`);
+                          }}
+                          className="text-2xl font-black text-slate-900 tracking-tight leading-none text-left max-w-[240px] hover:text-rose-600 hover:underline decoration-rose-500/30 underline-offset-4 transition-all truncate"
+                       >
+                          {selectedAlert.target}
+                       </button>
                     </div>
                  </div>
                  <button onClick={() => setIsDrawerOpen(false)} className="w-12 h-12 flex items-center justify-center hover:bg-slate-50 rounded-2xl text-slate-400 transition-all">

@@ -24,7 +24,8 @@ import {
   Cpu,
   Mail,
   X,
-  ChevronDown
+  ChevronDown,
+  Plus
 } from 'lucide-react';
 import { 
   AreaChart, 
@@ -41,6 +42,7 @@ import {
   Pie
 } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 
 const SaaSManagement = () => {
   const [subscriptions, setSubscriptions] = useState([]);
@@ -49,9 +51,18 @@ const SaaSManagement = () => {
   const [tierDistribution, setTierDistribution] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState('All Subscriptions');
+  const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState(null);
   const [toast, setToast] = useState(null);
+  const navigate = useNavigate();
+
+  // Creation States
+  const [availableStores, setAvailableStores] = useState([]);
+  const [availablePlans, setAvailablePlans] = useState([]);
+  const [isCreateDrawerOpen, setIsCreateDrawerOpen] = useState(false);
+  const [newSub, setNewSub] = useState({ store_id: '', plan_id: '', duration_months: 1 });
+  const [createLoading, setCreateLoading] = useState(false);
 
   // Governance States
   const [isAdminActionOpen, setIsAdminActionOpen] = useState(false);
@@ -78,6 +89,8 @@ const SaaSManagement = () => {
         setStats(res.data.stats);
         setMrrGrowth(res.data.mrrGrowth);
         setTierDistribution(res.data.tierDistribution);
+        setAvailableStores(res.data.available_stores || []);
+        setAvailablePlans(res.data.available_plans || []);
         setPagination(res.data.pagination);
       }
     } catch (err) {
@@ -130,6 +143,23 @@ const SaaSManagement = () => {
     }
   };
 
+  const executeCreateAction = async () => {
+    try {
+      setCreateLoading(true);
+      const res = await axios.post(`${API_BASE}/admin/saas`, newSub);
+      if (res.data.success) {
+        setIsCreateDrawerOpen(false);
+        showToast('Monetization Node instantiated successfully.', 'emerald');
+        setNewSub({ store_id: '', plan_id: '', duration_months: 1 });
+        fetchData();
+      }
+    } catch (err) {
+      showToast('Node instantiation failed', 'rose');
+    } finally {
+      setCreateLoading(false);
+    }
+  };
+
   const getStatusStyles = (status) => {
     const s = status.toLowerCase();
     if (s === 'active') return 'bg-emerald-50 text-emerald-600 border-emerald-100';
@@ -163,7 +193,7 @@ const SaaSManagement = () => {
           <p className="text-slate-500 font-medium mt-1 uppercase text-[10px] tracking-widest italic opacity-60 italic">Platform SaaS Revenue & Multi-Tenant Lifecycle Infrastructure</p>
         </div>
         <div className="flex gap-2">
-           <button className="bg-slate-900 text-white px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-slate-900/20 hover:scale-105 transition-all flex items-center gap-3 italic">
+           <button onClick={() => setIsCreateDrawerOpen(true)} className="bg-slate-900 text-white px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-slate-900/20 hover:scale-105 transition-all flex items-center gap-3 italic">
               <Plus size={18} /> New Monetization Node
            </button>
         </div>
@@ -273,15 +303,13 @@ const SaaSManagement = () => {
              />
            </div>
            <div className="flex gap-2">
-              <select 
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="bg-slate-50 border-none rounded-[20px] px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500 outline-none focus:ring-4 focus:ring-indigo-500/5 transition-all italic shadow-sm"
-              >
-                 <option value="All Subscriptions">All Monetization Pulsars</option>
-                 <option value="active">Active Nodes</option>
-                 <option value="expired">Expired Hubs</option>
-              </select>
+             <button 
+                onClick={() => setIsFilterMenuOpen(true)}
+                className="bg-white border-2 border-slate-50 rounded-[20px] px-6 py-4 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:border-indigo-100 hover:text-indigo-600 transition-all italic shadow-sm"
+             >
+                <Filter size={16} /> 
+                {filterStatus === 'All Subscriptions' ? 'All SaaS Pulsars' : filterStatus + ' Hubs'}
+             </button>
            </div>
         </div>
 
@@ -313,7 +341,12 @@ const SaaSManagement = () => {
                           <Globe size={24} />
                        </div>
                        <div>
-                          <p className="text-[11px] font-black text-slate-900 uppercase italic tracking-tighter leading-none mb-2">{sub.store}</p>
+                          <button 
+                             onClick={() => navigate(`/admin/shops?id=${sub.store_id}`)}
+                             className="text-[11px] font-black text-slate-900 uppercase italic tracking-tighter leading-none mb-2 text-left hover:text-indigo-600 hover:underline decoration-indigo-500/30 underline-offset-4 transition-all block"
+                          >
+                             {sub.store}
+                          </button>
                           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic opacity-60">Verified Tenant Hub</p>
                        </div>
                     </div>
@@ -445,6 +478,135 @@ const SaaSManagement = () => {
                        {loading ? 'Dispatching Protocol...' : 'Authorize Lifecycle Decision'}
                     </button>
                     <button onClick={() => setIsAdminActionOpen(false)} className="w-full mt-6 py-4 rounded-xl text-[10px] font-black text-slate-400 hover:text-rose-500 transition-all uppercase tracking-[0.2em] italic">Discard Authorization</button>
+                 </div>
+              </motion.div>
+           </div>
+        )}
+      </AnimatePresence>
+
+      {/* Advanced Telemetry Filter Matrix */}
+      <AnimatePresence>
+        {isFilterMenuOpen && (
+          <div className="fixed inset-0 z-[200] flex justify-end bg-slate-900/40 backdrop-blur-sm">
+            <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} className="bg-white w-full max-w-sm h-full shadow-2xl flex flex-col pt-safe">
+               <div className="p-8 border-b border-slate-50 flex items-center justify-between sticky top-0 bg-white/80 backdrop-blur-xl z-20">
+                  <div className="flex items-center gap-4">
+                     <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl shadow-sm border border-indigo-100/50">
+                        <Filter size={20} />
+                     </div>
+                     <div>
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-0.5">Matrix Command</p>
+                        <h2 className="text-xl font-black text-slate-900 tracking-tight leading-none italic uppercase">SaaS Filters</h2>
+                     </div>
+                  </div>
+                  <button onClick={() => setIsFilterMenuOpen(false)} className="w-10 h-10 flex items-center justify-center hover:bg-slate-50 rounded-full text-slate-400 transition-all"><X size={20} /></button>
+               </div>
+               <div className="p-8 space-y-8 flex-1 overflow-y-auto">
+                  <div className="space-y-3">
+                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">SaaS Lifecycle Phase</p>
+                     <div className="grid grid-cols-1 gap-2">
+                       {['All Subscriptions', 'active', 'expired', 'cancelled'].map(status => (
+                         <button 
+                           key={status}
+                           onClick={() => { setFilterStatus(status); setCurrentPage(1); setIsFilterMenuOpen(false); }}
+                           className={`p-4 rounded-2xl flex items-center justify-between text-[11px] font-black uppercase tracking-widest transition-all italic border ${filterStatus === status ? 'bg-indigo-50 text-indigo-600 border-indigo-100 shadow-xl shadow-indigo-500/10' : 'bg-white text-slate-400 border-slate-100 hover:border-slate-200 hover:text-slate-600'}`}
+                         >
+                           {status === 'All Subscriptions' ? 'All SaaS Pulsars' : `${status} Lifecycle`}
+                           {filterStatus === status && <CheckCircle2 size={16} className="text-indigo-500" />}
+                         </button>
+                       ))}
+                     </div>
+                  </div>
+               </div>
+               <div className="p-8 border-t border-slate-50 bg-slate-50/50 sticky bottom-0">
+                  <button onClick={() => { setFilterStatus('All Subscriptions'); setIsFilterMenuOpen(false); }} className="w-full py-4 rounded-xl text-[10px] font-black text-slate-400 hover:text-slate-600 transition-all uppercase tracking-[0.2em]">Reset Matrix Parameters</button>
+               </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Creation Node Sidebar */}
+      <AnimatePresence>
+        {isCreateDrawerOpen && (
+           <div className="fixed inset-0 z-[200] flex justify-end bg-slate-900/40 backdrop-blur-sm">
+              <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} className="bg-white w-full max-w-lg h-full shadow-2xl overflow-y-auto flex flex-col uppercase italic">
+                 <div className="p-10 border-b border-slate-50 flex items-center justify-between sticky top-0 bg-white z-10 shadow-sm shadow-slate-100/30">
+                    <div className="flex items-center gap-5">
+                       <div className="p-4 rounded-[24px] shadow-xl bg-indigo-50 text-indigo-600 shadow-indigo-500/10">
+                          <Crown size={28} />
+                       </div>
+                       <div>
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 italic">Node Architecture</p>
+                          <h2 className="text-2xl font-black text-slate-900 tracking-tight capitalize italic">INSTANTIATE HUB</h2>
+                       </div>
+                    </div>
+                    <button onClick={() => setIsCreateDrawerOpen(false)} className="w-12 h-12 flex items-center justify-center hover:bg-slate-50 rounded-2xl text-slate-400 transition-all"><X size={28} /></button>
+                 </div>
+
+                 <div className="p-10 space-y-10 flex-1">
+                    <div className="space-y-6">
+                       <div>
+                           <label className="text-[10px] font-black text-slate-900 uppercase tracking-widest italic flex items-center gap-2 mb-3">
+                              <Globe size={14} className="text-indigo-500" /> Target Tenant Hub
+                           </label>
+                           <select 
+                              value={newSub.store_id} 
+                              onChange={e => setNewSub({...newSub, store_id: e.target.value})}
+                              className="w-full bg-slate-50 border-2 border-slate-100 rounded-[20px] px-6 py-4 text-[11px] font-black text-slate-600 outline-none focus:ring-4 focus:ring-indigo-500/5 transition-all uppercase italic shadow-sm"
+                           >
+                              <option value="">Select Isolated Tenant...</option>
+                              {availableStores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                           </select>
+                       </div>
+
+                       <div>
+                           <label className="text-[10px] font-black text-slate-900 uppercase tracking-widest italic flex items-center gap-2 mb-3">
+                              <Layers size={14} className="text-indigo-500" /> Authoritative Tier
+                           </label>
+                           <select 
+                              value={newSub.plan_id} 
+                              onChange={e => setNewSub({...newSub, plan_id: e.target.value})}
+                              className="w-full bg-slate-50 border-2 border-slate-100 rounded-[20px] px-6 py-4 text-[11px] font-black text-slate-600 outline-none focus:ring-4 focus:ring-indigo-500/5 transition-all uppercase italic shadow-sm"
+                           >
+                              <option value="">Select Subscription Framework...</option>
+                              {availablePlans.map(p => <option key={p.id} value={p.id}>{p.name} - KES {p.price}</option>)}
+                           </select>
+                       </div>
+
+                       <div>
+                           <label className="text-[10px] font-black text-slate-900 uppercase tracking-widest italic flex items-center gap-2 mb-3">
+                              <Clock size={14} className="text-indigo-500" /> Lifecycle Duration (Months)
+                           </label>
+                           <input 
+                              type="number"
+                              min="1"
+                              value={newSub.duration_months} 
+                              onChange={e => setNewSub({...newSub, duration_months: parseInt(e.target.value) || 1})}
+                              className="w-full bg-slate-50 border-2 border-slate-100 rounded-[20px] px-6 py-4 text-[11px] font-black text-slate-600 outline-none focus:ring-4 focus:ring-indigo-500/5 transition-all uppercase italic shadow-sm"
+                           />
+                       </div>
+                    </div>
+
+                    <div className="p-8 bg-indigo-50 rounded-[32px] border border-indigo-100 flex items-start gap-5">
+                       <Zap size={24} className="text-indigo-600 shrink-0 mt-1 shadow-sm" />
+                       <div>
+                          <p className="text-[12px] font-black text-indigo-900 uppercase tracking-widest mb-1.5 leading-none">Instant Authority Transfer</p>
+                          <p className="text-[10px] text-indigo-700 font-bold leading-relaxed uppercase opacity-50 italic">Executing this command immediately overrides the target tenant's base capabilities, unlocking all tools associated with the selected Authoritative Tier.</p>
+                       </div>
+                    </div>
+                 </div>
+
+                 <div className="p-10 border-t border-slate-50 bg-white sticky bottom-0">
+                    <button 
+                       onClick={executeCreateAction} 
+                       disabled={!newSub.store_id || !newSub.plan_id || createLoading} 
+                       className="w-full py-5 rounded-[24px] text-xs font-black shadow-2xl transition-all flex items-center justify-center gap-4 bg-indigo-600 text-white shadow-indigo-500/30 disabled:opacity-20 disabled:grayscale hover:scale-[1.02] active:scale-95 uppercase tracking-widest italic"
+                    >
+                       {createLoading ? <Loader2 size={18} className="animate-spin" /> : <ShieldCheck size={20} />}
+                       {createLoading ? 'Instantiating Node...' : 'Authorize Node Instantiation'}
+                    </button>
+                    <button onClick={() => setIsCreateDrawerOpen(false)} className="w-full mt-6 py-4 rounded-xl text-[10px] font-black text-slate-400 hover:text-rose-500 transition-all uppercase tracking-[0.2em] italic">Abort Instantiation</button>
                  </div>
               </motion.div>
            </div>

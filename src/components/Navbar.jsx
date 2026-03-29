@@ -10,6 +10,32 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
+const ADMIN_MODULES = [
+   { type: 'ui', title: 'Intelligence Dashboard', subtitle: 'Global System Telemetry Overview', url: '/admin' },
+   { type: 'ui', title: 'Data Analytics', subtitle: 'Platform Conversions & Sales Metrics', url: '/admin/analytics' },
+   { type: 'ui', title: 'Shop Network', subtitle: 'Business Units & Vendor Franchises', url: '/admin/shops' },
+   { type: 'ui', title: 'Service Garages', subtitle: 'On-Demand Mechanics & Hubs', url: '/admin/garages' },
+   { type: 'ui', title: 'Logistics Control', subtitle: 'Fleet Management & Deliveries', url: '/admin/logistics' },
+   { type: 'ui', title: 'User Index', subtitle: 'Customers, Drivers, and Administrators', url: '/admin/users' },
+   { type: 'ui', title: 'Payment Gateways', subtitle: 'Financial Transactions & Escrow', url: '/admin/payments' },
+   { type: 'ui', title: 'Inventory Pipeline', subtitle: 'Stock Constraints & Audits', url: '/admin/inventory' },
+   { type: 'ui', title: 'Products Hub', subtitle: 'Items & SKU Identifiers', url: '/admin/products' },
+   { type: 'ui', title: 'Order Dispatches', subtitle: 'Cart Settlements & Deliveries', url: '/admin/orders' },
+   { type: 'ui', title: 'Promotional Offers', subtitle: 'Discounts & Conversion Campaigns', url: '/admin/offers' },
+   { type: 'ui', title: 'Customer Reviews', subtitle: 'Store Verification & Ratings', url: '/admin/reviews' },
+   { type: 'ui', title: 'Dispute Mediation', subtitle: 'Conflict Resolution & Evidence', url: '/admin/disputes' },
+   { type: 'ui', title: 'Security Sentinel', subtitle: 'Fraud Deflection & Risk Scores', url: '/admin/security' },
+   { type: 'ui', title: 'SaaS Configurations', subtitle: 'Vendor Subscriptions & Billings', url: '/admin/saas' },
+   { type: 'ui', title: 'AI Insights Engine', subtitle: 'Machine Learning Predictors', url: '/admin/ai-insights' },
+   { type: 'ui', title: 'Audit Ledger', subtitle: 'Compliance Trails & Integrity Logs', url: '/admin/audit-logs' },
+   { type: 'ui', title: 'Communications', subtitle: 'Email Templates & Mass Broadcasting', url: '/admin/communications' },
+   { type: 'ui', title: 'System Logs', subtitle: 'API Health & Server Protocols', url: '/admin/system-logs' },
+   { type: 'ui', title: 'CMS Architecture', subtitle: 'Legal, Policies, & Branding Interfaces', url: '/admin/cms' },
+   { type: 'ui', title: 'Reporting Modules', subtitle: 'PDF Accounting & Export Protocols', url: '/admin/reports' },
+   { type: 'ui', title: 'Platform Settings', subtitle: 'Institutional App Overrides', url: '/admin/settings' },
+   { type: 'ui', title: 'Vendor Onboarding', subtitle: 'Register Partner Terminal', url: '/admin/register-partner' }
+];
+
 const Navbar = () => {
   const navigate = useNavigate();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -58,7 +84,13 @@ const Navbar = () => {
      const delayDebounceFn = setTimeout(() => {
       axios.get(`${API_BASE}/admin/search?q=${searchQuery}`)
         .then(res => {
-           if (res.data.success) setSearchResults(res.data.data);
+           if (res.data.success) {
+              const matchedUI = ADMIN_MODULES.filter(m => 
+                 m.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                 m.subtitle.toLowerCase().includes(searchQuery.toLowerCase())
+              );
+              setSearchResults([...matchedUI, ...res.data.data].slice(0, 8));
+           }
         })
         .finally(() => setIsSearching(false));
     }, 500);
@@ -112,6 +144,7 @@ const Navbar = () => {
                    {searchResults.length > 0 ? searchResults.map((item, i) => {
                      let Icon = Activity;
                      let color = 'blue';
+                     if (item.type === 'ui') { Icon = Activity; color = 'rose'; }
                      if (item.type === 'user') { Icon = User; color = 'indigo'; }
                      if (item.type === 'product') { Icon = Layers; color = 'emerald'; }
                      if (item.type === 'vendor') { Icon = Target; color = 'orange'; }

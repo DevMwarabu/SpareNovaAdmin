@@ -31,6 +31,7 @@ const AuditLogs = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const API_BASE = 'http://localhost:8003/api/v1';
 
@@ -38,7 +39,7 @@ const AuditLogs = () => {
     try {
       setLoading(true);
       const res = await axios.get(`${API_BASE}/admin/audit-logs`, {
-        params: { model_type: filterType, page: currentPage, per_page: 15 }
+        params: { model_type: filterType, page: currentPage, per_page: 15, q: searchQuery }
       });
       if (res.data.success) {
         setLogs(res.data.data);
@@ -53,8 +54,24 @@ const AuditLogs = () => {
   };
 
   useEffect(() => {
-    fetchData();
-  }, [filterType, currentPage]);
+    const delayDebounceFn = setTimeout(() => {
+      fetchData();
+    }, 400);
+    return () => clearTimeout(delayDebounceFn);
+  }, [filterType, currentPage, searchQuery]);
+
+  const downloadCSV = () => {
+    if (logs.length === 0) return;
+    const headers = "Audit_ID,Action_Type,Infrastructure_Target,Network_IP,Admin_Agent,Timestamp\n";
+    const mappedRows = logs.map(l => `${l.id},${l.action},${l.model}-${l.model_id},${l.ip},"${l.user}","${l.date}"`).join("\n");
+    const blob = new Blob([headers + mappedRows], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Governance_Ledger_Snapshot_${new Date().getTime()}.csv`;
+    link.click();
+    window.URL.revokeObjectURL(url);
+  };
 
   const getActionColor = (action) => {
     const a = action.toLowerCase();
@@ -149,19 +166,36 @@ const AuditLogs = () => {
       </div>
 
       <div className="bg-white rounded-[48px] border border-slate-100 shadow-sm overflow-hidden shadow-slate-200/50">
-        <div className="p-8 border-b border-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="flex flex-wrap gap-2">
-              {['All Types', 'Product', 'Promotion', 'Shop', 'Garage', 'Payment', 'Order'].map(t => (
-                <button 
-                  key={t}
-                  onClick={() => setFilterType(t)}
-                  className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${filterType === t ? 'bg-slate-900 text-white shadow-xl shadow-slate-900/20' : 'bg-slate-50 text-slate-400 hover:text-slate-600'}`}
-                >
-                  {t}
-                </button>
-              ))}
+        <div className="p-8 border-b border-slate-50 flex flex-col xl:flex-row xl:items-center justify-between gap-6">
+            <div className="flex flex-col gap-5">
+              <div className="flex items-center gap-3">
+                 <div className="relative">
+                    <Search size={16} className="text-slate-400 absolute ml-5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input 
+                       type="text" 
+                       placeholder="Scan Audit Memory by Admin, Action, or IP..."
+                       value={searchQuery}
+                       onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                       className="w-full md:w-[360px] bg-slate-50 border-none rounded-[24px] pl-14 pr-6 py-4 text-xs font-black placeholder:text-slate-300 outline-none focus:ring-4 focus:ring-slate-900/5 transition-all uppercase tracking-widest italic"
+                    />
+                 </div>
+                 <button onClick={downloadCSV} className="p-4 bg-emerald-50 text-emerald-600 rounded-[20px] shadow-sm hover:scale-105 hover:bg-emerald-100 active:scale-95 transition-all flex items-center justify-center border border-emerald-100/50 group" title="Export Ledger to CSV">
+                    <Database size={18} className="group-hover:animate-pulse" />
+                 </button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {['All Types', 'Product', 'Promotion', 'Shop', 'Garage', 'Payment', 'Order', 'Policy', 'User'].map(t => (
+                  <button 
+                    key={t}
+                    onClick={() => { setFilterType(t); setCurrentPage(1); }}
+                    className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${filterType === t ? 'bg-slate-900 text-white shadow-xl shadow-slate-900/20' : 'bg-slate-50 text-slate-400 hover:text-slate-600'}`}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 self-start xl:self-center">
                <div className="p-2.5 rounded-xl bg-blue-50 text-blue-600 shadow-sm">
                   <ShieldCheck size={18} />
                </div>

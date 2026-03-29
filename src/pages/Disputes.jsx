@@ -188,66 +188,76 @@ const Disputes = () => {
                className="w-full bg-slate-50 border-none rounded-[24px] pl-14 pr-6 py-4 text-xs font-black placeholder:text-slate-300 outline-none focus:ring-4 focus:ring-rose-500/5 transition-all uppercase tracking-widest italic"
              />
            </div>
-           <div className="flex gap-2 relative">
+           <div className="flex gap-2">
              <button 
-               onClick={() => setShowAdvancedFilter(!showAdvancedFilter)}
-               className={`p-3 rounded-xl transition-all border-2 flex items-center gap-2 ${showAdvancedFilter || filterStatus !== 'All Disputes' ? 'bg-rose-50 border-rose-500 text-rose-600 shadow-xl shadow-rose-500/20' : 'bg-white border-slate-100 text-slate-400 hover:border-slate-200'}`}
+               onClick={() => setShowAdvancedFilter(true)}
+               className={`p-3 rounded-[20px] transition-all border-2 flex items-center gap-2 ${filterStatus !== 'All Disputes' ? 'bg-rose-50 border-rose-500 text-rose-600 shadow-xl shadow-rose-500/20' : 'bg-white border-slate-100 text-slate-400 hover:border-slate-200'}`}
              >
                <Filter size={18} />
                {(filterStatus !== 'All Disputes') && (
                   <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
                )}
              </button>
-             <AnimatePresence>
-               {showAdvancedFilter && (
-                  <motion.div 
-                    initial={{ opacity: 0, y: 15, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 15, scale: 0.95 }}
-                    className="absolute top-full right-0 mt-4 w-80 bg-white rounded-[32px] shadow-2xl shadow-slate-900/10 border border-slate-100 p-6 z-50 origin-top-right text-left"
-                  >
-                     <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-50">
-                        <div>
-                           <p className="text-[12px] font-black text-slate-900 uppercase italic tracking-tight">Mitigation Matrix</p>
-                           <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Granular Telemetry Filter</p>
-                        </div>
-                        <button onClick={() => setShowAdvancedFilter(false)} className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors">
-                           <XCircle size={14} />
-                        </button>
-                     </div>
-                     
-                     <div className="space-y-5">
-                       <div>
-                          <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 block mb-3 pl-1">Protocol State</label>
-                          <div className="grid grid-cols-2 gap-2">
-                             {[
-                               { l: 'All Protocols', v: 'All Disputes' }, 
-                               { l: 'Pending', v: 'pending' }, 
-                               { l: 'Active Analysis', v: 'under_review' }, 
-                               { l: 'Resolved', v: 'resolved' }, 
-                               { l: 'Rejected', v: 'rejected' }
-                             ].map(state => (
-                                <button 
-                                  key={state.v}
-                                  onClick={() => setFilterStatus(state.v)}
-                                  className={`py-3 px-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${filterStatus === state.v ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/30' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}`}
-                                >
-                                  {state.l}
-                                </button>
-                             ))}
-                          </div>
-                       </div>
-                     </div>
-                     
-                     <div className="mt-8 flex gap-3">
-                        <button onClick={() => { setFilterStatus('All Disputes'); setShowAdvancedFilter(false); }} className="flex-1 py-3.5 rounded-2xl bg-slate-50 text-slate-500 text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 transition-colors">Reset</button>
-                        <button onClick={() => setShowAdvancedFilter(false)} className="flex-[2] py-3.5 rounded-2xl bg-slate-900 text-white shadow-xl shadow-slate-900/20 text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-colors">Apply Matrix</button>
-                     </div>
-                  </motion.div>
-               )}
-             </AnimatePresence>
            </div>
         </div>
+
+      <AnimatePresence>
+        {showAdvancedFilter && (
+           <div className="fixed inset-0 z-[300] flex justify-end bg-slate-900/40 backdrop-blur-sm">
+              <motion.div 
+                initial={{ x: '100%' }}
+                animate={{ x: 0 }}
+                exit={{ x: '100%' }}
+                className="bg-white w-full max-w-sm h-full shadow-2xl p-10 flex flex-col uppercase italic"
+              >
+                 <div className="flex items-center justify-between mb-10 pb-6 border-b border-slate-50">
+                    <div>
+                       <p className="text-[14px] font-black text-slate-900 uppercase italic tracking-tight">Mitigation Matrix</p>
+                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Granular Telemetry Filter</p>
+                    </div>
+                    <button onClick={() => setShowAdvancedFilter(false)} className="w-10 h-10 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-rose-600 transition-colors">
+                       <X size={18} />
+                    </button>
+                 </div>
+                 
+                 <div className="space-y-8 flex-1">
+                   <div>
+                      <label className="text-[11px] font-black uppercase tracking-widest text-slate-400 block mb-4 flex items-center gap-2">
+                         <Filter size={14} /> Protocol State
+                      </label>
+                      <div className="flex flex-col gap-3">
+                         {[
+                           { l: 'All Protocols', v: 'All Disputes' }, 
+                           { l: 'Pending', v: 'pending' }, 
+                           { l: 'Active Analysis', v: 'under_review' }, 
+                           { l: 'Resolved', v: 'resolved' }, 
+                           { l: 'Rejected', v: 'rejected' }
+                         ].map(state => (
+                            <button 
+                              key={state.v}
+                              onClick={() => setFilterStatus(state.v)}
+                              className={`py-5 px-6 rounded-[24px] text-[11px] font-black uppercase tracking-widest transition-all w-full text-left flex items-center justify-between ${filterStatus === state.v ? 'bg-rose-500 text-white shadow-xl shadow-rose-500/30 border border-rose-400/50' : 'bg-slate-50 text-slate-500 hover:bg-slate-100 border border-slate-100'}`}
+                            >
+                              {state.l}
+                              {filterStatus === state.v && <div className="w-2 h-2 rounded-full bg-white animate-pulse" />}
+                            </button>
+                         ))}
+                      </div>
+                   </div>
+                 </div>
+                 
+                 <div className="mt-auto pt-6 border-t border-slate-50 flex flex-col gap-4">
+                    <button onClick={() => setShowAdvancedFilter(false)} className="w-full py-5 rounded-[24px] bg-slate-900 text-white shadow-2xl shadow-slate-900/20 text-[11px] font-black uppercase tracking-[0.2em] hover:bg-slate-800 transition-all active:scale-95 flex items-center justify-center gap-3">
+                       <CheckCircle2 size={18} /> Apply Matrix
+                    </button>
+                    <button onClick={() => { setFilterStatus('All Disputes'); setShowAdvancedFilter(false); }} className="w-full py-4 rounded-[24px] bg-slate-50 text-slate-500 text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 transition-colors">
+                       Reset Telemetry
+                    </button>
+                 </div>
+              </motion.div>
+           </div>
+        )}
+      </AnimatePresence>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
