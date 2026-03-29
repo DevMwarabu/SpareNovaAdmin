@@ -27,6 +27,7 @@ import {
   Image as ImageIcon,
   ExternalLink
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const Disputes = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -38,6 +39,8 @@ const Disputes = () => {
   const [pagination, setPagination] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
   const [toast, setToast] = useState(null);
+  const [showAdvancedFilter, setShowAdvancedFilter] = useState(false);
+  const navigate = useNavigate();
 
   // Governance States
   const [isAdminActionOpen, setIsAdminActionOpen] = useState(false);
@@ -185,18 +188,64 @@ const Disputes = () => {
                className="w-full bg-slate-50 border-none rounded-[24px] pl-14 pr-6 py-4 text-xs font-black placeholder:text-slate-300 outline-none focus:ring-4 focus:ring-rose-500/5 transition-all uppercase tracking-widest italic"
              />
            </div>
-           <div className="flex gap-2">
-              <select 
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="bg-slate-50 border-none rounded-[20px] px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-500 outline-none focus:ring-4 focus:ring-rose-500/5 transition-all italic shadow-sm"
-              >
-                 <option value="All Disputes">All Case Protocols</option>
-                 <option value="pending">Awaiting Mediation</option>
-                 <option value="under_review">Active Analysis</option>
-                 <option value="resolved">Resolved Hubs</option>
-                 <option value="rejected">Rejected Claims</option>
-              </select>
+           <div className="flex gap-2 relative">
+             <button 
+               onClick={() => setShowAdvancedFilter(!showAdvancedFilter)}
+               className={`p-3 rounded-xl transition-all border-2 flex items-center gap-2 ${showAdvancedFilter || filterStatus !== 'All Disputes' ? 'bg-rose-50 border-rose-500 text-rose-600 shadow-xl shadow-rose-500/20' : 'bg-white border-slate-100 text-slate-400 hover:border-slate-200'}`}
+             >
+               <Filter size={18} />
+               {(filterStatus !== 'All Disputes') && (
+                  <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
+               )}
+             </button>
+             <AnimatePresence>
+               {showAdvancedFilter && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 15, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 15, scale: 0.95 }}
+                    className="absolute top-full right-0 mt-4 w-80 bg-white rounded-[32px] shadow-2xl shadow-slate-900/10 border border-slate-100 p-6 z-50 origin-top-right text-left"
+                  >
+                     <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-50">
+                        <div>
+                           <p className="text-[12px] font-black text-slate-900 uppercase italic tracking-tight">Mitigation Matrix</p>
+                           <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Granular Telemetry Filter</p>
+                        </div>
+                        <button onClick={() => setShowAdvancedFilter(false)} className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors">
+                           <XCircle size={14} />
+                        </button>
+                     </div>
+                     
+                     <div className="space-y-5">
+                       <div>
+                          <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 block mb-3 pl-1">Protocol State</label>
+                          <div className="grid grid-cols-2 gap-2">
+                             {[
+                               { l: 'All Protocols', v: 'All Disputes' }, 
+                               { l: 'Pending', v: 'pending' }, 
+                               { l: 'Active Analysis', v: 'under_review' }, 
+                               { l: 'Resolved', v: 'resolved' }, 
+                               { l: 'Rejected', v: 'rejected' }
+                             ].map(state => (
+                                <button 
+                                  key={state.v}
+                                  onClick={() => setFilterStatus(state.v)}
+                                  className={`py-3 px-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${filterStatus === state.v ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/30' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}`}
+                                >
+                                  {state.l}
+                                </button>
+                             ))}
+                          </div>
+                       </div>
+                     </div>
+                     
+                     <div className="mt-8 flex gap-3">
+                        <button onClick={() => { setFilterStatus('All Disputes'); setShowAdvancedFilter(false); }} className="flex-1 py-3.5 rounded-2xl bg-slate-50 text-slate-500 text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 transition-colors">Reset</button>
+                        <button onClick={() => setShowAdvancedFilter(false)} className="flex-[2] py-3.5 rounded-2xl bg-slate-900 text-white shadow-xl shadow-slate-900/20 text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-colors">Apply Matrix</button>
+                     </div>
+                  </motion.div>
+               )}
+             </AnimatePresence>
            </div>
         </div>
 
@@ -232,20 +281,22 @@ const Disputes = () => {
                        </div>
                     </td>
                     <td className="px-10 py-6">
-                       <div className="flex flex-col">
-                          <span className="text-[11px] font-black text-slate-900 italic tracking-tighter leading-none mb-1 uppercase">ORDER #{d.order_number}</span>
+                       <div className="flex flex-col items-start">
+                          <button onClick={(e) => { e.stopPropagation(); navigate(`/admin/orders?id=${d.order_id}`); }} className="text-[11px] font-black text-slate-900 italic tracking-tighter leading-none mb-1 uppercase hover:text-rose-600 transition-colors decoration-rose-500/30 hover:underline underline-offset-4 cursor-pointer text-left">
+                             ORDER #{d.order_number}
+                          </button>
                           <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic leading-none">{d.date}</span>
                           <span className="text-[9px] font-black text-rose-500 uppercase tracking-widest mt-2 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-100/50 w-fit">{d.reason}</span>
                        </div>
                     </td>
                     <td className="px-10 py-6">
-                       <div className="flex flex-col gap-1.5">
-                          <div className="flex items-center gap-1.5 text-[11px] font-black text-slate-700 italic">
+                       <div className="flex flex-col gap-1.5 items-start">
+                          <button onClick={(e) => { e.stopPropagation(); navigate(`/admin/users?id=${d.customer_id}`); }} className="flex items-center gap-1.5 text-[11px] font-black text-slate-700 italic hover:text-primary-600 transition-colors decoration-primary-500/30 hover:underline underline-offset-4 cursor-pointer">
                              <User size={12} className="text-primary-400" /> {d.customer}
-                          </div>
-                          <div className="flex items-center gap-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest opacity-60">
+                          </button>
+                          <button onClick={(e) => { e.stopPropagation(); navigate(`/admin/shops/${d.store_id}`); }} className="flex items-center gap-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest opacity-60 hover:opacity-100 hover:text-secondary-600 transition-all cursor-pointer">
                              <Store size={12} className="text-secondary-400" /> {d.store}
-                          </div>
+                          </button>
                        </div>
                     </td>
                     <td className="px-10 py-6">
