@@ -13,6 +13,8 @@ import {
   ShoppingBag,
   Flag
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 
 const Reviews = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -22,6 +24,8 @@ const Reviews = () => {
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState(null);
+  const [showAdvancedFilter, setShowAdvancedFilter] = useState(false);
+  const navigate = useNavigate();
 
   const API_BASE = 'http://localhost:8003/api/v1';
 
@@ -112,18 +116,57 @@ const Reviews = () => {
                className="w-full bg-slate-50 border-none rounded-2xl pl-12 pr-4 py-3 text-sm font-bold placeholder:text-slate-300 outline-none focus:ring-2 focus:ring-amber-500/10 transition-all"
              />
            </div>
-           <div className="flex gap-2">
-             <button className="p-3 bg-slate-50 text-slate-400 hover:text-slate-600 rounded-xl transition-colors"><Filter size={18} /></button>
-             <select 
-               value={filterStatus}
-               onChange={(e) => setFilterStatus(e.target.value)}
-               className="bg-slate-50 border-none rounded-xl px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-500 outline-none"
+           <div className="flex gap-2 relative">
+             <button 
+               onClick={() => setShowAdvancedFilter(!showAdvancedFilter)}
+               className={`p-3 rounded-xl transition-all border-2 flex items-center gap-2 ${showAdvancedFilter || filterStatus !== 'All Status' ? 'bg-amber-50 border-amber-500 text-amber-600 shadow-xl shadow-amber-500/20' : 'bg-white border-slate-100 text-slate-400 hover:border-slate-200'}`}
              >
-                <option value="All Status">All Status</option>
-                <option value="pending">Pending</option>
-                <option value="approved">Approved</option>
-                <option value="rejected">Rejected</option>
-             </select>
+               <Filter size={18} />
+               {(filterStatus !== 'All Status') && (
+                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+               )}
+             </button>
+             <AnimatePresence>
+               {showAdvancedFilter && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 15, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 15, scale: 0.95 }}
+                    className="absolute top-full right-0 mt-4 w-80 bg-white rounded-[32px] shadow-2xl shadow-slate-900/10 border border-slate-100 p-6 z-50 origin-top-right"
+                  >
+                     <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-50">
+                        <div>
+                           <p className="text-[12px] font-black text-slate-900 uppercase italic tracking-tight">Intelligence Matrix</p>
+                        </div>
+                        <button onClick={() => setShowAdvancedFilter(false)} className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors">
+                           <XCircle size={14} />
+                        </button>
+                     </div>
+                     
+                     <div className="space-y-5">
+                       <div>
+                          <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 block mb-3 pl-1">Moderation State</label>
+                          <div className="grid grid-cols-2 gap-2">
+                             {['All Status', 'Pending', 'Approved', 'Rejected'].map(state => (
+                                <button 
+                                  key={state}
+                                  onClick={() => setFilterStatus(state === 'All Status' ? 'All Status' : state.toLowerCase())}
+                                  className={`py-3 px-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${filterStatus === (state === 'All Status' ? 'All Status' : state.toLowerCase()) ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/30' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}`}
+                                >
+                                  {state}
+                                </button>
+                             ))}
+                          </div>
+                       </div>
+                     </div>
+                     
+                     <div className="mt-8 flex gap-3">
+                        <button onClick={() => { setFilterStatus('All Status'); setShowAdvancedFilter(false); }} className="flex-1 py-3.5 rounded-2xl bg-slate-50 text-slate-500 text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 transition-colors">Reset</button>
+                        <button onClick={() => setShowAdvancedFilter(false)} className="flex-[2] py-3.5 rounded-2xl bg-slate-900 text-white shadow-xl shadow-slate-900/20 text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-colors">Apply Matrix</button>
+                     </div>
+                  </motion.div>
+               )}
+             </AnimatePresence>
            </div>
         </div>
 
@@ -163,8 +206,10 @@ const Reviews = () => {
                     </div>
                   </td>
                   <td className="px-8 py-5">
-                    <div className="flex flex-col gap-1">
-                       <span className="text-xs font-bold text-slate-700 truncate max-w-[150px]">{r.product}</span>
+                    <div className="flex flex-col gap-1 items-start">
+                       <button onClick={() => r.product_id ? navigate(`/admin/products/${r.product_id}`) : null} className={`text-xs font-bold text-slate-700 transition-colors text-left truncate max-w-[150px] ${r.product_id ? 'hover:text-amber-600 decoration-amber-500/30 hover:underline underline-offset-4 cursor-pointer' : 'cursor-default'}`}>
+                          {r.product}
+                       </button>
                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{r.store}</span>
                     </div>
                   </td>

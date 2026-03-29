@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -19,6 +20,13 @@ const Navbar = () => {
 
   const dropdownRef = useRef(null);
 
+  const [notifications, setNotifications] = useState([]);
+  const [messages, setMessages] = useState([]);
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+
+  const API_BASE = 'http://localhost:8003/api/v1';
+
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -28,8 +36,34 @@ const Navbar = () => {
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
+    
+    axios.get(`${API_BASE}/dashboard/alerts`)
+      .then(res => {
+         if (res.data.success) {
+            setNotifications(res.data.notifications);
+            setMessages(res.data.messages);
+         }
+      })
+      .catch(err => console.error(err));
+      
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+     if (!searchQuery || searchQuery.length < 2) {
+         setSearchResults([]);
+         return;
+     }
+     setIsSearching(true);
+     const delayDebounceFn = setTimeout(() => {
+      axios.get(`${API_BASE}/admin/search?q=${searchQuery}`)
+        .then(res => {
+           if (res.data.success) setSearchResults(res.data.data);
+        })
+        .finally(() => setIsSearching(false));
+    }, 500);
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery]);
 
   const user = JSON.parse(localStorage.getItem('user') || '{"name": "Demo Admin", "role": "Institutional Overseer"}');
 
@@ -38,16 +72,14 @@ const Navbar = () => {
     window.location.href = '/register';
   };
 
-  const notifications = [
-    { title: 'New Vendor Application', time: '2m ago', type: 'info', icon: ExternalLink, color: 'blue' },
-    { title: 'Payout Processed', time: '1h ago', type: 'success', icon: CheckCircle2, color: 'emerald' },
-    { title: 'Security Alert: New IP', time: '3h ago', type: 'warning', icon: AlertCircle, color: 'orange' },
-  ];
-
-  const messages = [
-    { from: 'Autospare Center', text: 'Stock units update pending...', time: '5m ago' },
-    { from: 'Garage Pro', text: 'Verification docs uploaded', time: '12m ago' },
-  ];
+  const getNoteStyles = (type) => {
+     switch(type) {
+       case 'success': return { i: CheckCircle2, c: 'emerald' };
+       case 'warning': return { i: AlertCircle, c: 'orange' };
+       case 'error': return { i: XCircle, c: 'red' };
+       default: return { i: Activity, c: 'blue' };
+     }
+  };
 
   return (
     <header className="h-20 bg-white/90 backdrop-blur-xl border-b border-slate-100 flex items-center justify-between px-10 sticky top-0 z-[100] shadow-sm shadow-slate-200/20 italic uppercase">
@@ -73,26 +105,33 @@ const Navbar = () => {
                 className="absolute top-full left-0 right-0 mt-4 bg-white rounded-[40px] shadow-2xl border border-slate-100 p-8 z-50 overflow-hidden"
               >
                 <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-50">
-                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Instant Telemetry</p>
+                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">{isSearching ? 'Scanning global index...' : 'Live Search Results'}</p>
                    <button onClick={() => setIsSearchFocused(false)} className="p-2 hover:bg-slate-50 rounded-xl transition-all"><X size={16} className="text-slate-300" /></button>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                   {[
-                     { l: 'Network Performance', i: Activity, c: 'blue' },
-                     { l: 'Vendor Scalability', i: Target, i: Layers, c: 'orange' },
-                     { l: 'Inventory Flux', i: Target, c: 'emerald' },
-                     { l: 'Security Perimeter', i: ShieldCheck, c: 'indigo' }
-                   ].map((item, i) => (
-                     <button key={i} className="flex items-center gap-4 p-5 rounded-[28px] hover:bg-slate-50 transition-all group text-left border border-transparent hover:border-slate-100 italic uppercase">
-                        <div className={`w-10 h-10 rounded-2xl bg-${item.c}-50 text-${item.c}-600 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform`}>
-                           <item.i size={20} />
+                   {searchResults.length > 0 ? searchResults.map((item, i) => {
+                     let Icon = Activity;
+                     let color = 'blue';
+                     if (item.type === 'user') { Icon = User; color = 'indigo'; }
+                     if (item.type === 'product') { Icon = Layers; color = 'emerald'; }
+                     if (item.type === 'vendor') { Icon = Target; color = 'orange'; }
+                     if (item.type === 'order') { Icon = ShieldCheck; color = 'purple'; }
+                     
+                     return (
+                     <button key={i} onClick={() => { setIsSearchFocused(false); navigate(item.url); }} className="flex items-center gap-4 p-5 rounded-[28px] hover:bg-slate-50 transition-all group text-left border border-transparent hover:border-slate-100 italic uppercase">
+                        <div className={`w-10 h-10 rounded-2xl bg-${color}-50 text-${color}-600 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform`}>
+                           <Icon size={20} />
                         </div>
                         <div>
-                           <p className="text-[11px] font-black text-slate-900 leading-tight mb-1">{item.l}</p>
-                           <p className="text-[8px] font-black text-slate-400 tracking-widest italic opacity-60">Strategic Protocol Access</p>
+                           <p className="text-[11px] font-black text-slate-900 leading-tight mb-1">{item.title}</p>
+                           <p className="text-[8px] font-black text-slate-400 tracking-widest italic opacity-60 line-clamp-1">{item.subtitle}</p>
                         </div>
                      </button>
-                   ))}
+                    )}) : (
+                      <div className="col-span-2 text-center py-6 text-[10px] font-black tracking-widest uppercase text-slate-400 italic">
+                         {isSearching ? 'Scanning...' : (searchQuery.length >= 2 ? 'No telemetry found.' : 'Awaiting input...')}
+                      </div>
+                    )}
                 </div>
               </motion.div>
             )}
@@ -108,7 +147,7 @@ const Navbar = () => {
             className={`p-3.5 rounded-2xl transition-all relative group ${isMessagesOpen ? 'bg-orange-50 text-orange-600 shadow-xl shadow-orange-500/10' : 'text-slate-500 hover:bg-slate-50'}`}
           >
             <MessageSquare size={22} className="group-hover:rotate-12 transition-transform" />
-            <span className="absolute top-3 right-3 w-2.5 h-2.5 bg-orange-500 rounded-full border-2 border-white animate-pulse shadow-sm"></span>
+            <span className={`absolute top-3 right-3 w-2.5 h-2.5 bg-orange-500 rounded-full border-2 border-white shadow-sm ${messages.length > 0 ? 'animate-pulse' : 'hidden'}`}></span>
           </button>
           
           <AnimatePresence>
@@ -121,20 +160,23 @@ const Navbar = () => {
               >
                 <div className="p-8 bg-orange-50/50 border-b border-orange-100 flex items-center justify-between">
                   <p className="text-[11px] font-black text-orange-900 uppercase tracking-widest italic flex items-center gap-2"><Zap size={14} /> Partner Pulse</p>
-                  <span className="text-[9px] font-black text-white bg-orange-600 px-3 py-1 rounded-full shadow-lg shadow-orange-500/20">2 ACTIVE STREAM</span>
+                  <span className="text-[9px] font-black text-white bg-orange-600 px-3 py-1 rounded-full shadow-lg shadow-orange-500/20">{messages.length} ACTIVE</span>
                 </div>
                 <div className="max-h-[350px] overflow-y-auto">
                   {messages.map((msg, i) => (
-                    <button key={i} className="w-full px-8 py-6 border-b border-slate-50 hover:bg-slate-50/80 transition-all text-left group">
+                    <button key={i} onClick={() => { setIsMessagesOpen(false); navigate('/admin/disputes'); }} className="w-full px-8 py-6 border-b border-slate-50 hover:bg-slate-50/80 transition-all text-left group">
                       <div className="flex items-center justify-between mb-2">
-                        <p className="text-[12px] font-black text-slate-900 uppercase italic group-hover:text-orange-600 transition-colors tracking-tight">{msg.from}</p>
-                        <span className="text-[9px] font-bold text-slate-400 italic">{msg.time}</span>
+                        <p className="text-[12px] font-black text-slate-900 uppercase italic group-hover:text-orange-600 transition-colors tracking-tight line-clamp-1 pr-2">{msg.from}</p>
+                        <span className="text-[9px] font-bold text-slate-400 italic shrink-0">{msg.time}</span>
                       </div>
                       <p className="text-[10px] text-slate-500 font-black leading-relaxed italic opacity-70 line-clamp-2 uppercase tracking-wide">{msg.text}</p>
                     </button>
                   ))}
+                  {messages.length === 0 && (
+                     <div className="px-8 py-10 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest italic">All Support Channels Cleared</div>
+                  )}
                 </div>
-                <button className="w-full py-6 text-[10px] font-black text-orange-600 hover:bg-orange-50 transition-colors uppercase tracking-[0.2em] italic border-t border-orange-50">Operational Log Access</button>
+                <button onClick={() => navigate('/admin/disputes')} className="w-full py-6 text-[10px] font-black text-orange-600 hover:bg-orange-50 transition-colors uppercase tracking-[0.2em] italic border-t border-orange-50">Operational Log Access</button>
               </motion.div>
             )}
           </AnimatePresence>
@@ -147,7 +189,7 @@ const Navbar = () => {
             className={`p-3.5 rounded-2xl transition-all relative group ${isNotificationsOpen ? 'bg-indigo-50 text-indigo-600 shadow-xl shadow-indigo-500/10' : 'text-slate-500 hover:bg-slate-50'}`}
           >
             <Bell size={22} className="group-hover:rotate-[-12deg] transition-transform" />
-            <span className="absolute top-3 right-3 w-2.5 h-2.5 bg-indigo-500 rounded-full border-2 border-white shadow-sm"></span>
+            <span className={`absolute top-3 right-3 w-2.5 h-2.5 bg-indigo-500 rounded-full border-2 border-white shadow-sm ${notifications.length > 0 ? 'animate-pulse' : 'hidden'}`}></span>
           </button>
 
           <AnimatePresence>
@@ -163,19 +205,25 @@ const Navbar = () => {
                   <button className="text-[9px] font-black text-indigo-400 hover:text-indigo-600 transition-colors uppercase italic border-b border-indigo-200">System Ack</button>
                 </div>
                 <div className="max-h-[350px] overflow-y-auto">
-                  {notifications.map((note, i) => (
+                  {notifications.map((note, i) => {
+                    const style = getNoteStyles(note.type);
+                    const Icon = style.i;
+                    return (
                     <button key={i} className="w-full px-8 py-6 border-b border-slate-50 hover:bg-slate-50/80 transition-all text-left flex items-start gap-5 group">
-                      <div className={`w-10 h-10 rounded-2xl bg-${note.color}-50 text-${note.color}-600 flex items-center justify-center shrink-0 shadow-inner group-hover:scale-110 transition-transform`}>
-                         <note.icon size={18} />
+                      <div className={`w-10 h-10 rounded-2xl bg-${style.c}-50 text-${style.c}-600 flex items-center justify-center shrink-0 shadow-inner group-hover:scale-110 transition-transform`}>
+                         <Icon size={18} />
                       </div>
                       <div className="flex-1">
-                        <p className="text-[12px] font-black text-slate-800 uppercase italic leading-tight mb-2 tracking-tight">{note.title}</p>
+                        <p className="text-[12px] font-black text-slate-800 uppercase italic leading-tight mb-2 tracking-tight line-clamp-1">{note.title}</p>
                         <p className="text-[9px] text-slate-400 font-extrabold uppercase tracking-widest italic flex items-center gap-2 opacity-60">
                            <Clock size={12} /> {note.time}
                         </p>
                       </div>
                     </button>
-                  ))}
+                  )})}
+                  {notifications.length === 0 && (
+                     <div className="px-8 py-10 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest italic">No System Broadcasts</div>
+                  )}
                 </div>
                 <button className="w-full py-6 text-[10px] font-black text-slate-400 hover:bg-slate-50 transition-colors uppercase tracking-[0.2em] italic font-bold">Clear Protocol Cache</button>
               </motion.div>

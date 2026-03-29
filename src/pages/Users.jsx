@@ -17,7 +17,8 @@ import {
   Store,
   Star,
   DollarSign,
-  X
+  X,
+  AlertTriangle
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 
@@ -35,6 +36,7 @@ const Users = () => {
   // Drawer State
   const [selectedUser, setSelectedUser] = useState(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [suspendModalUser, setSuspendModalUser] = useState(null);
 
   const API_BASE = 'http://localhost:8003/api/v1';
 
@@ -249,13 +251,24 @@ const Users = () => {
                     <div className="flex items-center justify-end gap-2 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
                       <select 
                         value={u.status.toLowerCase()} 
-                        onChange={(e) => handleStatusUpdate(u.id, e.target.value)}
+                        onChange={(e) => {
+                          if (e.target.value === 'suspended' && u.status.toLowerCase() !== 'suspended') {
+                             setSuspendModalUser(u);
+                          } else {
+                             handleStatusUpdate(u.id, e.target.value);
+                          }
+                        }}
                         className="opacity-0 group-hover:opacity-100 bg-white border border-slate-200 rounded-lg px-2 py-1 text-[10px] font-bold text-slate-500 outline-none transition-all cursor-pointer hover:border-primary-300 focus:border-primary-500"
                       >
                          <option value="active">Active</option>
                          <option value="suspended">Suspend User</option>
                       </select>
-                      <button className="p-2 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-all"><Mail size={18} /></button>
+                      <button 
+                        onClick={() => window.location.href = `mailto:${u.email}`}
+                        className="p-2 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-all"
+                      >
+                        <Mail size={18} />
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -405,6 +418,59 @@ const Users = () => {
                     </div>
                   </div>
                </div>
+             </motion.div>
+           </>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {suspendModalUser && (
+           <>
+             {/* Modal Backdrop */}
+             <motion.div 
+               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+               className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
+             >
+               {/* Modal Card */}
+               <motion.div 
+                 initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                 className="bg-white rounded-[32px] w-full max-w-md p-8 shadow-2xl relative overflow-hidden"
+               >
+                 <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-red-500 to-rose-400"></div>
+                 <div className="flex items-center gap-4 mb-6">
+                    <div className="w-12 h-12 bg-red-50 rounded-2xl flex items-center justify-center text-red-500 shadow-inner">
+                       <AlertTriangle size={24} />
+                    </div>
+                    <div>
+                       <h3 className="text-xl font-black text-slate-900 tracking-tight">Confirm Suspension</h3>
+                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{suspendModalUser.name}</p>
+                    </div>
+                 </div>
+                 
+                 <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl mb-8">
+                    <p className="text-xs font-bold text-slate-600 leading-relaxed">
+                       You are about to suspend this individual's institutional access. They will instantly be locked out of the operational platform and a <strong className="text-slate-900 border-b border-red-200">branded warning dispatch</strong> will be routed to their email.
+                    </p>
+                 </div>
+                 
+                 <div className="flex items-center gap-3">
+                    <button 
+                       onClick={() => setSuspendModalUser(null)}
+                       className="flex-1 py-3.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-50 transition-all active:scale-95"
+                    >
+                       Cancel
+                    </button>
+                    <button 
+                       onClick={() => {
+                          handleStatusUpdate(suspendModalUser.id, 'suspended');
+                          setSuspendModalUser(null);
+                       }}
+                       className="flex-1 py-3.5 bg-red-500 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-red-600 transition-all shadow-lg shadow-red-500/30 active:scale-95"
+                    >
+                       Confirm Suspend
+                    </button>
+                 </div>
+               </motion.div>
              </motion.div>
            </>
         )}

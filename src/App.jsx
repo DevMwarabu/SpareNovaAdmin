@@ -60,7 +60,7 @@ function App() {
           <Route path="logistics" element={<LogisticsIntelligence />} />
           <Route path="users" element={<Users />} />
           <Route path="payments" element={<Payments />} />
-          <Route path="products" element={<Products />} />
+          <Route path="products/:id?" element={<Products />} />
           <Route path="orders" element={<Orders />} />
           <Route path="offers" element={<Offers />} />
           <Route path="inventory" element={<Inventory />} />
