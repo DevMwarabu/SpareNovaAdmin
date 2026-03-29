@@ -2,9 +2,9 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
 import { 
-  Store, Gavel, Truck, ShieldCheck, ArrowRight, CheckCircle2, Loader2, Mail, Lock, User, 
+  Store, Gavel, Truck, ShieldCheck, ArrowRight, ArrowLeft, CheckCircle2, Loader2, Mail, Lock, User, 
   Phone, MapPin, LogIn, UserPlus, Upload, FileText, Image as ImageIcon, X, Eye, EyeOff,
-  Building2, Briefcase, AlertCircle, Circle, CheckCircle
+  Building2, Briefcase, AlertCircle, Circle, CheckCircle, Zap
 } from 'lucide-react';
 import axios from 'axios';
 import CountrySelector, { allCountries } from '../components/CountrySelector';
@@ -603,7 +603,7 @@ const Auth = () => {
                     {[
                       { t: 'Vault Review', d: 'Our analysts are verifying business identity.', icon: ShieldCheck, col: 'blue' },
                       { t: 'Dispatch Access', d: 'Secure keys will be issued via email.', icon: Lock, col: 'amber' },
-                      { t: 'Marketplace Entry', d: 'Begin your commercial journey.', icon: TrendingUp = Zap, col: 'emerald' }
+                      { t: 'Marketplace Entry', d: 'Begin your commercial journey.', icon: Zap, col: 'emerald' }
                     ].map((s, i) => (
                       <div key={i} className="flex gap-5">
                         <div className={`w-12 h-12 rounded-2xl bg-${s.col === 'blue' ? 'blue' : s.col === 'amber' ? 'amber' : 'emerald'}-50 flex-shrink-0 flex items-center justify-center text-xs font-black shadow-sm text-${s.col === 'blue' ? 'blue' : s.col === 'amber' ? 'amber' : 'emerald'}-600 border border-${s.col === 'blue' ? 'blue' : s.col === 'amber' ? 'amber' : 'emerald'}-100`}>

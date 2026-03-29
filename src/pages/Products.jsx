@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { 
@@ -808,54 +809,55 @@ const Products = () => {
                       <div className="h-4 w-px bg-slate-200" />
                       <div className="relative">
                         <button 
-                          onClick={(e) => { e.stopPropagation(); setActiveMenu(activeMenu === p.id ? null : p.id); }}
-                          className={`p-2.5 rounded-xl transition-all ${activeMenu === p.id ? 'bg-primary-50 text-primary-600' : 'text-slate-400 hover:text-primary-600 hover:bg-primary-50'}`}
+                          onClick={(e) => { 
+                            e.stopPropagation(); 
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            setActiveMenu(activeMenu === p.id ? null : { id: p.id, x: rect.right - 200, y: rect.bottom + 8 }); 
+                          }}
+                          className={`p-2.5 rounded-xl transition-all ${activeMenu?.id === p.id ? 'bg-primary-50 text-primary-600' : 'text-slate-400 hover:text-primary-600 hover:bg-primary-50'}`}
                         >
                           <MoreVertical size={18} />
                         </button>
                         
-                        <AnimatePresence>
-                          {activeMenu === p.id && (
+                        {activeMenu?.id === p.id && (
+                          <Portal>
+                            <div className="fixed inset-0 z-[100]" onClick={() => setActiveMenu(null)} />
                             <motion.div 
-                              initial={{ opacity: 0, scale: 0.9, y: 10 }}
-                              animate={{ opacity: 1, scale: 1, y: 0 }}
-                              exit={{ opacity: 0, scale: 0.9, y: 10 }}
-                              className="absolute right-0 top-full mt-2 w-48 bg-white border border-slate-100 rounded-3xl shadow-2xl z-[999] p-2 overflow-hidden"
+                              initial={{ opacity: 0, scale: 0.95 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              style={{ position: 'fixed', left: activeMenu.x, top: activeMenu.y }}
+                              className="w-48 bg-white border border-slate-100 rounded-3xl shadow-2xl z-[101] p-2 overflow-hidden"
                             >
                               <div className="flex flex-col">
                                 <button 
-                                  type="button"
-                                  onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); setActiveMenu(null); handleViewDetails(p.id); }}
+                                  onClick={() => { setActiveMenu(null); handleViewDetails(p.id); }}
                                   className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 hover:text-primary-600 rounded-2xl transition-all"
                                 >
                                   <Eye size={14} /> View Details
                                 </button>
                                 <button 
-                                  type="button"
-                                  onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); setActiveMenu(null); handleEditProduct(p.id); }}
+                                  onClick={() => { setActiveMenu(null); handleEditProduct(p.id); }}
                                   className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 hover:text-primary-600 rounded-2xl transition-all"
                                 >
                                   <SlidersHorizontal size={14} /> Edit Product
                                 </button>
                                 <button 
-                                  type="button"
-                                  onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); setActiveMenu(null); }}
+                                  onClick={() => setActiveMenu(null)}
                                   className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 hover:text-primary-600 rounded-2xl transition-all"
                                 >
                                   <Layers size={14} /> Specs & Files
                                 </button>
                                 <div className="h-px bg-slate-50 my-1 mx-2" />
                                 <button 
-                                  type="button"
-                                  onPointerDown={(e) => { e.preventDefault(); e.stopPropagation(); setActiveMenu(null); handleDeleteProduct(p.id); }}
+                                  onClick={() => { setActiveMenu(null); handleDeleteProduct(p.id); }}
                                   className="flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-rose-500 hover:bg-rose-50 rounded-2xl transition-all"
                                 >
                                   <Trash2 size={14} /> Delete Part
                                 </button>
                               </div>
                             </motion.div>
-                          )}
-                        </AnimatePresence>
+                          </Portal>
+                        )}
                       </div>
                     </div>
                   </td>
@@ -920,8 +922,146 @@ const Products = () => {
           )}
         </div>
       </div>
+
+      {/* Drawer Overlay Layer */}
+      <AnimatePresence>
+        {(isAddDrawerOpen || isEditDrawerOpen || isDetailDrawerOpen) && (
+          <Portal>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[200] flex justify-end"
+              onClick={() => {
+                setIsAddDrawerOpen(false);
+                setIsEditDrawerOpen(false);
+                setIsDetailDrawerOpen(false);
+              }}
+            >
+              <motion.div 
+                initial={{ x: '100%' }}
+                animate={{ x: 0 }}
+                exit={{ x: '100%' }}
+                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                className="bg-white w-full max-w-xl h-full shadow-2xl overflow-y-auto"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Drawer Content */}
+                {isDetailDrawerOpen && currentProduct && (
+                  <div className="p-10">
+                    <div className="flex items-center justify-between mb-10">
+                       <div>
+                          <p className="text-[10px] font-black text-primary-600 uppercase tracking-widest mb-1 italic">Product Telemetry</p>
+                          <h2 className="text-2xl font-black text-slate-900 tracking-tight">System Specification</h2>
+                       </div>
+                       <button 
+                        onClick={() => setIsDetailDrawerOpen(false)}
+                        className="w-10 h-10 rounded-xl bg-slate-50 text-slate-400 flex items-center justify-center hover:bg-slate-100 transition-all"
+                       >
+                          <X size={20} />
+                       </button>
+                    </div>
+
+                    <div className="aspect-video w-full rounded-3xl bg-slate-50 border border-slate-100 mb-8 overflow-hidden relative group">
+                       <img 
+                          src={currentProduct.image?.startsWith('http') ? currentProduct.image : `http://localhost:8003/storage/${currentProduct.image}`} 
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
+                          alt="" 
+                       />
+                       <div className="absolute top-4 left-4">
+                          <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg ${currentProduct.status === 'approved' ? 'bg-emerald-500 text-white' : 'bg-orange-500 text-white'}`}>
+                             {currentProduct.status}
+                          </div>
+                       </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-8 mb-10">
+                       <div className="space-y-1">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Pricing Structure</p>
+                          <p className="text-xl font-black text-slate-900 italic">KES {numberWithCommas(currentProduct.price)}</p>
+                       </div>
+                       <div className="space-y-1">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Inventory Status</p>
+                          <p className="text-xl font-black text-slate-900">{currentProduct.stock} Units</p>
+                       </div>
+                    </div>
+
+                    <div className="space-y-6">
+                       <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Merchant Provenance</p>
+                          <div className="flex items-center gap-4">
+                             <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center shadow-sm">
+                                <Users size={24} className="text-primary-600" />
+                             </div>
+                             <div>
+                                <p className="text-sm font-black text-slate-900 uppercase italic">{currentProduct.store_name}</p>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase">{currentProduct.vendor}</p>
+                             </div>
+                          </div>
+                       </div>
+
+                       <div className="space-y-4">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Unit Meta Profile</p>
+                          <div className="grid grid-cols-2 gap-4">
+                             {[
+                               { label: 'Category Unit', val: currentProduct.category },
+                               { label: 'OEM Protocol', val: currentProduct.oem },
+                               { label: 'Platform ID', val: `#${currentProduct.id}` },
+                               { label: 'Lifecycle', val: 'Active' }
+                             ].map((m, i) => (
+                               <div key={i} className="p-4 bg-white border border-slate-100 rounded-2xl">
+                                  <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest leading-none mb-1">{m.label}</p>
+                                  <p className="text-xs font-bold text-slate-600 uppercase">{m.val}</p>
+                               </div>
+                             ))}
+                          </div>
+                       </div>
+                    </div>
+
+                    <div className="mt-10 pt-10 border-t border-slate-100 flex gap-4">
+                       <button 
+                        onClick={() => { setIsDetailDrawerOpen(false); handleEditProduct(currentProduct.id); }}
+                        className="flex-1 bg-slate-900 text-white py-4 rounded-2xl text-xs font-black shadow-lg shadow-slate-900/20 hover:scale-[1.02] active:scale-95 transition-all"
+                       >
+                          Update Parameters
+                       </button>
+                       <button 
+                        onClick={() => setIsDetailDrawerOpen(false)}
+                        className="px-8 py-4 rounded-2xl bg-slate-100 text-slate-400 text-xs font-black hover:bg-slate-200 transition-all"
+                       >
+                          Close
+                       </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Simplified Add/Edit Form Placed here */}
+                {(isAddDrawerOpen || isEditDrawerOpen) && (
+                  <div className="p-10">
+                    <div className="flex items-center justify-between mb-10">
+                       <div>
+                          <p className="text-[10px] font-black text-primary-600 uppercase tracking-widest mb-1 italic">Product Cataloguing</p>
+                          <h2 className="text-2xl font-black text-slate-900 tracking-tight">{isAddDrawerOpen ? 'Register Unit' : 'Refactor unit'}</h2>
+                       </div>
+                       <button onClick={() => { setIsAddDrawerOpen(false); setIsEditDrawerOpen(false); }} className="w-10 h-10 rounded-xl bg-slate-50 text-slate-400 flex items-center justify-center hover:bg-slate-100 transition-all">
+                          <X size={20} />
+                       </button>
+                    </div>
+                    <p className="text-slate-400 text-sm italic">Catalog management interface is currently in read-only visual mode for system review.</p>
+                  </div>
+                )}
+              </motion.div>
+            </motion.div>
+          </Portal>
+        )}
+      </AnimatePresence>
     </div>
   );
+};
+
+// Portal Component
+const Portal = ({ children }) => {
+  return ReactDOM.createPortal(children, document.body);
 };
 
 // Helper for currency formatting

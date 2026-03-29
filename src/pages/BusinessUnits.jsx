@@ -15,15 +15,35 @@ import {
   TrendingUp,
   Download,
   Loader2,
-  FileText
+  FileText,
+  ChevronDown,
+  X,
+  Layers,
+  BarChart3
 } from 'lucide-react';
+import { 
+  AreaChart, 
+  Area, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  Cell
+} from 'recharts';
 
 const BusinessUnitList = ({ title, type, icon: Icon, color }) => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('All Status');
+  const [docsStatus, setDocsStatus] = useState('any');
+  const [dateRange, setDateRange] = useState('all');
+  const [showFilters, setShowFilters] = useState(false);
   const [units, setUnits] = useState([]);
   const [stats, setStats] = useState([]);
+  const [chartData, setChartData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState(null);
@@ -37,11 +57,19 @@ const BusinessUnitList = ({ title, type, icon: Icon, color }) => {
     try {
       setLoading(true);
       const res = await axios.get(`${API_BASE}/admin/${type}`, {
-        params: { search: searchTerm, status: filterStatus, page: currentPage, per_page: 8 }
+        params: { 
+          search: searchTerm, 
+          status: filterStatus, 
+          docs_status: docsStatus,
+          date_range: dateRange,
+          page: currentPage, 
+          per_page: 8 
+        }
       });
       if (res.data.success) {
         setUnits(res.data.data);
         if (res.data.stats) setStats(res.data.stats);
+        if (res.data.chartData) setChartData(res.data.chartData);
         if (res.data.pagination) setPagination(res.data.pagination);
       }
     } catch (err) {
@@ -65,12 +93,11 @@ const BusinessUnitList = ({ title, type, icon: Icon, color }) => {
 
   useEffect(() => {
     fetchData();
-  }, [searchTerm, filterStatus, type, currentPage]);
+  }, [searchTerm, filterStatus, docsStatus, dateRange, type, currentPage]);
 
-  // Reset page to 1 when search or filter changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, filterStatus, type]);
+  }, [searchTerm, filterStatus, docsStatus, dateRange, type]);
 
   const handleStatusUpdate = async (id, newStatus) => {
     try {
@@ -180,34 +207,171 @@ const BusinessUnitList = ({ title, type, icon: Icon, color }) => {
          )) : Array(3).fill(0).map((_, i) => <div key={i} className="animate-pulse bg-slate-100 h-24 rounded-3xl"></div>)}
       </div>
 
+      {/* Analytics Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white p-8 rounded-[40px] border border-slate-100 shadow-sm shadow-slate-200/50">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight">Network Growth</h3>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Onboarding Trend (30D)</p>
+            </div>
+            <div className={`p-2 rounded-lg bg-${color}-50 text-${color}-600`}>
+              <TrendingUp size={16} />
+            </div>
+          </div>
+          <div className="h-64 mt-4">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={chartData}>
+                <defs>
+                  <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="var(--primary-500)" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="var(--primary-500)" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis 
+                  dataKey="date" 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }}
+                  dy={10}
+                />
+                <YAxis hide />
+                <Tooltip 
+                  contentStyle={{ 
+                    borderRadius: '16px', 
+                    border: 'none', 
+                    boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
+                    fontSize: '12px',
+                    fontWeight: '900',
+                    textTransform: 'uppercase'
+                  }} 
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="count" 
+                  stroke="var(--primary-500)" 
+                  strokeWidth={3}
+                  fillOpacity={1} 
+                  fill="url(#colorCount)" 
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div className="bg-white p-8 rounded-[40px] border border-slate-100 shadow-sm shadow-slate-200/50">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight">Revenue Dynamics</h3>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Daily Inflow (30D)</p>
+            </div>
+            <div className="p-2 rounded-lg bg-emerald-50 text-emerald-600">
+              <BarChart3 size={16} />
+            </div>
+          </div>
+          <div className="h-64 mt-4">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData}>
+                <XAxis 
+                  dataKey="date" 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }}
+                  dy={10}
+                />
+                <Tooltip 
+                   cursor={{ fill: '#f8fafc' }}
+                   contentStyle={{ 
+                    borderRadius: '16px', 
+                    border: 'none', 
+                    boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
+                    fontSize: '12px',
+                    fontWeight: '900'
+                  }} 
+                />
+                <Bar dataKey="revenue" fill="var(--primary-500)" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+
       {/* Table Section */}
       <div className="bg-white rounded-[40px] border border-slate-100 shadow-sm overflow-hidden shadow-slate-200/50">
-        <div className="p-6 border-b border-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-4">
-           <form 
-             onSubmit={(e) => { e.preventDefault(); fetchData(); }}
-             className="relative group flex-1 max-w-md"
-           >
-             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary-600 transition-colors" size={18} />
-             <input 
-               placeholder={`Search ${type}...`} 
-               value={searchTerm}
-               onChange={(e) => setSearchTerm(e.target.value)}
-               className="w-full bg-slate-50 border-none rounded-2xl pl-12 pr-4 py-3 text-sm font-bold placeholder:text-slate-300 outline-none focus:ring-2 focus:ring-primary-500/10 transition-all"
-             />
-           </form>
-           <div className="flex gap-2">
-             <button className="p-3 bg-slate-50 text-slate-400 hover:text-slate-600 rounded-xl transition-colors"><Filter size={18} /></button>
-             <select 
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="bg-slate-50 border-none rounded-xl px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-500 outline-none"
-             >
-                <option value="All Status">All Status</option>
-                <option value="verified">Verified</option>
-                <option value="pending">Pending</option>
-                <option value="suspended">Suspended</option>
-             </select>
+        <div className="p-6 border-b border-slate-50 flex flex-col gap-6">
+           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <form 
+                onSubmit={(e) => { e.preventDefault(); fetchData(); }}
+                className="relative group flex-1 max-w-md"
+              >
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary-600 transition-colors" size={18} />
+                <input 
+                  placeholder={`Search ${type}...`} 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full bg-slate-50 border-none rounded-2xl pl-12 pr-4 py-3 text-sm font-bold placeholder:text-slate-300 outline-none focus:ring-2 focus:ring-primary-500/10 transition-all"
+                />
+              </form>
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => setShowFilters(!showFilters)}
+                  className={`p-3 rounded-xl transition-all flex items-center gap-2 text-xs font-black uppercase tracking-widest ${showFilters ? 'bg-primary-600 text-white shadow-lg shadow-primary-500/20' : 'bg-slate-50 text-slate-400 hover:text-slate-600'}`}
+                >
+                  <Filter size={18} />
+                  {showFilters ? 'Hide Filters' : 'Advanced Filters'}
+                </button>
+              </div>
            </div>
+
+           {/* Filter Bar Expansion */}
+           {showFilters && (
+             <motion.div 
+               initial={{ height: 0, opacity: 0 }}
+               animate={{ height: 'auto', opacity: 1 }}
+               exit={{ height: 0, opacity: 0 }}
+               className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-slate-50"
+             >
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Merchant Status</label>
+                  <select 
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                    className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-500 outline-none focus:ring-2 focus:ring-primary-500/10 transition-all"
+                  >
+                    <option value="All Status">Any Status</option>
+                    <option value="verified">Verified Only</option>
+                    <option value="pending">Pending Approval</option>
+                    <option value="suspended">Suspended</option>
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Documentation</label>
+                  <select 
+                    value={docsStatus}
+                    onChange={(e) => setDocsStatus(e.target.value)}
+                    className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-500 outline-none focus:ring-2 focus:ring-primary-500/10 transition-all"
+                  >
+                    <option value="any">Any Status</option>
+                    <option value="verified">Verified Docs</option>
+                    <option value="missing">Missing Documents</option>
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Onboarding Period</label>
+                  <select 
+                    value={dateRange}
+                    onChange={(e) => setDateRange(e.target.value)}
+                    className="w-full bg-slate-50 border-none rounded-xl px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-500 outline-none focus:ring-2 focus:ring-primary-500/10 transition-all"
+                  >
+                    <option value="all">All Time</option>
+                    <option value="7d">Last 7 Days</option>
+                    <option value="30d">Last 30 Days</option>
+                    <option value="ytd">Year to Date</option>
+                  </select>
+                </div>
+             </motion.div>
+           )}
         </div>
 
         <div className="overflow-x-auto">

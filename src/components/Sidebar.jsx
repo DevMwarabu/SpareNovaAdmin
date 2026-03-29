@@ -30,16 +30,17 @@ import {
 
 const Sidebar = () => {
   const user = JSON.parse(localStorage.getItem('user') || '{}');
-  const role = user.role || 'admin';
-  const isAdmin = role === 'admin' || role === 'platform_admin';
+  const role = (user.role || 'admin').toLowerCase();
+  
+  const isAdmin = ['admin', 'platform_admin', 'staff', 'super_admin'].includes(role);
 
   const menuGroups = [
     {
       label: 'Main',
       items: [
         { name: 'Dashboard', icon: LayoutDashboard, path: '/admin' },
-        { name: 'Analytics', icon: LineChart, path: '/admin/analytics' }, // Changed icon to LineChart
-        { name: 'AI Insights', icon: Brain, path: '/admin/ai-insights' }, // Added AI Insights
+        { name: 'Analytics', icon: LineChart, path: '/admin/analytics' },
+        { name: 'AI Insights', icon: Brain, path: '/admin/ai-insights' },
       ]
     },
     ...(isAdmin ? [
@@ -93,16 +94,20 @@ const Sidebar = () => {
   ];
 
   return (
-    <aside className="w-64 bg-sidebar-dark h-screen flex flex-col border-r border-sidebar-border relative z-40">
-      <div className="p-6">
-        <div className="flex items-center gap-2 mb-8">
+    <aside className="w-64 bg-sidebar-dark h-screen flex flex-col border-r border-sidebar-border relative z-40 select-none">
+      {/* Logo Header - Fixed */}
+      <div className="p-6 pb-2">
+        <div className="flex items-center gap-2 mb-6">
           <div className="w-8 h-8 rounded-lg bg-primary-500 flex items-center justify-center shadow-lg shadow-primary-500/20">
             <span className="text-white font-black text-xl">S</span>
           </div>
           <span className="text-xl font-black text-white tracking-tight">Spare<span className="text-primary-500">Nova</span></span>
         </div>
+      </div>
 
-        <nav className="space-y-8">
+      {/* Scrollable Content */}
+      <div className="flex-1 overflow-y-auto px-6 py-4 custom-scrollbar">
+        <nav className="space-y-8 pb-4">
           {menuGroups.map((group, i) => (
             <div key={i}>
               <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-4 ml-3">{group.label}</h3>
@@ -143,9 +148,10 @@ const Sidebar = () => {
         </nav>
       </div>
 
-      <div className="mb-4 pb-4 border-b border-sidebar-border">
-        <a href="#" className="flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white transition-colors">
-          <HelpCircle size={20} />
+      {/* Footer - Fixed Bottom */}
+      <div className="p-4 border-t border-sidebar-border mt-auto">
+        <a href="#" className="flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white transition-colors group">
+          <HelpCircle size={20} className="group-hover:rotate-12 transition-transform" />
           <span className="text-sm font-bold">Help Center</span>
         </a>
       </div>
