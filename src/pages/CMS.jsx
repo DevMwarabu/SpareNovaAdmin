@@ -25,10 +25,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 const CMS = () => {
   const [banners, setBanners] = useState([]);
   const [featured, setFeatured] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [activeStagingId, setActiveStagingId] = useState(null);
-
+  const [toast, setToast] = useState(null);
   const API_BASE = 'http://localhost:8003/api/v1';
+
+  const showToast = (msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 3000);
+  };
 
   const fetchData = async () => {
     try {
@@ -52,10 +56,14 @@ const CMS = () => {
   const handleStageUpdate = async (type, id) => {
     setActiveStagingId(id);
     try {
-      await axios.put(`${API_BASE}/admin/cms/banner/${id}`, { staged: true });
-      fetchData();
+      const res = await axios.put(`${API_BASE}/admin/cms/banner/${id}`, { staged: true });
+      if (res.data.success) {
+        showToast('Asset status staged successfully');
+        fetchData();
+      }
     } catch (err) {
       console.error("Staging failure");
+      showToast('Architectural staging failed');
     } finally {
       setActiveStagingId(null);
     }
@@ -183,6 +191,22 @@ const CMS = () => {
             </motion.div>
          ))}
       </div>
+       {/* UI Toasts */}
+       <AnimatePresence>
+         {toast && (
+           <motion.div 
+             initial={{ opacity: 0, y: 50, x: '-50%' }}
+             animate={{ opacity: 1, y: 0, x: '-50%' }}
+             exit={{ opacity: 0, scale: 0.95, x: '-50%' }}
+             className="fixed bottom-10 left-1/2 z-[300] bg-slate-900 text-white px-8 py-4 rounded-[32px] shadow-2xl flex items-center gap-4 text-[10px] font-black uppercase tracking-widest italic"
+           >
+              <div className="w-8 h-8 rounded-xl bg-orange-500 flex items-center justify-center">
+                 <RefreshCw size={14} className="animate-spin text-white" />
+              </div>
+              {toast}
+           </motion.div>
+         )}
+       </AnimatePresence>
     </div>
   );
 };

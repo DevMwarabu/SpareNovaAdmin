@@ -19,6 +19,7 @@ import {
   Cpu as CpuIcon,
   ShieldAlert
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import ConfirmDialog from '../components/ConfirmDialog';
 
 const SystemLogs = () => {
@@ -56,8 +57,9 @@ const SystemLogs = () => {
       }
     } catch (err) {
       console.error(`Failed to fetch system logs:`, err);
+      showToast('Infrastructure synchronization failed');
     } finally {
-      setLoading(false);
+      setTimeout(() => setLoading(false), 600); // Artificial delay for visual feedback
     }
   };
 
@@ -148,13 +150,15 @@ const SystemLogs = () => {
                </div>
                <div className="font-mono text-[11px] space-y-2 max-h-[500px] overflow-y-auto custom-scrollbar pr-4">
                   {logs.length > 0 ? logs.map((log) => (
-                    <div key={log.id} className="group/line py-1 border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors">
-                       <span className="text-slate-600 mr-4">[{log.time}]</span>
-                       <span className={`mr-4 font-black ${log.level === 'ERROR' ? 'text-rose-500' : log.level === 'WARNING' ? 'text-orange-500' : 'text-blue-400'}`}>
-                          {log.level}:
-                       </span>
-                       <span className="text-slate-300 break-all">{log.content.substring(25)}</span>
-                    </div>
+                     <div key={log.id} className="group/line py-1 border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors">
+                        <span className="text-slate-600 mr-4">[{log.time}]</span>
+                        <span className={`mr-4 font-black ${log.level === 'ERROR' ? 'text-rose-500' : log.level === 'WARNING' ? 'text-orange-500' : 'text-blue-400'}`}>
+                           {log.level}:
+                        </span>
+                        <span className="text-slate-300 break-all">
+                          {log.content.length > 25 ? log.content.substring(25) : log.content}
+                        </span>
+                     </div>
                   )) : (
                     <div className="py-20 text-center text-slate-600 italic">
                        // Initializing cluster monitoring...
