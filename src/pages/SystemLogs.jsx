@@ -13,16 +13,36 @@ import {
   Search,
   HardDrive,
   Database,
-  Unplug
+  Unplug,
+  Download,
+  Trash2,
+  Cpu as CpuIcon,
+  ShieldAlert
 } from 'lucide-react';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 const SystemLogs = () => {
   const [logs, setLogs] = useState([]);
   const [apis, setApis] = useState([]);
   const [stats, setStats] = useState([]);
+  const [uptime, setUptime] = useState('Unknown');
   const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState(null);
+
+  // Confirmation state
+  const [confirmDialog, setConfirmDialog] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {}
+  });
 
   const API_BASE = 'http://localhost:8003/api/v1';
+
+  const showToast = (msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 3000);
+  };
 
   const fetchData = async () => {
     try {
@@ -32,6 +52,7 @@ const SystemLogs = () => {
         setLogs(res.data.logs);
         setApis(res.data.apis);
         setStats(res.data.stats);
+        setUptime(res.data.uptime);
       }
     } catch (err) {
       console.error(`Failed to fetch system logs:`, err);
@@ -40,8 +61,36 @@ const SystemLogs = () => {
     }
   };
 
+  const handleClearLogs = async () => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Flush Infrastructure Logs?',
+      message: 'This protocol will permanently truncate the current execution ledger. This action is audited and irreversible.',
+      onConfirm: async () => {
+        try {
+          setLoading(true);
+          const res = await axios.post(`${API_BASE}/admin/system-logs/clear`);
+          if (res.data.success) {
+            showToast('Log cluster truncated successfully');
+            fetchData();
+          }
+        } catch (err) {
+          console.error('Clear failed:', err);
+        } finally {
+          setLoading(false);
+        }
+      }
+    });
+  };
+
+  const handleDownloadLogs = () => {
+    window.open(`${API_BASE}/admin/system-logs/download`, '_blank');
+  };
+
   useEffect(() => {
     fetchData();
+    const interval = setInterval(fetchData, 10000); // Poll every 10s
+    return () => clearInterval(interval);
   }, []);
 
   return (
@@ -56,12 +105,18 @@ const SystemLogs = () => {
           </h1>
           <p className="text-slate-500 font-medium mt-1">Global system logs, API health monitoring and infrastructure performance metrics.</p>
         </div>
-        <button 
-           onClick={fetchData}
-           className="bg-white border border-slate-200 text-slate-700 px-6 py-2.5 rounded-xl text-xs font-black shadow-sm hover:bg-slate-50 flex items-center gap-2 transition-all active:scale-95"
-        >
-           <RefreshCw size={16} className={loading ? 'animate-spin' : ''} /> Refresh Cluster
-        </button>
+         <div className="flex items-center gap-4">
+            <div className="text-right hidden md:block">
+               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">System Uptime</p>
+               <p className="text-xs font-black text-blue-600 italic">{uptime}</p>
+            </div>
+            <button 
+               onClick={fetchData}
+               className="bg-white border border-slate-200 text-slate-700 px-6 py-2.5 rounded-xl text-xs font-black shadow-sm hover:bg-slate-50 flex items-center gap-2 transition-all active:scale-95"
+            >
+               <RefreshCw size={16} className={loading ? 'animate-spin' : ''} /> Refresh Cluster
+            </button>
+         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -144,13 +199,58 @@ const SystemLogs = () => {
                      <h3 className="text-xl font-black">Cluster Persistence</h3>
                      <p className="text-slate-400 text-xs font-medium mt-2 leading-relaxed">Storage usage is at 42%. Auto-scaling is enabled for regional nodes.</p>
                   </div>
-                  <div className="w-full bg-white/5 h-2 rounded-full overflow-hidden">
-                     <div className="h-full bg-blue-500 w-[42%]" />
-                  </div>
-               </div>
-            </div>
-         </div>
-      </div>
+                   <div className="w-full bg-white/5 h-2 rounded-full overflow-hidden">
+                      <div className="h-full bg-blue-500 w-[42%]" />
+                   </div>
+                </div>
+             </div>
+
+             <div className="bg-white rounded-[40px] border border-slate-100 p-8 shadow-sm space-y-6">
+                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                   <ShieldAlert size={14} className="text-rose-500" /> INFRASTRUCTURE MANAGEMENT
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                   <button 
+                     onClick={handleDownloadLogs}
+                     className="p-5 bg-slate-900 text-white rounded-3xl flex flex-col items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-slate-900/10 uppercase italic"
+                   >
+                      <Download size={20} />
+                      <span className="text-[9px] font-black tracking-widest leading-none">Export Ledger</span>
+                   </button>
+                   <button 
+                     onClick={handleClearLogs}
+                     className="p-5 bg-rose-50 text-rose-600 border border-rose-100 rounded-3xl flex flex-col items-center justify-center gap-2 hover:bg-rose-100 hover:scale-[1.02] active:scale-95 transition-all uppercase italic"
+                   >
+                      <Trash2 size={20} />
+                      <span className="text-[9px] font-black tracking-widest leading-none text-rose-600">Flush Logs</span>
+                   </button>
+                </div>
+             </div>
+          </div>
+       </div>
+
+       {/* Confirm Dialog */}
+       <ConfirmDialog 
+         {...confirmDialog}
+         onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
+       />
+
+       {/* Toast */}
+       <AnimatePresence>
+         {toast && (
+           <motion.div 
+             initial={{ opacity: 0, y: 50 }}
+             animate={{ opacity: 1, y: 0 }}
+             exit={{ opacity: 0, scale: 0.95 }}
+             className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[300] bg-slate-900 text-white px-8 py-4 rounded-[32px] shadow-2xl flex items-center gap-4 text-[10px] font-black uppercase tracking-widest italic"
+           >
+              <div className="w-8 h-8 rounded-xl bg-blue-500 flex items-center justify-center">
+                 <RefreshCw size={14} className="animate-spin" />
+              </div>
+              {toast}
+           </motion.div>
+         )}
+       </AnimatePresence>
     </div>
   );
 };
