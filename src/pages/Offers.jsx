@@ -535,11 +535,11 @@ const Offers = () => {
                              </div>
                              <div className="flex items-center gap-3">
                                 <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
-                                <span className="text-[11px] font-black text-slate-700">STRATEGY: {selectedPromo.type.replace('_', ' ')}</span>
+                                <span className="text-[11px] font-black text-slate-700">STRATEGY: {selectedPromo.type?.replace('_', ' ') || 'GENERAL'}</span>
                              </div>
                              <div className="flex items-center gap-3">
                                 <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
-                                <span className="text-[11px] font-black text-slate-700">PLACEMENT: {selectedPromo.placement}</span>
+                                <span className="text-[11px] font-black text-slate-700">PLACEMENT: {selectedPromo.placement?.replace('_', ' ') || 'GLOBAL'}</span>
                              </div>
                           </div>
                        </div>
