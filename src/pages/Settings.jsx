@@ -275,11 +275,16 @@ const Settings = () => {
                         </button>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                         <Field label="Zoom Account ID" value={settings.zoom_account_id} onChange={(v)=>handleChange('zoom_account_id', v)} placeholder="Essential for S2S OAuth"/>
+                         <div className="hidden md:block"></div>
                          <Field label="Zoom Client ID" value={settings.zoom_client_id} onChange={(v)=>handleChange('zoom_client_id', v)}/>
                          <Field label="Zoom Secret" type="password" value={settings.zoom_client_secret} onChange={(v)=>handleChange('zoom_client_secret', v)}/>
+                         <Field label="Teams Tenant ID" value={settings.teams_tenant_id} onChange={(v)=>handleChange('teams_tenant_id', v)} placeholder="Azure AD Tenant ID"/>
+                         <div className="hidden md:block"></div>
                          <Field label="Teams Client ID" value={settings.teams_client_id} onChange={(v)=>handleChange('teams_client_id', v)}/>
                          <Field label="Teams Secret" type="password" value={settings.teams_client_secret} onChange={(v)=>handleChange('teams_client_secret', v)}/>
                       </div>
+
                     </section>
                   )}
 
