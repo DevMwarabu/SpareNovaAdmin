@@ -17,7 +17,15 @@ import {
   AlertCircle,
   X,
   ShieldCheck,
-  ChevronDown
+  ChevronDown,
+  Info,
+  Compass,
+  Monitor,
+  Activity,
+  Box,
+  CornerDownRight,
+  ClipboardList,
+  Search
 } from 'lucide-react';
 
 const API_BASE = 'http://localhost:8003/api/v1';
@@ -35,14 +43,71 @@ const ProductForm = () => {
 
   // Form State
   const [formData, setFormData] = useState({
-    title: '',
+    // 1. Core
+    product_name: '',
+    description: '',
+    short_description: '',
+    
+    // 2. Classification
     category_id: '',
-    price: '',
-    stock: '',
+    sub_category_id: '',
+    brand_id: '',
+    part_type: 'OEM', // OEM, Aftermarket, Refurbished
+    
+    // 3. Identification
     oem_number: '',
-    specs: [],
-    compatibility: [],
-    images: []
+    part_number: '',
+    sku: '',
+    serial_number: '',
+    
+    // 4. Pricing
+    cost_price: '',
+    price: '',
+    discount_price: '',
+    min_price: '',
+    max_price: '',
+    currency: 'KES',
+    
+    // 5. Inventory
+    stock_quantity: '',
+    min_stock_level: '5',
+    max_stock_level: '',
+    warehouse_location: '',
+    
+    // 6. Media
+    main_image: '',
+    gallery_images: [],
+    video_url: '',
+    
+    // 7. Logistics
+    weight: '',
+    length: '',
+    width: '',
+    height: '',
+    
+    // 8. Delivery & Installation
+    delivery_meta: {
+      standard: true,
+      express: false,
+      pickup: true,
+      fee_override: '',
+      estimated_time: ''
+    },
+    installation_available: false,
+    installation_price: '',
+    
+    // 9. Compatibility (Option B)
+    vehicles: [], // Array of IDs
+    
+    // Legacy mapping (keep title for sync)
+    title: ''
+  });
+
+  const [metadata, setMetadata] = useState({
+    categories: [],
+    subCategories: [],
+    brands: [],
+    vehicles: []
   });
 
   const [specInput, setSpecInput] = useState({ key: '', value: '' });
@@ -50,42 +115,44 @@ const ProductForm = () => {
   const [imagePreviews, setImagePreviews] = useState([]);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchMetadata = async () => {
       try {
-        const catRes = await axios.get(`${API_BASE}/portal/categories`);
-        if (catRes.data.success) {
-          setCategories(catRes.data.data);
-        }
+        const token = localStorage.getItem('token');
+        const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+        const [catRes, brandRes, vehRes] = await Promise.all([
+          axios.get(`${API_BASE}/portal/categories`, { headers }),
+          axios.get(`${API_BASE}/portal/brands`, { headers }),
+          axios.get(`${API_BASE}/portal/vehicles`, { headers })
+        ]);
+
+        setMetadata({
+          categories: catRes.data.success ? catRes.data.data : [],
+          brands: brandRes.data.success ? brandRes.data.data : [],
+          vehicles: vehRes.data.success ? vehRes.data.data : [],
+          subCategories: []
+        });
 
         if (isEdit) {
-          const prodRes = await axios.get(`${API_BASE}/portal/products/${id}`);
+          const prodRes = await axios.get(`${API_BASE}/portal/products/${id}`, { headers });
           if (prodRes.data.success) {
             const p = prodRes.data.product;
-            
-            // Transform specs object to array for form
-            const specsArray = p.specs ? Object.entries(p.specs).map(([key, value]) => ({ key, value })) : [];
-            
             setFormData({
-              title: p.title || '',
-              category_id: p.category_id || '',
-              price: p.price || '',
-              stock: p.stock || '',
-              oem_number: p.oem || '',
-              specs: specsArray,
-              compatibility: p.compatibility || [],
-              images: p.images || []
+              ...p,
+              product_name: p.title || p.product_name,
+              vehicles: p.vehicles?.map(v => v.id) || []
             });
-            setImagePreviews(p.images || []);
+            setImagePreviews(p.gallery_images || p.images || []);
           }
         }
       } catch (err) {
-        console.error('Failed to initialize product hub:', err);
-        setError('Systems Failure: Unable to synchronize with marketplace telemetry.');
+        console.error('Metadata context failure:', err);
+        setError('Systems Failure: Unable to synchronize with institutional metadata nodes.');
       } finally {
         setInitialLoading(false);
       }
     };
-    fetchData();
+    fetchMetadata();
   }, [id, isEdit]);
 
   const handleImageUpload = async (e) => {
@@ -93,15 +160,21 @@ const ProductForm = () => {
     if (!files.length) return;
 
     setLoading(true);
+    const token = localStorage.getItem('token');
+    const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
     for (const file of files) {
       const formDataUpload = new FormData();
       formDataUpload.append('image', file);
       try {
-        const response = await axios.post(`${API_BASE}/portal/products/upload`, formDataUpload);
+        const response = await axios.post(`${API_BASE}/portal/products/upload`, formDataUpload, { headers });
         if (response.data.success) {
+          if (formData.gallery_images.length === 0) {
+             setFormData(prev => ({ ...prev, main_image: response.data.url }));
+          }
           setFormData(prev => ({
             ...prev,
-            images: [...prev.images, response.data.path]
+            gallery_images: [...prev.gallery_images, response.data.path]
           }));
           setImagePreviews(prev => [...prev, response.data.url]);
         }
@@ -112,66 +185,19 @@ const ProductForm = () => {
     setLoading(false);
   };
 
-  const removeImage = (index) => {
-    setFormData(prev => ({
-      ...prev,
-      images: prev.images.filter((_, i) => i !== index)
-    }));
-    setImagePreviews(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const addSpec = () => {
-    if (!specInput.key || !specInput.value) return;
-    setFormData(prev => ({
-      ...prev,
-      specs: [...prev.specs, { ...specInput }]
-    }));
-    setSpecInput({ key: '', value: '' });
-  };
-
-  const removeSpec = (index) => {
-    setFormData(prev => ({
-      ...prev,
-      specs: prev.specs.filter((_, i) => i !== index)
-    }));
-  };
-
-  const addCompatibility = (e) => {
-    if (e.key === 'Enter' && compatibilityInput.trim()) {
-      e.preventDefault();
-      setFormData(prev => ({
-        ...prev,
-        compatibility: [...prev.compatibility, compatibilityInput.trim()]
-      }));
-      setCompatibilityInput('');
-    }
-  };
-
-  const removeCompatibility = (index) => {
-    setFormData(prev => ({
-      ...prev,
-      compatibility: prev.compatibility.filter((_, i) => i !== index)
-    }));
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
-    const specsObject = {};
-    formData.specs.forEach(s => { specsObject[s.key] = s.value; });
-
     try {
-      const payload = {
-        ...formData,
-        specs: specsObject
-      };
+      const token = localStorage.getItem('token');
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
       
       const method = isEdit ? 'put' : 'post';
       const url = isEdit ? `${API_BASE}/portal/products/${id}` : `${API_BASE}/portal/products`;
       
-      const response = await axios[method](url, payload);
+      const response = await axios[method](url, formData, { headers });
       if (response.data.success) {
         setSuccess(true);
         setTimeout(() => navigate(`/${JSON.parse(localStorage.getItem('user') || '{}').role?.toLowerCase() || 'admin'}/products`), 2000);
@@ -268,9 +294,10 @@ const ProductForm = () => {
         )}
       </AnimatePresence>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-        <div className="lg:col-span-2 space-y-10">
-          {/* ── Product Identity Section ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+        <div className="lg:col-span-8 space-y-10">
+          
+          {/* ── 1. Core Identity Node ── */}
           <section className="bg-white rounded-[40px] border border-slate-100 shadow-sm p-10 space-y-8 relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-32 h-32 bg-primary-50/50 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-primary-100/50 transition-colors" />
             
@@ -279,271 +306,467 @@ const ProductForm = () => {
                 <Package size={20} />
               </div>
               <div>
-                <h3 className="text-lg font-black text-slate-900">Entity Profile</h3>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">Core specifications & provenance</p>
+                <h3 className="text-lg font-black text-slate-900">Core Identity</h3>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">Institutional nomenclature & semantics</p>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-8 relative z-10">
+            <div className="space-y-8 relative z-10">
               <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Product Title</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Product Designation</label>
                 <input 
                   type="text" 
                   required
                   placeholder="e.g., G-Series Performance Brake Kit"
-                  value={formData.title}
-                  onChange={(e) => setFormData({...formData, title: e.target.value})}
+                  value={formData.product_name}
+                  onChange={(e) => setFormData({...formData, product_name: e.target.value})}
                   className="w-full bg-slate-50 border border-slate-100 rounded-3xl px-8 py-5 text-sm font-black text-slate-900 outline-none focus:border-primary-500 focus:bg-white focus:ring-4 focus:ring-primary-500/5 transition-all shadow-sm"
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Category Unit</label>
-                  <div className="relative group/select">
-                    <select 
-                      required
-                      value={formData.category_id}
-                      onChange={(e) => setFormData({...formData, category_id: e.target.value})}
-                      className="w-full bg-slate-50 border border-slate-100 rounded-3xl px-8 py-5 text-sm font-black text-slate-900 outline-none focus:border-primary-500 focus:bg-white focus:ring-4 focus:ring-primary-500/5 transition-all appearance-none shadow-sm cursor-pointer"
-                    >
-                      <option value="">SCAN CATEGORIES...</option>
-                      {categories.map(cat => (
-                        <option key={cat.id} value={cat.id}>{cat.name.toUpperCase()}</option>
-                      ))}
-                    </select>
-                    <ChevronDown className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none group-hover/select:text-primary-500 transition-colors" size={20} />
-                  </div>
-                </div>
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">OEM Protocol (Optional)</label>
-                  <input 
-                    type="text" 
-                    placeholder="OEM-XXXX-XXXX"
-                    value={formData.oem_number}
-                    onChange={(e) => setFormData({...formData, oem_number: e.target.value})}
-                    className="w-full bg-slate-50 border border-slate-100 rounded-3xl px-8 py-5 text-sm font-black text-slate-900 outline-none focus:border-primary-500 focus:bg-white focus:ring-4 focus:ring-primary-500/5 transition-all shadow-sm"
-                  />
-                </div>
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Executive Summary (Short Description)</label>
+                <input 
+                  type="text" 
+                  placeholder="The definitive braking solution for endurance heavy-duty performance..."
+                  value={formData.short_description}
+                  onChange={(e) => setFormData({...formData, short_description: e.target.value})}
+                  className="w-full bg-slate-50 border border-slate-100 rounded-3xl px-8 py-5 text-sm font-black text-slate-900 outline-none focus:border-primary-500 focus:bg-white focus:ring-4 focus:ring-primary-500/5 transition-all shadow-sm"
+                />
+              </div>
+
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Full Specifications Hub (Rich Description)</label>
+                <textarea 
+                  rows={6}
+                  placeholder="Detail the technical superiority, composition, and long-term lifespan metrics..."
+                  value={formData.description}
+                  onChange={(e) => setFormData({...formData, description: e.target.value})}
+                  className="w-full bg-slate-50 border border-slate-100 rounded-[32px] px-8 py-6 text-sm font-bold text-slate-900 outline-none focus:border-primary-500 focus:bg-white focus:ring-4 focus:ring-primary-500/5 transition-all shadow-sm resize-none"
+                />
               </div>
             </div>
           </section>
 
-          {/* ── Visual Architecture Section ── */}
-          <section className="bg-white rounded-[40px] border border-slate-100 shadow-sm p-10 space-y-8">
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl bg-orange-50 text-orange-500 flex items-center justify-center">
-                <Layers size={20} />
-              </div>
-              <div>
-                <h3 className="text-lg font-black text-slate-900">Visual Artifacts</h3>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">High-resolution imagery gallery</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-               {imagePreviews.map((url, idx) => (
-                 <motion.div 
-                   key={idx}
-                   initial={{ opacity: 0, scale: 0.9 }}
-                   animate={{ opacity: 1, scale: 1 }}
-                   className="aspect-square rounded-3xl overflow-hidden relative group"
-                 >
-                   <img src={url} className="w-full h-full object-cover transition-transform group-hover:scale-110" alt="" />
-                   <button 
-                     onClick={() => removeImage(idx)}
-                     className="absolute top-2 right-2 w-8 h-8 rounded-lg bg-rose-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
-                   >
-                     <Trash2 size={16} />
-                   </button>
-                   {idx === 0 && (
-                     <div className="absolute bottom-2 left-2 px-2 py-1 bg-white/90 backdrop-blur-sm rounded-lg text-[8px] font-black uppercase tracking-widest text-slate-900 shadow-sm">
-                        Primary Map
-                     </div>
-                   )}
-                 </motion.div>
-               ))}
-               
-               <label className="aspect-square rounded-3xl border-4 border-dashed border-slate-100 hover:border-primary-200 hover:bg-primary-50/30 transition-all flex flex-col items-center justify-center gap-3 cursor-pointer group">
-                  <input type="file" multiple accept="image/*" onChange={handleImageUpload} className="hidden" />
-                  <div className="w-12 h-12 rounded-2xl bg-slate-50 text-slate-400 flex items-center justify-center group-hover:bg-primary-100 group-hover:text-primary-600 transition-all">
-                     <Upload size={24} />
-                  </div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase group-hover:text-primary-600 transition-colors">Index Data</p>
-               </label>
-            </div>
-          </section>
-
-          {/* ── Technical Parameters Section ── */}
+          {/* ── 2. Classification Matrix ── */}
           <section className="bg-white rounded-[40px] border border-slate-100 shadow-sm p-10 space-y-8">
             <div className="flex items-center gap-4">
               <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center">
-                <ShieldCheck size={20} />
+                <Compass size={20} />
               </div>
               <div>
-                <h3 className="text-lg font-black text-slate-900">Technical Parameters</h3>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">Dynamic unit specification matrix</p>
+                <h3 className="text-lg font-black text-slate-900">Classification Matrix</h3>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">Institutional taxonomy & origin</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Primary Sector (Category)</label>
+                <select 
+                  value={formData.category_id}
+                  onChange={(e) => setFormData({...formData, category_id: e.target.value})}
+                  className="w-full bg-slate-50 border border-slate-100 rounded-3xl px-8 py-5 text-sm font-black text-slate-900 outline-none appearance-none"
+                >
+                  <option value="">SCAN SECTORS...</option>
+                  {metadata.categories.map(cat => (
+                    <option key={cat.id} value={cat.id}>{cat.name.toUpperCase()}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Sub-Sector (Optional)</label>
+                <select 
+                  value={formData.sub_category_id}
+                  onChange={(e) => setFormData({...formData, sub_category_id: e.target.value})}
+                  className="w-full bg-slate-50 border border-slate-100 rounded-3xl px-8 py-5 text-sm font-black text-slate-900 outline-none appearance-none"
+                >
+                  <option value="">SCAN SUB-SECTORS...</option>
+                  {metadata.subCategories.length > 0 ? metadata.subCategories.map(sc => (
+                    <option key={sc.id} value={sc.id}>{sc.name.toUpperCase()}</option>
+                  )) : <option value="" disabled>NO SUB-SECTORS DETECTED</option>}
+                </select>
+              </div>
+
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Manufacturer Brand</label>
+                <select 
+                  value={formData.brand_id}
+                  onChange={(e) => setFormData({...formData, brand_id: e.target.value})}
+                  className="w-full bg-slate-50 border border-slate-100 rounded-3xl px-8 py-5 text-sm font-black text-slate-900 outline-none appearance-none"
+                >
+                  <option value="">SCAN BRANDS...</option>
+                  {metadata.brands.map(brand => (
+                    <option key={brand.id} value={brand.id}>{brand.name.toUpperCase()}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Part Provenance (Type)</label>
+                <div className="flex gap-2">
+                   {['OEM', 'Aftermarket', 'Refurbished'].map(type => (
+                     <button
+                       key={type}
+                       type="button"
+                       onClick={() => setFormData({...formData, part_type: type})}
+                       className={`flex-1 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${formData.part_type === type ? 'bg-primary-600 text-white shadow-xl shadow-primary-500/20' : 'bg-slate-50 text-slate-400 hover:bg-slate-100'}`}
+                     >
+                       {type}
+                     </button>
+                   ))}
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* ── 3. Compatibility Engine (Option B) ── */}
+          <section className="bg-white rounded-[40px] border border-slate-100 shadow-sm p-10 space-y-8">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-500 flex items-center justify-center">
+                <Monitor size={20} />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-slate-900">Compatibility Engine</h3>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">Vehicle fitment & model mapping</p>
               </div>
             </div>
 
             <div className="space-y-6">
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="flex-1">
-                    <input 
-                      type="text" 
-                      placeholder="Label (e.g., Material)" 
-                      value={specInput.key}
-                      onChange={(e) => setSpecInput({...specInput, key: e.target.value})}
-                      className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-xs font-bold text-slate-700 outline-none focus:border-primary-300"
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <input 
-                      type="text" 
-                      placeholder="Value (e.g., Carbon Steel)" 
-                      value={specInput.value}
-                      onChange={(e) => setSpecInput({...specInput, value: e.target.value})}
-                      className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-xs font-bold text-slate-700 outline-none focus:border-primary-300"
-                    />
-                    <button 
-                      type="button"
-                      onClick={addSpec}
-                      className="w-14 h-14 bg-primary-600 text-white rounded-2xl flex items-center justify-center hover:bg-primary-700 shadow-lg shadow-primary-500/20 active:scale-95 transition-all shrink-0"
-                    >
-                      <Plus size={20} />
-                    </button>
-                  </div>
-               </div>
+              <div className="relative group">
+                <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                <input 
+                  type="text" 
+                  placeholder="Search vehicles to link (e.g., Toyota Camry 2022)..."
+                  className="w-full bg-slate-50 border border-slate-100 rounded-3xl pl-16 pr-6 py-5 text-sm font-bold outline-none focus:bg-white focus:border-primary-500 transition-all"
+                />
+              </div>
 
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <AnimatePresence>
-                    {formData.specs.map((spec, idx) => (
-                      <motion.div 
-                        key={idx}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: 10 }}
-                        className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 group hover:shadow-lg transition-all"
-                      >
-                         <div className="flex flex-col">
-                            <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest">{spec.key}</span>
-                            <span className="text-xs font-black text-slate-900 uppercase italic">{spec.value}</span>
-                         </div>
-                         <button onClick={() => removeSpec(idx)} className="text-slate-300 hover:text-rose-500 transition-colors">
-                            <X size={16} />
-                         </button>
-                      </motion.div>
-                    ))}
-                  </AnimatePresence>
-               </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[300px] overflow-y-auto p-2 scrollbar-hide">
+                {metadata.vehicles.map(vehicle => {
+                  const isSelected = formData.vehicles.includes(vehicle.id);
+                  return (
+                    <button
+                      key={vehicle.id}
+                      onClick={() => {
+                        const newVehicles = isSelected 
+                          ? formData.vehicles.filter(id => id !== vehicle.id)
+                          : [...formData.vehicles, vehicle.id];
+                        setFormData({...formData, vehicles: newVehicles});
+                      }}
+                      className={`flex items-center justify-between p-5 rounded-[28px] border transition-all text-left group ${isSelected ? 'bg-primary-50 border-primary-200 ring-2 ring-primary-500/10' : 'bg-white border-slate-100 hover:border-slate-200'}`}
+                    >
+                      <div>
+                        <p className={`text-[10px] font-black uppercase tracking-widest ${isSelected ? 'text-primary-600' : 'text-slate-400'}`}>{vehicle.make}</p>
+                        <p className="text-sm font-black text-slate-900 uppercase">{vehicle.model}</p>
+                        <p className="text-[9px] font-bold text-slate-400 uppercase italic mt-0.5">{vehicle.year_from} - {vehicle.year_to} | {vehicle.engine_type}</p>
+                      </div>
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${isSelected ? 'bg-primary-600 text-white shadow-lg' : 'bg-slate-50 text-slate-300 group-hover:bg-slate-100'}`}>
+                        {isSelected ? <CheckCircle2 size={16} /> : <Plus size={16} />}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </section>
-        </div>
 
-        <div className="space-y-10">
-          {/* ── Commercials Section ── */}
+          {/* ── 4. Commercial Protocol Tier ── */}
           <section className="bg-white rounded-[40px] border border-slate-100 shadow-sm p-10 space-y-8">
             <div className="flex items-center gap-4">
               <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-500 flex items-center justify-center">
                 <DollarSign size={20} />
               </div>
-              <h3 className="text-lg font-black text-slate-900">Commercials</h3>
+              <div>
+                <h3 className="text-lg font-black text-slate-900">Commercial Protocol</h3>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">Multi-tier pricing & cost analytics</p>
+              </div>
             </div>
 
-            <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Retail Price (KES)</label>
-                <div className="relative ring-offset-2 focus-within:ring-2 focus-within:ring-primary-500 transition-all rounded-3xl">
-                   <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 font-black">KES</div>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Retail (Selling) Price</label>
+                <div className="relative">
+                   <span className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 font-black text-xs">KES</span>
                    <input 
                      type="number" 
-                     required
                      value={formData.price}
                      onChange={(e) => setFormData({...formData, price: e.target.value})}
-                     className="w-full bg-slate-50 border border-slate-100 rounded-3xl pl-16 pr-8 py-5 text-lg font-black text-slate-900 outline-none shadow-sm"
+                     className="w-full bg-slate-50 border border-slate-100 rounded-3xl pl-16 pr-6 py-5 text-sm font-black outline-none"
                      placeholder="0.00"
                    />
                 </div>
               </div>
 
               <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Active Inventory</label>
-                <input 
-                  type="number" 
-                  required
-                  value={formData.stock}
-                  onChange={(e) => setFormData({...formData, stock: e.target.value})}
-                  className="w-full bg-slate-50 border border-slate-100 rounded-3xl px-8 py-5 text-lg font-black text-slate-900 outline-none shadow-sm"
-                  placeholder="Items in stock"
-                />
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Discount Price</label>
+                <div className="relative">
+                   <span className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 font-black text-xs">KES</span>
+                   <input 
+                     type="number" 
+                     value={formData.discount_price}
+                     onChange={(e) => setFormData({...formData, discount_price: e.target.value})}
+                     className="w-full bg-slate-50 border border-slate-100 rounded-3xl pl-16 pr-6 py-5 text-sm font-black outline-none"
+                     placeholder="0.00"
+                   />
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Internal Cost Price</label>
+                <div className="relative">
+                   <span className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 font-black text-xs">KES</span>
+                   <input 
+                     type="number" 
+                     value={formData.cost_price}
+                     onChange={(e) => setFormData({...formData, cost_price: e.target.value})}
+                     className="w-full bg-slate-50 border border-slate-100 rounded-3xl pl-16 pr-6 py-5 text-sm font-black outline-none"
+                     placeholder="0.00"
+                   />
+                </div>
               </div>
             </div>
           </section>
 
-          {/* ── Compatibility Matrix ── */}
+          {/* ── 5. Logistics Dimensional Node ── */}
           <section className="bg-white rounded-[40px] border border-slate-100 shadow-sm p-10 space-y-8">
             <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-500 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center">
                 <Truck size={20} />
               </div>
-              <h3 className="text-lg font-black text-slate-900">Compatibility</h3>
+              <div>
+                <h3 className="text-lg font-black text-slate-900">Logistics Dimensions</h3>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">Physical attributes for delivery calculation</p>
+              </div>
             </div>
 
-            <div className="space-y-6">
-               <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Vehicle Match (Press Enter)</label>
-                  <input 
-                    type="text" 
-                    placeholder="e.g., Toyota Camry 2022" 
-                    value={compatibilityInput}
-                    onChange={(e) => setCompatibilityInput(e.target.value)}
-                    onKeyDown={addCompatibility}
-                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-xs font-black text-slate-900 outline-none focus:border-purple-300"
-                  />
-               </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+               {[
+                 { label: 'Weight (kg)', key: 'weight', icon: Activity },
+                 { label: 'Length (cm)', key: 'length', icon: Box },
+                 { label: 'Width (cm)', key: 'width', icon: Box },
+                 { label: 'Height (cm)', key: 'height', icon: Box },
+               ].map((dim) => (
+                 <div key={dim.key} className="space-y-3 bg-slate-50/50 p-6 rounded-[32px] border border-slate-100">
+                    <div className="flex items-center justify-between mb-2">
+                       <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{dim.label}</label>
+                       <dim.icon size={12} className="text-slate-300" />
+                    </div>
+                    <input 
+                      type="number" 
+                      value={formData[dim.key]}
+                      onChange={(e) => setFormData({...formData, [dim.key]: e.target.value})}
+                      className="w-full bg-transparent text-lg font-black text-slate-900 outline-none"
+                      placeholder="0.0"
+                    />
+                 </div>
+               ))}
+            </div>
+          </section>
+        </div>
 
-               <div className="flex flex-wrap gap-2">
-                 <AnimatePresence>
-                   {formData.compatibility.map((tag, idx) => (
-                     <motion.div 
-                       key={idx}
-                       initial={{ opacity: 0, scale: 0.8 }}
-                       animate={{ opacity: 1, scale: 1 }}
-                       exit={{ opacity: 0, scale: 0.8 }}
-                       className="px-4 py-2 bg-purple-50 border border-purple-100 text-purple-700 text-[10px] font-black uppercase tracking-widest rounded-xl flex items-center gap-2 group"
-                     >
-                        {tag}
-                        <button onClick={() => removeCompatibility(idx)} className="text-purple-300 hover:text-rose-500 transition-colors">
-                           <X size={12} />
-                        </button>
-                     </motion.div>
-                   ))}
-                 </AnimatePresence>
-                 {formData.compatibility.length === 0 && (
-                   <p className="text-[10px] font-bold text-slate-400 italic">No compatibility tags defined.</p>
-                 )}
-               </div>
+        <div className="lg:col-span-4 space-y-10">
+          
+          {/* ── 6. Visual Artifacts Hub ── */}
+          <section className="bg-white rounded-[40px] border border-slate-100 shadow-sm p-8 space-y-6">
+            <div className="flex items-center justify-between">
+               <h3 className="text-base font-black text-slate-900">Visual Artifacts</h3>
+               <Upload size={18} className="text-orange-500" />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+               {imagePreviews.map((url, idx) => (
+                 <div key={idx} className="aspect-square rounded-2xl overflow-hidden relative group border border-slate-100">
+                    <img src={url} className="w-full h-full object-cover transition-transform group-hover:scale-110" alt="" />
+                    <button 
+                      onClick={() => {
+                        setFormData(prev => ({ ...prev, gallery_images: prev.gallery_images.filter((_, i) => i !== idx) }));
+                        setImagePreviews(prev => prev.filter((_, i) => i !== idx));
+                      }}
+                      className="absolute top-2 right-2 w-7 h-7 bg-rose-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center shadow-lg"
+                    >
+                       <X size={14} />
+                    </button>
+                    {url === formData.main_image && (
+                      <div className="absolute inset-x-0 bottom-0 py-1.5 bg-primary-600/90 backdrop-blur-sm text-[8px] font-black text-white uppercase tracking-widest text-center">
+                        Main Visual
+                      </div>
+                    )}
+                    <button 
+                      onClick={() => setFormData({...formData, main_image: url})}
+                      className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[8px] font-black uppercase tracking-widest"
+                    >
+                      Set Primary
+                    </button>
+                 </div>
+               ))}
+               <label className="aspect-square rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-slate-50 hover:border-primary-200 transition-all group">
+                  <input type="file" multiple accept="image/*" onChange={handleImageUpload} className="hidden" />
+                  <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-400 group-hover:bg-primary-50 group-hover:text-primary-600 flex items-center justify-center transition-all">
+                    <Upload size={20} />
+                  </div>
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Add Media</span>
+               </label>
             </div>
           </section>
 
-          {/* ── Submission Hub ── */}
+          {/* ── 7. Identification Layer ── */}
+          <section className="bg-white rounded-[40px] border border-slate-100 shadow-sm p-8 space-y-6">
+             <div className="flex items-center gap-3">
+                <Info size={18} className="text-blue-500" />
+                <h3 className="text-base font-black text-slate-900 tracking-tight">Identification & OEM</h3>
+             </div>
+             
+             <div className="space-y-5">
+                {[
+                  { label: 'OEM Number (Global)', key: 'oem_number', placeholder: 'OEM-XXX-YYY' },
+                  { label: 'Part Number (Provider)', key: 'part_number', placeholder: 'PART-99-00' },
+                  { label: 'SKU / Barcode', key: 'sku', placeholder: 'SKU-SN-0000' },
+                ].map((field) => (
+                  <div key={field.key} className="space-y-2">
+                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 text-[8px]">{field.label}</label>
+                     <input 
+                       type="text" 
+                       value={formData[field.key]}
+                       onChange={(e) => setFormData({...formData, [field.key]: e.target.value})}
+                       placeholder={field.placeholder}
+                       className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-xs font-bold outline-none focus:bg-white focus:border-blue-400"
+                     />
+                  </div>
+                ))}
+             </div>
+          </section>
+
+          {/* ── 8. Inventory Protocols ── */}
+          <section className="bg-white rounded-[40px] border border-slate-100 shadow-sm p-8 space-y-6">
+             <div className="flex items-center justify-between">
+                <h3 className="text-base font-black text-slate-900 tracking-tight">Inventory Protocol</h3>
+                <Layers size={18} className="text-orange-500" />
+             </div>
+             
+             <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                   <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Stock Qty</label>
+                   <input 
+                     type="number" 
+                     value={formData.stock_quantity}
+                     onChange={(e) => setFormData({...formData, stock_quantity: e.target.value})}
+                     className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-black outline-none"
+                   />
+                </div>
+                <div className="space-y-2">
+                   <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Min Alert</label>
+                   <input 
+                     type="number" 
+                     value={formData.min_stock_level}
+                     onChange={(e) => setFormData({...formData, min_stock_level: e.target.value})}
+                     className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-sm font-black outline-none"
+                   />
+                </div>
+             </div>
+             <div className="space-y-2">
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Warehouse Node (Location)</label>
+                <input 
+                  type="text" 
+                  value={formData.warehouse_location}
+                  onChange={(e) => setFormData({...formData, warehouse_location: e.target.value})}
+                  placeholder="e.g., Aisle 4, Shelf B12"
+                  className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-xs font-bold outline-none"
+                />
+             </div>
+          </section>
+
+          {/* ── 9. Delivery & Install Hub ── */}
+          <section className="bg-slate-900 text-white rounded-[40px] p-8 space-y-8 relative overflow-hidden group">
+             <div className="absolute top-0 right-0 w-32 h-32 bg-primary-500/10 blur-3xl group-hover:bg-primary-500/20 transition-all duration-700" />
+             
+             <div className="flex items-center gap-3 relative z-10">
+                <div className="w-10 h-10 rounded-xl bg-primary-500 text-white flex items-center justify-center animate-pulse">
+                   <Truck size={20} />
+                </div>
+                <h3 className="text-base font-black tracking-tight uppercase tracking-widest">Fulfillment Strategy</h3>
+             </div>
+
+             <div className="space-y-6 relative z-10">
+                <div className="grid grid-cols-1 gap-3">
+                   {[
+                     { key: 'standard', label: 'Standard Fleet (3-5 Days)', icon: CornerDownRight },
+                     { key: 'express', label: 'Express Protocol (Next Day)', icon: Zap },
+                     { key: 'pickup', label: 'In-Store Artifact Pickup', icon: Package }
+                   ].map(option => (
+                     <button
+                       key={option.key}
+                       onClick={() => setFormData({
+                         ...formData, 
+                         delivery_meta: { ...formData.delivery_meta, [option.key]: !formData.delivery_meta[option.key] }
+                       })}
+                       className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${formData.delivery_meta[option.key] ? 'border-primary-500 bg-primary-500/10 text-white' : 'border-white/10 bg-white/5 text-slate-400 hover:bg-white/10'}`}
+                     >
+                        <div className="flex items-center gap-3">
+                           <option.icon size={14} className={formData.delivery_meta[option.key] ? 'text-primary-400' : 'text-slate-600'} />
+                           <span className="text-[10px] font-black uppercase tracking-widest">{option.label}</span>
+                        </div>
+                        {formData.delivery_meta[option.key] && <CheckCircle2 size={14} />}
+                     </button>
+                   ))}
+                </div>
+
+                <div className="pt-6 border-t border-white/10 space-y-4">
+                   <div 
+                     onClick={() => setFormData({...formData, installation_available: !formData.installation_available})}
+                     className="flex items-center justify-between cursor-pointer group/toggle"
+                   >
+                      <div className="flex flex-col">
+                         <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white">Garage Installation</span>
+                         <span className="text-[8px] font-bold text-slate-500 italic mt-0.5 uppercase">Professional fitment at checkout</span>
+                      </div>
+                      <div className={`w-12 h-6 rounded-full p-1 transition-all duration-300 ${formData.installation_available ? 'bg-emerald-500' : 'bg-slate-700'}`}>
+                         <motion.div 
+                           animate={{ x: formData.installation_available ? 24 : 0 }}
+                           className="w-4 h-4 bg-white rounded-full shadow-lg"
+                         />
+                      </div>
+                   </div>
+
+                   {formData.installation_available && (
+                      <motion.div initial={{ opacity: 0, scale:0.9 }} animate={{ opacity: 1, scale: 1 }} className="space-y-2">
+                         <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Installation Fee (KES)</label>
+                         <input 
+                           type="number" 
+                           value={formData.installation_price}
+                           onChange={(e) => setFormData({...formData, installation_price: e.target.value})}
+                           className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-sm font-black text-white outline-none focus:border-primary-500"
+                           placeholder="0.00"
+                         />
+                      </motion.div>
+                   )}
+                </div>
+             </div>
+          </section>
+
+          {/* ── Submission Command ── */}
           <div className="space-y-4">
              <button 
                onClick={handleSubmit}
-               disabled={loading || !formData.title || !formData.category_id || !formData.price || !formData.stock}
-               className="w-full py-6 bg-slate-900 text-white rounded-3xl text-xs font-black uppercase tracking-widest shadow-2xl shadow-slate-900/20 hover:scale-[1.02] active:scale-95 disabled:opacity-30 disabled:scale-100 transition-all flex items-center justify-center gap-3 relative overflow-hidden"
+               disabled={loading || !formData.product_name || !formData.category_id || !formData.price || !formData.stock_quantity}
+               className="w-full py-8 bg-slate-900 border border-white/10 text-white rounded-[40px] text-xs font-black uppercase tracking-[0.3em] shadow-2xl shadow-slate-950/40 hover:scale-[1.02] active:scale-95 disabled:opacity-30 disabled:scale-100 transition-all flex flex-col items-center justify-center gap-1 relative overflow-hidden"
              >
                 {loading ? (
-                   <div className="animate-spin rounded-full h-5 w-5 border-2 border-white/30 border-t-white" />
+                   <div className="animate-spin rounded-full h-6 w-6 border-2 border-white/30 border-t-white" />
                 ) : (
                   <>
-                    <CheckCircle2 size={18} /> {isEdit ? 'Update Artifact' : 'Deploy Listing'}
+                    <span className="text-white text-lg font-black tracking-tight">{isEdit ? 'REFRACTOR LISTING' : 'DEPLOY ARTIFACT'}</span>
+                    <span className="text-[8px] font-bold text-slate-500 tracking-[0.5em] group-hover:text-primary-400 transition-colors">INITIATE MARKETPLACE SYNC</span>
                   </>
                 )}
              </button>
-             <p className="text-[9px] font-bold text-slate-400 text-center uppercase tracking-widest leading-loose">
-               By {isEdit ? 'updating' : 'deploying'}, you verify that this unit meets all <span className="text-primary-600">SpareNova Intelligence Standards</span> and OEM authenticity protocols.
-             </p>
+             <div className="flex items-center gap-3 px-6 py-4 bg-slate-50 rounded-2xl border border-slate-100">
+                <ShieldCheck size={16} className="text-emerald-500" />
+                <p className="text-[8px] font-bold text-slate-400 text-center uppercase tracking-widest leading-loose">
+                  Institutional Governance: By deploying, you verify <span className="text-slate-900 font-black italic">authentic provenance</span> & cross-compatibility matrices.
+                </p>
+             </div>
           </div>
         </div>
       </div>

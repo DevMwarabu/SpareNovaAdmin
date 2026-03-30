@@ -42,10 +42,25 @@ const Reports = () => {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
+  const [isTaskSyncing, setIsTaskSyncing] = useState(false);
   const [toast, setToast] = useState(null);
+  
+  // Advanced Search Infrastructure
+  const [isFilterVisible, setIsFilterVisible] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [typeFilter, setTypeFilter] = useState('All');
+  
   const [isAnalysisModalOpen, setIsAnalysisModalOpen] = useState(false);
   const [analysisForm, setAnalysisForm] = useState({ name: '', interval: 'DAILY', type: 'Financial' });
   const [generatedAsset, setGeneratedAsset] = useState(null);
+
+  const filteredReports = React.useMemo(() => {
+    return (reports || []).filter(r => {
+      const matchesSearch = r.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesType = typeFilter === 'All' || r.type === typeFilter;
+      return matchesSearch && matchesType;
+    });
+  }, [reports, searchQuery, typeFilter]);
 
   const API_BASE = 'http://localhost:8003/api/v1';
 
@@ -78,29 +93,49 @@ const Reports = () => {
       setIsExporting(report.id);
       const token = localStorage.getItem('token');
       const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+      
+      // Upgrade: Handling Dynamic Data Stream Protocol
       const res = await axios.get(`${API_BASE}/portal/reports/export`, { 
         params: { id: report.id },
-        headers 
+        headers,
+        responseType: 'blob' // Essential for streamable assets
       });
-      if (res.data.success) {
-         setGeneratedAsset({
-           name: report.name,
-           url: res.data.download_url,
-           metadata: res.data.metadata
-         });
-         showToast(`Branded Executive Asset Generated`, 'emerald');
-      }
+
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `${report.name.replace(/\s+/g, '_')}_Tactical_Asset.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      
+      showToast(`Branded Tactical Asset Synchronized`, 'emerald');
     } catch (err) {
+      console.error('Export Protocol Failure:', err);
       showToast('Export Protocol Failed', 'rose');
     } finally {
       setIsExporting(false);
     }
   };
 
-  const handleSaveAnalysisTask = () => {
-    showToast('Analytical Task Synchronized', 'indigo');
-    setIsAnalysisModalOpen(false);
-    fetchData();
+  const handleSaveAnalysisTask = async () => {
+    try {
+      setIsTaskSyncing(true);
+      const token = localStorage.getItem('token');
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+      
+      const res = await axios.post(`${API_BASE}/portal/reports/task`, analysisForm, { headers });
+      
+      if (res.data.success) {
+        showToast('Analytical Task Synchronized', 'indigo');
+        setIsAnalysisModalOpen(false);
+        fetchData();
+      }
+    } catch (err) {
+      showToast('Task Synchronization Failed', 'rose');
+    } finally {
+      setIsTaskSyncing(false);
+    }
   };
 
   useEffect(() => {
@@ -271,25 +306,69 @@ const Reports = () => {
                </div>
                Executive Branded Asset Inventory
             </h3>
-            <div className="flex gap-3">
-               <button 
-                 onClick={fetchData}
-                 className="p-3 bg-slate-50 text-slate-400 hover:text-indigo-600 rounded-xl transition-all shadow-sm"
-               >
-                  <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
-               </button>
-               <button 
-                 onClick={() => setIsAnalysisModalOpen(true)}
-                 className="bg-slate-900 text-white px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl hover:scale-105 transition-all active:scale-95 flex items-center gap-3 italic"
-               >
-                  <Plus size={18} /> New Analysis Task
-               </button>
+            <div className="flex flex-col gap-4">
+               <div className="flex gap-3">
+                  <div className="relative group flex-1">
+                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-hover:text-indigo-600 transition-colors" size={16} />
+                     <input 
+                       type="text" 
+                       placeholder="SEARCH ASSET INVENTORY..." 
+                       value={searchQuery}
+                       onChange={(e) => setSearchQuery(e.target.value)}
+                       className="bg-slate-50 pl-12 pr-6 py-4 rounded-2xl text-[10px] font-black tracking-widest border border-transparent focus:bg-white focus:border-indigo-100 transition-all outline-none w-full uppercase"
+                     />
+                  </div>
+                  <button 
+                    onClick={() => setIsFilterVisible(!isFilterVisible)}
+                    className={`p-4 rounded-xl transition-all border ${isFilterVisible ? 'bg-indigo-600 text-white border-indigo-600 shadow-xl shadow-indigo-600/20' : 'bg-slate-50 text-slate-400 border-transparent hover:border-indigo-100'}`}
+                  >
+                     <Filter size={18} />
+                  </button>
+                  <button 
+                    onClick={() => setIsAnalysisModalOpen(true)}
+                    className="bg-slate-900 text-white px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl hover:scale-105 transition-all active:scale-95 flex items-center gap-3 italic"
+                  >
+                     <Plus size={18} /> New Analysis Task
+                  </button>
+               </div>
+
+               <AnimatePresence>
+                  {isFilterVisible && (
+                     <motion.div 
+                       initial={{ height: 0, opacity: 0 }}
+                       animate={{ height: 'auto', opacity: 1 }}
+                       exit={{ height: 0, opacity: 0 }}
+                       className="overflow-hidden"
+                     >
+                        <div className="p-6 bg-slate-50/50 rounded-3xl border border-slate-100 flex items-center gap-4">
+                           <p className="text-[10px] font-black uppercase text-slate-400 italic">Sector Classification</p>
+                           <div className="flex gap-2">
+                              {['All', 'Financial', 'Logistics', 'Strategic', 'Inventory'].map(type => (
+                                 <button 
+                                   key={type}
+                                   onClick={() => setTypeFilter(type)}
+                                   className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase italic transition-all ${typeFilter === type ? 'bg-slate-900 text-white' : 'bg-white text-slate-400 hover:bg-slate-100'}`}
+                                 >
+                                    {type}
+                                 </button>
+                              ))}
+                           </div>
+                           <button 
+                             onClick={() => { setSearchQuery(''); setTypeFilter('All'); }}
+                             className="ml-auto text-[9px] font-black uppercase text-rose-500 italic hover:underline"
+                           >
+                              Reset Access
+                           </button>
+                        </div>
+                     </motion.div>
+                  )}
+               </AnimatePresence>
             </div>
         </div>
         
         <div className="divide-y divide-slate-50">
-           {reports.map((r) => (
-             <div key={r.id} className="p-10 hover:bg-slate-50/50 transition-all group flex items-center justify-between">
+           {filteredReports.map((r) => (
+             <div key={r.id} className="p-10 hover:bg-slate-50/50 transition-all group flex items-center justify-between border-b border-slate-50 last:border-0">
                 <div className="flex items-center gap-10">
                    <div className="relative">
                       <div className="w-16 h-16 bg-slate-100 rounded-[28px] flex items-center justify-center text-slate-300 group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-inner group-hover:shadow-indigo-500/30 group-hover:scale-110">
@@ -312,15 +391,15 @@ const Reports = () => {
                   disabled={isExporting === r.id}
                   className="flex items-center gap-3 px-8 py-4 bg-white border-2 border-slate-100 rounded-[24px] text-[10px] font-black uppercase tracking-widest text-slate-700 hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all active:scale-95 shadow-xl shadow-slate-200/40 relative overflow-hidden"
                 >
-                   {isExporting === r.id ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
-                   {isExporting === r.id ? 'Securing Asset...' : 'Branded PDF Protocol'}
+                   {isExporting === r.id ? <Loader2 size={16} className="animate-spin text-indigo-600" /> : <Download size={16} />}
+                   {isExporting === r.id ? 'GENERATING...' : 'BRANDED ASSET'}
                 </button>
              </div>
            ))}
-           {reports.length === 0 && !loading && (
+           {filteredReports.length === 0 && !loading && (
              <div className="py-32 text-center text-slate-400 italic">
                 <BarChart3 size={48} className="mx-auto mb-4 opacity-20" />
-                <p className="text-[10px] font-black uppercase tracking-widest italic">Inventory Protocol Null: No Branded Assets Synchronized</p>
+                <p className="text-[10px] font-black uppercase tracking-widest italic animate-pulse">Inventory Registry Null: No Assets Match Analysis Sector</p>
              </div>
            )}
         </div>
@@ -401,7 +480,13 @@ const Reports = () => {
 
               <div className="mt-12 flex gap-4">
                 <button onClick={() => setIsAnalysisModalOpen(false)} className="flex-1 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-900 transition-all">Abort Synchronization</button>
-                <button onClick={handleSaveAnalysisTask} className="flex-1 bg-slate-900 text-white rounded-[24px] py-4 text-[10px] font-black uppercase tracking-widest shadow-xl shadow-slate-900/20 hover:scale-105 transition-all outline-none border-t border-white/10">Authorize Analysis</button>
+                <button 
+                  onClick={handleSaveAnalysisTask} 
+                  disabled={isTaskSyncing}
+                  className="flex-1 bg-slate-900 text-white rounded-[24px] py-4 text-[10px] font-black uppercase tracking-widest shadow-xl shadow-slate-900/20 hover:scale-105 transition-all outline-none border-t border-white/10 disabled:opacity-50"
+                >
+                  {isTaskSyncing ? <Loader2 size={14} className="animate-spin mx-auto" /> : 'Authorize Analysis'}
+                </button>
               </div>
             </motion.div>
           </div>
