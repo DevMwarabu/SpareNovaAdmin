@@ -101,9 +101,10 @@ const Settings = () => {
 
   const addArrayItem = (key, template) => {
     const newArray = [...(settings[key] || [])];
-    newArray.push(template);
+    newArray.unshift(template);
     setSettings(prev => ({ ...prev, [key]: newArray }));
   };
+
 
   const removeArrayItem = (key, index) => {
     const newArray = (settings[key] || []).filter((_, i) => i !== index);
