@@ -64,7 +64,13 @@ const Settings = () => {
     try {
       setLoading(true);
       const response = await axios.get(`${API_BASE}/admin/settings`);
-      setSettings(response.data.settings || {});
+      const fetchedSettings = response.data.settings || {};
+      
+      // Inject Industrial Gmail Defaults if missing
+      if (!fetchedSettings.mail_host) fetchedSettings.mail_host = 'smtp.gmail.com';
+      if (!fetchedSettings.mail_port) fetchedSettings.mail_port = '587';
+      
+      setSettings(fetchedSettings);
     } catch (error) {
       console.error('Error fetching settings:', error);
       showToast('Could not load settings', 'error');
@@ -372,10 +378,8 @@ const Settings = () => {
                     <section className="space-y-8 p-10 bg-sky-50/30 rounded-[40px] border border-sky-100">
                        <h3 className="text-xl font-black text-slate-900 italic uppercase underline decoration-sky-500/30 underline-offset-8">Global Email Infrastructure</h3>
                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                          <Field label="SMTP Username" value={settings.mail_username} onChange={(v)=>handleChange('mail_username', v)}/>
-                          <Field label="SMTP Password" type="password" value={settings.mail_password} onChange={(v)=>handleChange('mail_password', v)}/>
-                          <Field label="SMTP Host" value={settings.mail_host} onChange={(v)=>handleChange('mail_host', v)}/>
-                          <Field label="SMTP Port" value={settings.mail_port} onChange={(v)=>handleChange('mail_port', v)}/>
+                          <Field label="Gmail Address" value={settings.mail_username} onChange={(v)=>handleChange('mail_username', v)} placeholder="e.g. system@gmail.com"/>
+                          <Field label="App Password" type="password" value={settings.mail_password} onChange={(v)=>handleChange('mail_password', v)} placeholder="16-character google app password"/>
                           <div className="md:col-span-2 p-8 bg-white rounded-[28px] border border-dashed border-sky-200 flex flex-col md:flex-row justify-between items-center gap-6 shadow-sm">
                              <div className="space-y-1">
                                 <p className="text-[10px] font-black uppercase text-slate-900 italic tracking-widest underline decoration-sky-500/20 underline-offset-4">Transactional Content Management</p>
@@ -395,15 +399,26 @@ const Settings = () => {
                            <button onClick={()=>addArrayItem('home_slider_slides', {title:'', image_url:'', link_url:'', source_type: 'product'})} className="bg-slate-950 text-white px-5 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 hover:scale-105 active:scale-95 transition-all"><Plus size={14}/> New Promo Node</button>
                          </div>
                          <div className="space-y-6 pt-4">
-                           {(settings.home_slider_slides || []).map((slide, i) => (
-                             <SlideSourcePicker 
-                               key={i} 
-                               slide={slide} 
-                               onRemove={() => removeArrayItem('home_slider_slides', i)}
-                               onChange={(field, val) => handleArrayChange('home_slider_slides', i, field, val)}
-                             />
-                           ))}
+                           <AnimatePresence mode="popLayout">
+                             {(settings.home_slider_slides || []).map((slide, i) => (
+                               <motion.div 
+                                 key={i}
+                                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                                 animate={{ opacity: 1, scale: 1, y: 0 }}
+                                 exit={{ opacity: 0, scale: 0.9, y: -20, height: 0, marginBottom: 0, overflow: 'hidden' }}
+                                 transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                               >
+                                 <SlideSourcePicker 
+                                   slide={slide} 
+                                   onRemove={() => removeArrayItem('home_slider_slides', i)}
+                                   onChange={(field, val) => handleArrayChange('home_slider_slides', i, field, val)}
+                                   onSync={handleSave}
+                                 />
+                               </motion.div>
+                             ))}
+                           </AnimatePresence>
                            {(!settings.home_slider_slides || settings.home_slider_slides.length === 0) && (
+
                               <div className="h-40 border-2 border-dashed border-slate-100 rounded-[40px] flex items-center justify-center bg-slate-50/50">
                                  <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest italic">No promotional assets staged for deployment</p>
                               </div>
@@ -507,11 +522,12 @@ const LogoPicker = ({ value, onChange }) => {
   );
 };
 
-const SlideSourcePicker = ({ slide, onRemove, onChange }) => {
+const SlideSourcePicker = ({ slide, onRemove, onChange, onSync }) => {
   const [showCatalog, setShowCatalog] = useState(false);
   const [catalog, setCatalog] = useState([]);
   const [search, setSearch] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [imgError, setImgError] = useState(false);
   const fileInputRef = useRef(null);
 
   const sourceType = slide.source_type || 'custom';
@@ -519,6 +535,10 @@ const SlideSourcePicker = ({ slide, onRemove, onChange }) => {
   useEffect(() => {
     if (showCatalog) fetchCatalog();
   }, [showCatalog]);
+
+  useEffect(() => {
+    setImgError(false);
+  }, [slide.image_url]);
 
   const fetchCatalog = async () => {
     try {
@@ -551,11 +571,18 @@ const SlideSourcePicker = ({ slide, onRemove, onChange }) => {
        <div className="flex flex-col md:flex-row gap-10">
           <div className="w-full md:w-64 space-y-4">
              <div className="h-44 bg-slate-100 rounded-[32px] overflow-hidden border border-slate-200 relative group/preview">
-                {slide.image_url ? (
-                  <img src={slide.image_url} className="w-full h-full object-cover" alt="Slide" />
+                {slide.image_url && !imgError ? (
+                  <img 
+                    src={slide.image_url} 
+                    className="w-full h-full object-cover" 
+                    alt="Slide" 
+                    onError={() => setImgError(true)}
+                  />
                 ) : (
-                  <div className="w-full h-full flex flex-col items-center justify-center gap-3">
-                     <ImageIcon size={32} className="text-slate-300" />
+                  <div className="w-full h-full flex flex-col items-center justify-center gap-3 bg-slate-50">
+                     <div className="p-4 bg-white rounded-2xl shadow-sm border border-slate-100 text-slate-200 group-hover/preview:scale-110 transition-transform">
+                        <ImageIcon size={32} />
+                     </div>
                      <p className="text-[8px] font-black uppercase text-slate-400 tracking-widest text-center px-6 italic opacity-60">Asset Placeholder</p>
                   </div>
                 )}
@@ -633,7 +660,12 @@ const SlideSourcePicker = ({ slide, onRemove, onChange }) => {
                    <p className="text-[10px] font-black uppercase tracking-[0.2em] italic opacity-60">Strategic Placement</p>
                    <p className="text-xs font-black text-indigo-100">This promo node will be injected into the Landing Matrix Slider without temporal expiration.</p>
                 </div>
-                <button className="px-5 py-2.5 bg-white text-indigo-900 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-xl hover:scale-105 transition-all relative z-10">Live Site Sync</button>
+                <button 
+                  onClick={onSync}
+                  className="px-5 py-2.5 bg-white text-indigo-900 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-xl hover:scale-105 active:scale-95 transition-all relative z-10"
+                >
+                  Live Site Sync
+                </button>
              </div>
           </div>
        </div>
