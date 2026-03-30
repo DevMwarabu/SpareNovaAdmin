@@ -390,7 +390,16 @@ const RegisterPartner = () => {
                         <AlertCircle size={14} /> Password does not meet all requirements
                       </p>
                     )}
-                    <div className="ml-auto">
+                    <div className="ml-auto flex items-center gap-4">
+                      <button 
+                        type="button"
+                        onClick={() => window.location.href = `${API_BASE}/auth/google?role=${role}`}
+                        className="px-8 bg-white border-2 border-slate-100 text-slate-900 font-black py-5 rounded-[24px] flex items-center gap-3 hover:border-primary-100 hover:bg-primary-50/10 transition-all shadow-sm active:scale-[0.98] uppercase tracking-widest text-[10px]"
+                      >
+                        <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" className="w-4 h-4" alt="Google" />
+                        Register with Google
+                      </button>
+
                       <button onClick={() => setStep(2)} disabled={!canProceed}
                         className="group px-10 bg-primary-600 text-white font-black py-5 rounded-[24px] flex items-center gap-3 hover:bg-primary-700 transition-all shadow-2xl shadow-primary-500/30 disabled:opacity-40 disabled:shadow-none disabled:cursor-not-allowed">
                         Next: Verification Assets <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />

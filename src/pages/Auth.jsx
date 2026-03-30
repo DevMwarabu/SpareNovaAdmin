@@ -105,6 +105,22 @@ const Auth = () => {
     }
   };
 
+  const handleGoogleLogin = (targetRole = 'customer') => {
+    window.location.href = `${API_BASE}/auth/google?role=${targetRole}`;
+  };
+
+  useEffect(() => {
+    const token = searchParams.get('token');
+    const name = searchParams.get('name');
+    const role = searchParams.get('role');
+
+    if (token) {
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify({ name, role }));
+      window.location.href = '/admin';
+    }
+  }, [searchParams]);
+
   const submitRegistration = async () => {
     setLoading(true);
     try {
@@ -570,13 +586,27 @@ const Auth = () => {
                     </div>
                   </Field>
 
-                  <div className="pt-4">
+                  <div className="pt-4 space-y-4">
                     <button
                       type="submit"
                       disabled={loading || !formData.email || !formData.password}
                       className="w-full bg-slate-950 text-white font-black py-5 rounded-[24px] flex items-center justify-center gap-3 hover:bg-black transition-all shadow-2xl shadow-slate-950/20 disabled:opacity-50 uppercase tracking-widest text-xs"
                     >
                       {loading ? <Loader2 className="animate-spin" size={20} /> : <>Initiate Access <ArrowRight size={20} /></>}
+                    </button>
+
+                    <div className="relative py-4">
+                      <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-100"></div></div>
+                      <div className="relative flex justify-center text-[8px] font-black uppercase tracking-[0.3em]"><span className="bg-white px-4 text-slate-300">Social Identity Gateway</span></div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => handleGoogleLogin('admin')}
+                      className="w-full bg-white border-2 border-slate-100 text-slate-900 font-black py-5 rounded-[24px] flex items-center justify-center gap-4 hover:border-primary-100 hover:bg-primary-50/10 transition-all shadow-sm active:scale-[0.98] uppercase tracking-widest text-xs"
+                    >
+                      <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" className="w-5 h-5" alt="Google" />
+                      Continue with Google
                     </button>
                   </div>
                 </form>

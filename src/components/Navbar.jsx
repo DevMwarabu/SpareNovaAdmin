@@ -297,7 +297,7 @@ const Navbar = () => {
                 <div className="space-y-2">
                   {[
                     { label: 'Governance Identity', icon: UserCircle, action: () => navigate('/admin/users'), col: 'slate' },
-                    { label: 'System Configuration', icon: Settings, action: () => {}, col: 'slate' },
+                    { label: 'System Configuration', icon: Settings, action: () => navigate('/admin/settings'), col: 'slate' },
                   ].map((item, i) => (
                     <button 
                       key={i} 
