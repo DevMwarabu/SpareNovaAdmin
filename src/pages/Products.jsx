@@ -66,7 +66,9 @@ const Products = () => {
   // 1. Fetch Overview Analytics
   const fetchOverview = async () => {
     try {
-      const res = await axios.get(`${API_BASE}/portal/products/overview`);
+      const token = localStorage.getItem('token');
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+      const res = await axios.get(`${API_BASE}/portal/products/overview`, { headers });
       if (res.data.success) {
         setData({ stats: res.data.stats, charts: res.data.charts });
       }
@@ -95,6 +97,8 @@ const Products = () => {
       if (isRefresh) setRefreshing(true);
       else setLoading(true);
       
+      const token = localStorage.getItem('token');
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
       const res = await axios.get(`${API_BASE}/portal/products`, {
         params: { 
           search: searchTerm, 
@@ -105,7 +109,8 @@ const Products = () => {
           min_price: advancedFilters.minPrice,
           max_price: advancedFilters.maxPrice,
           stock_status: advancedFilters.stockStatus
-        }
+        },
+        headers
       });
       if (res.data.success) {
         setProducts(res.data.data);
@@ -142,6 +147,8 @@ const Products = () => {
       setExportLoading(true);
       showToast('Generating Universal CSV Report...', 'info');
       
+      const token = localStorage.getItem('token');
+      const authHeaders = token ? { 'Authorization': `Bearer ${token}` } : {};
       const res = await axios.get(`${API_BASE}/portal/products/export`, {
         params: { 
           search: searchTerm, 
@@ -150,7 +157,8 @@ const Products = () => {
           min_price: advancedFilters.minPrice,
           max_price: advancedFilters.maxPrice,
           stock_status: advancedFilters.stockStatus
-        }
+        },
+        headers: authHeaders
       });
 
       if (!res.data.success) throw new Error('Export failed');
@@ -236,7 +244,9 @@ const Products = () => {
 
   const handleViewDetails = async (id) => {
     try {
-      const res = await axios.get(`${API_BASE}/portal/products/${id}`);
+      const token = localStorage.getItem('token');
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+      const res = await axios.get(`${API_BASE}/portal/products/${id}`, { headers });
       if (res.data.success) {
         setCurrentProduct(res.data.product);
         setMainImage(res.data.product.image); // Reset main image toggle
@@ -288,13 +298,16 @@ const Products = () => {
         method = 'put';
       }
 
+      const token = localStorage.getItem('token');
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
       const res = await axios({
         method,
         url,
         data: { 
           template_id: selectedTemplateId,
           status: 'pending' // Flag/Deactivate both use pending status
-        }
+        },
+        headers
       });
 
       if (res.data.success) {
@@ -316,7 +329,9 @@ const Products = () => {
     fetchOverview();
     const fetchTemplates = async () => {
       try {
-        const res = await axios.get(`${API_BASE}/portal/products/templates`);
+        const token = localStorage.getItem('token');
+        const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+        const res = await axios.get(`${API_BASE}/portal/products/templates`, { headers });
         if (res.data.success) {
           setAdminTemplates(res.data.data);
         }
@@ -336,7 +351,9 @@ const Products = () => {
 
   const handleStatusUpdate = async (id, newStatus) => {
     try {
-      const res = await axios.put(`${API_BASE}/portal/products/${id}/status`, { status: newStatus });
+      const token = localStorage.getItem('token');
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+      const res = await axios.put(`${API_BASE}/portal/products/${id}/status`, { status: newStatus }, { headers });
       if (res.data.success) {
         fetchProducts();
         fetchOverview();

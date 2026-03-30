@@ -94,6 +94,8 @@ const Offers = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
+      const token = localStorage.getItem('token');
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
       const res = await axios.get(`${API_BASE}/portal/promotions`, {
         params: { 
           search: searchTerm, 
@@ -102,7 +104,8 @@ const Offers = () => {
           date_range: dateRange,
           page: currentPage, 
           per_page: 8 
-        }
+        },
+        headers
       });
       if (res.data.success) {
         setPromotions(res.data.data);
@@ -119,7 +122,9 @@ const Offers = () => {
 
   const fetchTemplates = async () => {
     try {
-      const res = await axios.get(`${API_BASE}/portal/promotions/templates`);
+      const token = localStorage.getItem('token');
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+      const res = await axios.get(`${API_BASE}/portal/promotions/templates`, { headers });
       if (res.data.success) {
         setAdminTemplates(res.data.data);
       }
@@ -131,7 +136,9 @@ const Offers = () => {
   const openDetails = async (id) => {
     try {
       setIsDetailLoading(id);
-      const res = await axios.get(`${API_BASE}/portal/promotions/${id}`);
+      const token = localStorage.getItem('token');
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+      const res = await axios.get(`${API_BASE}/portal/promotions/${id}`, { headers });
       if (res.data.success) {
         setSelectedPromo(res.data.data);
         setIsModalOpen(true);
@@ -161,11 +168,13 @@ const Offers = () => {
   const executeAdminAction = async () => {
     try {
       setLoading(true);
+      const token = localStorage.getItem('token');
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
       const statusMap = { 'approve': 'active', 'reject': 'rejected', 'expire': 'expired' };
       const res = await axios.put(`${API_BASE}/portal/promotions/${targetPromoId}/status`, {
         status: statusMap[actionType],
         template_id: selectedTemplateId
-      });
+      }, { headers });
       
       if (res.data.success) {
         setIsAdminActionOpen(false);

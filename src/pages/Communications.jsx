@@ -71,7 +71,13 @@ const Communications = () => {
   const fetchNotifications = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API_BASE}/portal/notifications`);
+      const token = localStorage.getItem('token');
+      const res = await axios.get(`${API_BASE}/portal/notifications`, {
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
+      });
       if (res.data.success) {
         setNotifications(res.data.data);
       }
@@ -86,7 +92,13 @@ const Communications = () => {
   const fetchTemplates = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API_BASE}/portal/email-templates`);
+      const token = localStorage.getItem('token');
+      const res = await axios.get(`${API_BASE}/portal/email-templates`, {
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
+      });
       if (res.data.success) {
         setTemplates(res.data.data);
       }
@@ -107,7 +119,13 @@ const Communications = () => {
     e.preventDefault();
     try {
       setLoading(true);
-      const res = await axios.post(`${API_BASE}/portal/notifications`, formData);
+      const token = localStorage.getItem('token');
+      const res = await axios.post(`${API_BASE}/portal/notifications`, formData, {
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
+      });
       if (res.data.success) {
         setShowModal(false);
         fetchNotifications();
@@ -126,9 +144,14 @@ const Communications = () => {
     try {
       setLoading(true);
       const isEdit = !!templateData.id;
+      const token = localStorage.getItem('token');
+      const headers = { 
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json'
+      };
       const res = isEdit 
-        ? await axios.put(`${API_BASE}/portal/email-templates/${templateData.id}`, templateData)
-        : await axios.post(`${API_BASE}/portal/email-templates`, templateData);
+        ? await axios.put(`${API_BASE}/portal/email-templates/${templateData.id}`, templateData, { headers })
+        : await axios.post(`${API_BASE}/portal/email-templates`, templateData, { headers });
       
       if (res.data.success) {
         setShowTemplateModal(false);
@@ -152,7 +175,13 @@ const Communications = () => {
       onConfirm: async () => {
         try {
           setLoading(true);
-          await axios.delete(`${API_BASE}/portal/email-templates/${id}`);
+          const token = localStorage.getItem('token');
+          await axios.delete(`${API_BASE}/portal/email-templates/${id}`, {
+            headers: { 
+              'Authorization': `Bearer ${token}`,
+              'Accept': 'application/json'
+            }
+          });
           fetchTemplates();
           showToast('Protocol decommissioned', 'success');
         } catch (err) {

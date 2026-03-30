@@ -33,6 +33,7 @@ const Inventory = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
+      const token = localStorage.getItem('token');
       const res = await axios.get(`${API_BASE}/portal/inventory`, {
         params: { 
           search: searchTerm, 
@@ -41,6 +42,10 @@ const Inventory = () => {
           status: filterStatus,
           min_price: minPrice,
           max_price: maxPrice
+        },
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
         }
       });
       if (res.data.success) {

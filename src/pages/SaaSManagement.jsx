@@ -81,8 +81,11 @@ const SaaSManagement = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
+      const token = localStorage.getItem('token');
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
       const res = await axios.get(`${API_BASE}/portal/saas`, {
-        params: { status: filterStatus, page: currentPage, per_page: 8 }
+        params: { status: filterStatus, page: currentPage, per_page: 8 },
+        headers
       });
       if (res.data.success) {
         setSubscriptions(res.data.data);
@@ -102,7 +105,9 @@ const SaaSManagement = () => {
 
   const fetchTemplates = async () => {
     try {
-      const res = await axios.get(`${API_BASE}/portal/email-templates`);
+      const token = localStorage.getItem('token');
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+      const res = await axios.get(`${API_BASE}/portal/email-templates`, { headers });
       if (res.data.success) {
         setAdminTemplates(res.data.data);
       }
@@ -125,10 +130,12 @@ const SaaSManagement = () => {
   const executeAdminAction = async () => {
     try {
       setLoading(true);
+      const token = localStorage.getItem('token');
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
       const res = await axios.put(`${API_BASE}/portal/saas/${targetSubId}/status`, {
         status: actionType,
         template_id: selectedTemplateId
-      });
+      }, { headers });
       
       if (res.data.success) {
         setIsAdminActionOpen(false);
@@ -146,7 +153,9 @@ const SaaSManagement = () => {
   const executeCreateAction = async () => {
     try {
       setCreateLoading(true);
-      const res = await axios.post(`${API_BASE}/portal/saas`, newSub);
+      const token = localStorage.getItem('token');
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+      const res = await axios.post(`${API_BASE}/portal/saas`, newSub, { headers });
       if (res.data.success) {
         setIsCreateDrawerOpen(false);
         showToast('Monetization Node instantiated successfully.', 'emerald');

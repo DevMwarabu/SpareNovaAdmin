@@ -119,13 +119,14 @@ const VendorDashboard = () => {
 
   useEffect(() => {
     fetchDashboardData();
-  }, []);
+  }, [activeInterval]);
 
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await axios.get(`${API_BASE}/dashboard/vendor`, {
+      const days = activeInterval === '7d' ? 7 : 30;
+      const response = await axios.get(`${API_BASE}/dashboard/vendor?days=${days}`, {
         headers: { 
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json'

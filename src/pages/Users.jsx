@@ -34,18 +34,24 @@ const Users = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState(null);
   
-  // Drawer State
+  // Drawer & Modal State
   const [selectedUser, setSelectedUser] = useState(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [suspendModalUser, setSuspendModalUser] = useState(null);
+  const [addForm, setAddForm] = useState({ name: '', email: '', password: '', role: 'store_staff' });
+  const [isAdding, setIsAdding] = useState(false);
 
   const API_BASE = 'http://localhost:8003/api/v1';
 
   const fetchData = async () => {
     try {
       setLoading(true);
+      const token = localStorage.getItem('token');
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
       const res = await axios.get(`${API_BASE}/portal/users`, {
-        params: { search: searchTerm, role: filterRole, status: filterStatus, page: currentPage, per_page: 8 }
+        params: { search: searchTerm, role: filterRole, status: filterStatus, page: currentPage, per_page: 8 },
+        headers
       });
       if (res.data.success) {
         setUsers(res.data.data);
@@ -56,6 +62,25 @@ const Users = () => {
       console.error(`Failed to fetch users:`, err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAddStaff = async (e) => {
+    e.preventDefault();
+    try {
+      setIsAdding(true);
+      const token = localStorage.getItem('token');
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+      const res = await axios.post(`${API_BASE}/portal/users/staff`, addForm, { headers });
+      if (res.data.success) {
+        setIsAddModalOpen(false);
+        setAddForm({ name: '', email: '', password: '', role: 'store_staff' });
+        fetchData();
+      }
+    } catch (err) {
+      alert(err.response?.data?.message || 'Provisioning failed');
+    } finally {
+      setIsAdding(false);
     }
   };
 
@@ -87,7 +112,9 @@ const Users = () => {
 
   const handleStatusUpdate = async (id, newStatus) => {
     try {
-      const res = await axios.put(`${API_BASE}/portal/users/${id}/status`, { status: newStatus });
+      const token = localStorage.getItem('token');
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+      const res = await axios.put(`${API_BASE}/portal/users/${id}/status`, { status: newStatus }, { headers });
       if (res.data.success) {
         fetchData();
       } else {
@@ -114,7 +141,10 @@ const Users = () => {
              {isInstitutional ? 'Manage technical staff and verified customer principal nodes.' : 'Configure global user roles, permissions and ecosystem access.'}
           </p>
         </div>
-        <button className="bg-slate-900 text-white px-8 py-3.5 rounded-2xl text-[10px] font-black shadow-2xl shadow-slate-900/20 hover:bg-slate-800 flex items-center gap-3 transition-all active:scale-95 uppercase tracking-widest italic">
+        <button 
+          onClick={() => setIsAddModalOpen(true)}
+          className="bg-slate-900 text-white px-8 py-3.5 rounded-2xl text-[10px] font-black shadow-2xl shadow-slate-900/20 hover:bg-slate-800 flex items-center gap-3 transition-all active:scale-95 uppercase tracking-widest italic"
+        >
            <UserPlus size={18} /> {isInstitutional ? 'Add Institutional Staff' : 'Generate Platform Node'}
         </button>
       </div>
@@ -441,6 +471,101 @@ const Users = () => {
                     </div>
                   </div>
                </div>
+             </motion.div>
+           </>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isAddModalOpen && (
+           <>
+             {/* Modal Backdrop */}
+             <motion.div 
+               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+               className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
+             >
+               {/* Modal Card */}
+               <motion.div 
+                 initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                 className="bg-white rounded-[40px] w-full max-w-lg p-10 shadow-2xl relative overflow-hidden border border-white"
+               >
+                 <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-purple-500 to-indigo-400"></div>
+                 <div className="flex items-center gap-5 mb-8">
+                    <div className="w-14 h-14 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-500 shadow-inner">
+                       <UserPlus size={28} />
+                    </div>
+                    <div>
+                       <h3 className="text-2xl font-black text-slate-900 tracking-tight italic uppercase">Provision Staff Node</h3>
+                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Register new institutional technical asset</p>
+                    </div>
+                 </div>
+                 
+                 <form onSubmit={handleAddStaff} className="space-y-6">
+                    <div>
+                       <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2 italic">Full Name (Asset Identity)</label>
+                       <input 
+                          required
+                          value={addForm.name}
+                          onChange={(e) => setAddForm({...addForm, name: e.target.value})}
+                          className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 text-xs font-black text-slate-900 placeholder:text-slate-300 focus:border-purple-500 outline-none transition-all"
+                          placeholder="e.g. John Logistics"
+                       />
+                    </div>
+                    <div>
+                       <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2 italic">Communication Hub (Email)</label>
+                       <input 
+                          required
+                          type="email"
+                          value={addForm.email}
+                          onChange={(e) => setAddForm({...addForm, email: e.target.value})}
+                          className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 text-xs font-black text-slate-900 placeholder:text-slate-300 focus:border-purple-500 outline-none transition-all"
+                          placeholder="staff@sparenova.com"
+                       />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                       <div>
+                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2 italic">Hierarchy Role</label>
+                          <select 
+                             value={addForm.role}
+                             onChange={(e) => setAddForm({...addForm, role: e.target.value})}
+                             className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 text-xs font-black text-slate-900 focus:border-purple-500 outline-none transition-all uppercase italic"
+                          >
+                             <option value="store_staff">Store Staff</option>
+                             <option value="mechanic">Mechanic</option>
+                          </select>
+                       </div>
+                       <div>
+                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2 italic">Access Key (Password)</label>
+                          <input 
+                             required
+                             type="password"
+                             value={addForm.password}
+                             onChange={(e) => setAddForm({...addForm, password: e.target.value})}
+                             className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 text-xs font-black text-slate-900 focus:border-purple-500 outline-none transition-all"
+                             placeholder="••••••••"
+                          />
+                       </div>
+                    </div>
+                    
+                    <div className="pt-4 flex items-center gap-4">
+                       <button 
+                          type="button"
+                          onClick={() => setIsAddModalOpen(false)}
+                          className="flex-1 py-4 bg-white border-2 border-slate-100 text-slate-400 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all active:scale-95 italic"
+                       >
+                          Abort Protocol
+                       </button>
+                       <button 
+                          type="submit"
+                          disabled={isAdding}
+                          className="flex-[2] py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-2xl shadow-slate-900/20 active:scale-95 flex items-center justify-center gap-3 italic"
+                       >
+                          {isAdding ? <Loader2 size={16} className="animate-spin" /> : <Shield size={16} />}
+                          {isAdding ? 'Provisioning...' : 'Authorize Node Generation'}
+                       </button>
+                    </div>
+                 </form>
+               </motion.div>
              </motion.div>
            </>
         )}

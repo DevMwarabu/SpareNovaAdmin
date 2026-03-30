@@ -82,18 +82,18 @@ const Sidebar = () => {
       label: 'Management Console',
       items: [
         { name: 'Dashboard', icon: LayoutDashboard, path: '/portal' },
-        { name: 'Orders', icon: Package, path: '/portal/orders' },
-        { name: 'Products', icon: ShoppingBag, path: '/portal/products' },
-        { name: 'Inventory', icon: Box, path: '/portal/inventory' },
-        { name: 'Customers', icon: Users, path: '/portal/users' },
-        { name: 'Delivery', icon: Truck, path: '/portal/logistics' },
-        { name: 'Garage Ops', icon: Wrench, path: '/portal/garages' },
-        { name: 'Finance', icon: CreditCard, path: '/portal/payments' },
-        { name: 'Marketing', icon: Percent, path: '/portal/offers' },
+        { name: 'Orders', icon: Package, path: '/portal/orders', roles: ['shop', 'store_owner', 'garage', 'garage_owner'] },
+        { name: 'Products', icon: ShoppingBag, path: '/portal/products', roles: ['shop', 'store_owner'] },
+        { name: 'Inventory', icon: Box, path: '/portal/inventory', roles: ['shop', 'store_owner'] },
+        { name: 'Customers', icon: Users, path: '/portal/users', roles: ['shop', 'store_owner', 'garage', 'garage_owner'] },
+        { name: 'Logistics Control', icon: Truck, path: '/portal/logistics', roles: ['delivery'] },
+        { name: 'Garage Ops', icon: Wrench, path: '/portal/garages', roles: ['garage', 'garage_owner'] },
+        { name: 'Financial Hub', icon: CreditCard, path: '/portal/payments' },
+        { name: 'Marketing', icon: Percent, path: '/portal/offers', roles: ['shop', 'store_owner'] },
         { name: 'Loyalty Hub', icon: Brain, path: '/portal/loyalty' },
         { name: 'Reports', icon: FileText, path: '/portal/reports' },
         { name: 'Settings', icon: Settings, path: '/portal/settings' },
-      ]
+      ].filter(item => !item.roles || item.roles.includes(role))
     }
   ];
 

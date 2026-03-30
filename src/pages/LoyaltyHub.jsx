@@ -1,52 +1,42 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Star, 
-  TrendingUp, 
-  Zap, 
-  Award, 
-  ChevronRight, 
-  CheckCircle2, 
-  AlertCircle,
-  Briefcase,
-  Target,
-  ArrowUpRight,
-  Gift,
-  Crown
-} from 'lucide-react';
 import axios from 'axios';
+import { 
+  Brain, 
+  Star, 
+  Trophy, 
+  Zap, 
+  Target, 
+  ArrowRight, 
+  ShoppingBag, 
+  Gift,
+  ShieldCheck,
+  ChevronRight,
+  Sparkles,
+  TrendingUp,
+  Cpu
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 const LoyaltyHub = () => {
-  const [loading, setLoading] = useState(true);
   const [loyaltyData, setLoyaltyData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('Overview');
 
   const API_BASE = 'http://localhost:8003/api/v1';
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      // Simulate fetching scoped loyalty intelligence
-      setTimeout(() => {
-        setLoyaltyData({
-          tier: 'GOLD',
-          points: 12450,
-          rank: 'Top 8%',
-          performance_score: 87,
-          next_tier: 'PLATINUM',
-          points_to_next: 2550,
-          commission_benefit: '6%',
-          next_commission: '4%',
-          activities: [
-            { id: 1, action: 'Fast Dispatch (< 2hrs)', points: '+500', date: '2 hours ago', type: 'positive' },
-            { id: 2, action: 'High Rating Order #8812', points: '+200', date: '5 hours ago', type: 'positive' },
-            { id: 3, action: 'Order Cancellation Penalty', points: '-150', date: '1 day ago', type: 'negative' },
-            { id: 4, action: 'Bulk Inventory Audit Bonus', points: '+1000', date: '2 days ago', type: 'positive' },
-          ]
-        });
-        setLoading(false);
-      }, 900);
+      const token = localStorage.getItem('token');
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+      const res = await axios.get(`${API_BASE}/portal/dashboard/vendor`, { headers });
+      if (res.data.success) {
+        setLoyaltyData(res.data.loyalty_data);
+      }
     } catch (err) {
-      console.error("Fetch failed", err);
+      console.error("Failed to fetch loyalty data:", err);
+    } finally {
       setLoading(false);
     }
   };
@@ -55,192 +45,201 @@ const LoyaltyHub = () => {
     fetchData();
   }, []);
 
-  const getTierColor = (tier) => {
-    const t = tier?.toUpperCase();
-    if (t === 'PLATINUM') return 'from-indigo-500 to-purple-600';
-    if (t === 'GOLD') return 'from-amber-400 to-orange-500';
-    if (t === 'SILVER') return 'from-slate-300 to-slate-400';
-    return 'from-orange-700 to-orange-900'; // BRONZE
-  };
+  const tiers = [
+    { name: 'BRONZE', min: 0, color: 'orange', icon: Star },
+    { name: 'SILVER', min: 10000, color: 'slate', icon: Sparkles },
+    { name: 'GOLD', min: 50000, color: 'yellow', icon: Trophy },
+    { name: 'PLATINUM', min: 100000, color: 'indigo', icon: Crown },
+  ];
 
-  if (loading) {
-     return (
-        <div className="flex flex-col items-center justify-center py-32 gap-6">
-           <div className="w-16 h-16 relative">
-              <div className="absolute inset-0 border-4 border-primary-100 rounded-full"></div>
-              <div className="absolute inset-0 border-4 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
-              <Star className="absolute inset-0 m-auto text-primary-600 animate-pulse" size={24} />
-           </div>
-           <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic animate-pulse">Synchronizing Intelligence Tiers...</p>
-        </div>
-     );
-  }
+  const Crown = loyaltyData?.tier === 'PLATINUM' ? Trophy : Star;
 
   return (
-    <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-1000 pb-20">
-      {/* ── Top Section: Elite Tier Status ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Tier Card */}
-        <div className={`col-span-1 lg:col-span-2 bg-gradient-to-br ${getTierColor(loyaltyData.tier)} p-12 rounded-[60px] shadow-2xl relative overflow-hidden group`}>
-           <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full -mr-48 -mt-48 blur-3xl animate-pulse" />
-           <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-10">
-              <div className="space-y-6 text-center md:text-left">
-                 <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md px-4 py-2 rounded-full border border-white/30">
-                    <Crown size={14} className="text-white" />
-                    <span className="text-[10px] font-black text-white uppercase tracking-widest italic">Current Standing</span>
-                 </div>
-                 <h1 className="text-8xl font-black text-white tracking-tighter italic leading-none drop-shadow-2xl">
-                    {loyaltyData.tier}<span className="text-white/40 italic">STATION</span>
-                 </h1>
-                 <div className="flex flex-wrap items-center gap-6 justify-center md:justify-start">
-                    <div className="space-y-1">
-                       <p className="text-[10px] font-black text-white/60 uppercase tracking-widest italic">Total Points</p>
-                       <p className="text-3xl font-black text-white italic">{loyaltyData.points.toLocaleString()}</p>
-                    </div>
-                    <div className="w-px h-10 bg-white/20" />
-                    <div className="space-y-1">
-                       <p className="text-[10px] font-black text-white/60 uppercase tracking-widest italic">Ecosystem Rank</p>
-                       <p className="text-3xl font-black text-white italic">{loyaltyData.rank}</p>
-                    </div>
-                 </div>
-              </div>
-
-              <div className="w-48 h-48 rounded-full border-[12px] border-white/10 flex items-center justify-center relative bg-white/5 backdrop-blur-sm shadow-inner group-hover:scale-105 transition-transform duration-700">
-                 <div className="text-center">
-                    <p className="text-5xl font-black text-white italic">{loyaltyData.performance_score}</p>
-                    <p className="text-[10px] font-black text-white/60 uppercase tracking-widest italic">Perf Score</p>
-                 </div>
-                 <div className="absolute inset-0 border-[12px] border-t-white border-l-white/0 border-r-white/0 border-b-white/0 rounded-full animate-[spin_3s_linear_infinite]" />
-              </div>
-           </div>
-           
-           <div className="mt-12 pt-8 border-t border-white/20 flex flex-col md:flex-row items-center justify-between gap-6">
-              <div className="flex-1 w-full max-w-md">
-                 <div className="flex justify-between mb-2">
-                    <p className="text-[10px] font-black text-white uppercase italic tracking-widest">Progress to {loyaltyData.next_tier}</p>
-                    <p className="text-[10px] font-black text-white uppercase italic tracking-widest">{loyaltyData.points_to_next.toLocaleString()} pts remain</p>
-                 </div>
-                 <div className="h-3 bg-black/20 rounded-full overflow-hidden border border-white/10">
-                    <motion.div 
-                       initial={{ width: 0 }}
-                       animate={{ width: '75%' }}
-                       className="h-full bg-white shadow-[0_0_20px_rgba(255,255,255,0.5)]"
-                       transition={{ duration: 1.5, ease: "easeOut" }}
-                    />
-                 </div>
-              </div>
-              <button className="bg-white text-slate-900 px-8 py-4 rounded-3xl text-[10px] font-black uppercase tracking-widest shadow-2xl hover:bg-slate-100 transition-all flex items-center gap-2 group-hover:translate-x-2">
-                 Simulate Payout <ArrowUpRight size={14} />
-              </button>
-           </div>
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000 min-h-screen pb-20">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3 italic uppercase">
+             <div className="p-2.5 rounded-2xl bg-indigo-50 text-indigo-600 shadow-xl shadow-indigo-500/10 border border-indigo-100">
+                <Brain size={24} />
+             </div>
+             Institutional Loyalty Hub
+          </h1>
+          <p className="text-slate-500 font-medium mt-1 uppercase text-[10px] tracking-widest italic opacity-60 italic">Strategic Engagement & Rewards Intelligence Hub</p>
         </div>
-
-        {/* Financial Benefit Card */}
-        <div className="bg-white p-10 rounded-[60px] border border-slate-100 shadow-sm flex flex-col justify-between group hover:border-amber-400 transition-all">
-           <div className="space-y-8">
-              <div className="flex items-center gap-3">
-                 <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-500 flex items-center justify-center border border-amber-100 shadow-sm">
-                    <Zap size={24} />
-                 </div>
-                 <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight italic">Treasury Benefit</h3>
-              </div>
-              <div className="p-8 bg-slate-50 rounded-[40px] border border-slate-100 space-y-2">
-                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic leading-none">Your Commission Rate</p>
-                 <p className="text-5xl font-black text-slate-900 italic tracking-tighter">{loyaltyData.commission_benefit}</p>
-                 <div className="flex items-center gap-2 mt-4">
-                    <ArrowUpRight size={14} className="text-emerald-500" />
-                    <p className="text-[10px] font-black text-emerald-600 uppercase italic tracking-widest">
-                       Upgrade to {loyaltyData.next_tier} for {loyaltyData.next_commission}
-                    </p>
-                 </div>
-              </div>
+        <div className="flex gap-2">
+           <div className="flex items-center gap-2 bg-indigo-50 text-indigo-600 px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-indigo-100 shadow-xl shadow-indigo-500/10">
+              <ShieldCheck size={16} className="animate-pulse" /> Authentication Status: Verified
            </div>
-           <button className="w-full mt-8 py-5 border-2 border-slate-100 rounded-3xl text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-amber-500 hover:border-amber-100 transition-all italic tracking-[0.2em]">
-              Review Marketplace Fee Policy
-           </button>
         </div>
       </div>
 
-      {/* ── Bottom Section: Insights & Activities ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-        
-        {/* Activity Ledger */}
-        <div className="bg-white rounded-[50px] border border-slate-100 shadow-sm overflow-hidden shadow-slate-200/50">
-           <div className="p-10 border-b border-slate-50 flex items-center justify-between">
-              <div>
-                 <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight italic">Intelligence Ledger</h3>
-                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1 italic">Real-time Telemetry Transactions</p>
+      {loading ? (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+           <div className="lg:col-span-2 space-y-8">
+              <div className="animate-pulse bg-slate-100 h-80 rounded-[56px]"></div>
+              <div className="grid grid-cols-2 gap-6">
+                 <div className="animate-pulse bg-slate-100 h-40 rounded-[40px]"></div>
+                 <div className="animate-pulse bg-slate-100 h-40 rounded-[40px]"></div>
               </div>
-              <button className="text-[10px] font-black text-primary-600 uppercase tracking-widest hover:underline italic">Full History</button>
            </div>
-           <div className="divide-y divide-slate-50">
-              {loyaltyData.activities.map(act => (
-                <div key={act.id} className="p-8 flex items-center justify-between group hover:bg-slate-50/50 transition-colors">
-                   <div className="flex items-center gap-6">
-                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg transition-transform group-hover:scale-110 ${
-                         act.type === 'positive' ? 'bg-emerald-50 text-emerald-600 shadow-emerald-500/10' : 'bg-rose-50 text-rose-600 shadow-rose-500/10'
-                      }`}>
-                         {act.type === 'positive' ? <Star size={24} /> : <AlertCircle size={24} />}
-                      </div>
-                      <div>
-                         <p className="text-sm font-black text-slate-900 italic tracking-tight uppercase leading-none mb-1.5">{act.action}</p>
-                         <p className="text-[10px] font-black text-slate-400 uppercase italic opacity-60">{act.date}</p>
-                      </div>
-                   </div>
-                   <div className={`text-xl font-black italic ${act.type === 'positive' ? 'text-emerald-500' : 'text-rose-500'}`}>
-                      {act.points}
-                   </div>
-                </div>
-              ))}
-           </div>
+           <div className="animate-pulse bg-slate-100 h-[600px] rounded-[56px]"></div>
         </div>
-
-        {/* AI Recommendations */}
-        <div className="space-y-8">
-           <div className="bg-slate-900 p-12 rounded-[60px] shadow-2xl relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-primary-500/10 rounded-full -mr-32 -mt-32 blur-3xl" />
-              <div className="relative z-10">
-                 <div className="flex items-center gap-4 mb-10">
-                    <div className="w-12 h-12 rounded-2xl bg-primary-500/20 text-primary-400 flex items-center justify-center border border-primary-500/40">
-                       <Target size={24} />
-                    </div>
-                    <h3 className="text-xl font-black text-white uppercase tracking-tight italic">Growth Engine Insights</h3>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+           {/* Left Column: Progress & Stats */}
+           <div className="lg:col-span-2 space-y-8">
+              {/* Primary Progress Card */}
+              <div className="bg-slate-900 p-12 rounded-[56px] shadow-2xl shadow-indigo-900/20 relative overflow-hidden group">
+                 <div className="absolute top-0 right-0 p-12 opacity-5 text-white group-hover:scale-110 transition-transform duration-1000">
+                    <Star size={180} />
                  </div>
                  
-                 <div className="space-y-6">
-                    {[
-                       { title: 'Fulfillment Velocity', desc: 'Dispatch within 1 hour to gain +500 Gold pts per order.', icon: Briefcase },
-                       { title: 'Inventory Hygiene', desc: 'Fix 4 low-stock items today to avoid tier penalties.', icon: Box },
-                       { title: 'Customer Sentiment', desc: 'Respond to 3 reviews to boost your Performance Score by +4.', icon: Award }
-                    ].map((rec, i) => (
-                      <div key={i} className="flex gap-6 p-6 rounded-[32px] hover:bg-white/5 transition-all group/rec cursor-pointer border border-transparent hover:border-white/10">
-                         <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center text-white/40 group-hover/rec:text-primary-400 transition-colors">
-                            <rec.icon size={20} />
-                         </div>
-                         <div>
-                            <p className="text-xs font-black text-white uppercase italic tracking-widest leading-none mb-1.5">{rec.title}</p>
-                            <p className="text-[10px] text-slate-400 font-medium leading-relaxed italic">{rec.desc}</p>
-                         </div>
-                      </div>
-                    ))}
+                 <div className="relative z-10">
+                    <div className="flex items-center justify-between mb-12">
+                       <div>
+                          <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-2 italic">Institutional Standing</p>
+                          <h2 className="text-5xl font-black text-white italic tracking-tighter uppercase">{loyaltyData?.tier} Node</h2>
+                       </div>
+                       <div className="text-right">
+                          <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-2 italic">Current Points</p>
+                          <p className="text-4xl font-black text-white italic tracking-tighter">{loyaltyData?.points.toLocaleString()}</p>
+                       </div>
+                    </div>
+
+                    <div className="space-y-4">
+                       <div className="flex items-center justify-between text-[10px] font-black text-indigo-300 uppercase tracking-widest italic">
+                          <span>Next Tier Allocation: {loyaltyData?.next_tier}</span>
+                          <span>{loyaltyData?.progress}% Velocity</span>
+                       </div>
+                       <div className="h-4 bg-white/10 rounded-full overflow-hidden border border-white/5 shadow-inner">
+                          <motion.div 
+                             initial={{ width: 0 }}
+                             animate={{ width: `${loyaltyData?.progress}%` }}
+                             transition={{ duration: 1.5, ease: 'easeOut' }}
+                             className="h-full bg-gradient-to-r from-indigo-500 to-purple-400 shadow-xl shadow-indigo-500/40 relative"
+                          >
+                             <div className="absolute top-0 right-0 h-full w-2 bg-white/20 blur-sm animate-pulse" />
+                          </motion.div>
+                       </div>
+                    </div>
+
+                    <div className="mt-12 flex items-center gap-8">
+                       <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-indigo-400">
+                             <Target size={20} />
+                          </div>
+                          <p className="text-[10px] font-black text-white/60 uppercase tracking-widest leading-none">Strategic Goal<br/><span className="text-white text-xs mt-1 block">5.0k Points Remaining</span></p>
+                       </div>
+                       <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-emerald-400">
+                             <TrendingUp size={20} />
+                          </div>
+                          <p className="text-[10px] font-black text-white/60 uppercase tracking-widest leading-none">Growth Pulse<br/><span className="text-white text-xs mt-1 block">+12% vs Prev Cycle</span></p>
+                       </div>
+                    </div>
+                 </div>
+              </div>
+
+              {/* Reward Tiers Horizontal Scroll */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                 {tiers.map((t) => (
+                    <div key={t.name} className={`p-6 rounded-[32px] border transition-all ${loyaltyData?.tier === t.name ? 'bg-white border-indigo-200 shadow-xl shadow-indigo-500/5 scale-105 z-10' : 'bg-slate-50 border-slate-100 opacity-60'}`}>
+                       <div className={`w-10 h-10 rounded-xl bg-${t.color}-50 text-${t.color}-600 flex items-center justify-center mb-4`}>
+                          <t.icon size={20} />
+                       </div>
+                       <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 italic">{t.min.toLocaleString()}+ Pts</p>
+                       <p className="text-sm font-black text-slate-900 uppercase italic tracking-tight">{t.name}</p>
+                    </div>
+                 ))}
+              </div>
+
+              {/* Utility Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                 <div className="bg-white p-8 rounded-[48px] border border-slate-100 shadow-sm shadow-slate-200/50">
+                    <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-6 flex items-center gap-3 italic">
+                       <Sparkles size={18} className="text-amber-500" /> Exclusive Privileges
+                    </h3>
+                    <div className="space-y-4">
+                       {[
+                          'Commencement of Discounted Logistics',
+                          'Strategic Homepage Prime Placement',
+                          'Institutional Support Line (VIP)',
+                          'Priority Review Governance'
+                       ].map((item, i) => (
+                          <div key={i} className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl group hover:bg-indigo-50 transition-colors">
+                             <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 group-hover:scale-150 transition-transform" />
+                             <p className="text-[10px] font-bold text-slate-600 uppercase italic">{item}</p>
+                          </div>
+                       ))}
+                    </div>
+                 </div>
+
+                 <div className="bg-indigo-600 p-8 rounded-[48px] text-white shadow-2xl shadow-indigo-600/20 relative overflow-hidden">
+                    <div className="relative z-10">
+                       <h3 className="text-xs font-black uppercase tracking-widest mb-6 flex items-center gap-3 italic">
+                          <Gift size={18} /> Redeemable Assets
+                       </h3>
+                       <div className="space-y-4 mb-8 opacity-90">
+                          <p className="text-[10px] font-black uppercase leading-relaxed italic">Convert your institutional standing into tangible growth accelerators.</p>
+                       </div>
+                       <button className="w-full bg-white text-indigo-600 py-4 rounded-3xl text-[10px] font-black uppercase tracking-widest shadow-xl hover:scale-105 transition-all active:scale-95 flex items-center justify-center gap-3 italic">
+                          Open Rewards Vault <ArrowRight size={16} />
+                       </button>
+                    </div>
+                    <div className="absolute -bottom-10 -right-10 opacity-10 rotate-12">
+                       <Cpu size={120} />
+                    </div>
                  </div>
               </div>
            </div>
 
-           <div className="bg-white p-10 rounded-[60px] border border-slate-100 shadow-sm flex items-center justify-between group cursor-pointer hover:border-emerald-400 transition-colors">
-              <div className="flex items-center gap-6">
-                 <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100 group-hover:scale-110 transition-transform">
-                    <Gift size={28} />
-                 </div>
-                 <div>
-                    <h4 className="text-lg font-black text-slate-900 uppercase italic leading-none mb-1">Redeem Rewards</h4>
-                    <p className="text-[10px] font-black text-slate-400 uppercase italic opacity-60">Unlock elite marketplace features</p>
-                 </div>
+           {/* Right Column: Ledger / Timeline */}
+           <div className="bg-white rounded-[56px] border border-slate-100 shadow-sm shadow-slate-200/50 p-10 flex flex-col">
+              <div className="flex items-center justify-between mb-10">
+                 <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest flex items-center gap-3 italic">
+                    <Star size={20} className="text-indigo-600" /> Points Ledger
+                 </h3>
+                 <button className="p-2.5 bg-slate-50 text-slate-400 hover:text-indigo-600 rounded-xl transition-all shadow-sm">
+                    <TrendingUp size={16} />
+                 </button>
               </div>
-              <ChevronRight className="text-slate-200 group-hover:text-emerald-500 transition-colors" size={32} />
+
+              <div className="space-y-6 flex-1">
+                 {[
+                    { l: 'Successful Fullfillment', v: '+250', t: '2 hours ago', c: 'indigo' },
+                    { l: 'Positive Peer Review', v: '+100', t: '5 hours ago', c: 'emerald' },
+                    { l: 'Milestone: Active Node', v: '+1000', t: '1 day ago', c: 'amber' },
+                    { l: 'Bulk Order Synchronization', v: '+500', t: '3 days ago', c: 'blue' },
+                    { l: 'Inventory Health Maintenance', v: '+50', t: '1 week ago', c: 'slate' },
+                 ].map((log, i) => (
+                    <div key={i} className="flex items-center justify-between group relative pl-6">
+                       <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-slate-100 group-last:bg-transparent" />
+                       <div className="absolute left-[-3px] top-1.5 w-2 h-2 rounded-full border-2 border-white bg-slate-200 group-hover:bg-indigo-500 group-hover:scale-150 transition-all" />
+                       
+                       <div>
+                          <p className="text-[10px] font-black text-slate-900 uppercase italic opacity-80 leading-none mb-1 group-hover:text-indigo-600 transition-colors">{log.l}</p>
+                          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest opacity-60 italic">{log.t}</p>
+                       </div>
+                       <div className={`px-2.5 py-1.5 rounded-xl bg-${log.c}-50 text-${log.c}-600 text-[10px] font-black italic`}>
+                          {log.v}
+                       </div>
+                    </div>
+                 ))}
+              </div>
+
+              <div className="mt-12 p-6 bg-slate-50 rounded-[32px] border border-slate-100 space-y-4">
+                 <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-600/20">
+                       <ShieldCheck size={16} />
+                    </div>
+                    <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest italic opacity-80">Security Audit</p>
+                 </div>
+                 <p className="text-[9px] text-slate-500 font-bold leading-relaxed uppercase opacity-60 italic">Loyalty telemetry is synchronized across the integrity mesh every 4 hours. Manual adjustment is restricted to platform governance nodes only.</p>
+              </div>
            </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

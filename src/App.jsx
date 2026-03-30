@@ -27,6 +27,7 @@ import RegisterPartner from './pages/RegisterPartner';
 import CMS from './pages/CMS';
 import ProductForm from './pages/ProductForm';
 import Reports from './pages/Reports';
+import LoyaltyHub from './pages/LoyaltyHub';
 import './index.css';
 
 const API_BASE = 'http://localhost:8003/api/v1';
@@ -114,6 +115,7 @@ function App() {
           <Route path="system-logs" element={<SystemLogs />} />
           <Route path="cms" element={<CMS />} />
           <Route path="reports" element={<Reports />} />
+          <Route path="loyalty" element={<LoyaltyHub />} />
           <Route path="register-partner" element={<RegisterPartner />} />
           <Route path="settings" element={<Settings />} />
         </Route>

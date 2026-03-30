@@ -54,8 +54,11 @@ const Orders = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
+      const token = localStorage.getItem('token');
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
       const res = await axios.get(`${API_BASE}/portal/orders`, {
-        params: { search: searchTerm, status: filterStatus, page: currentPage, per_page: 8 }
+        params: { search: searchTerm, status: filterStatus, page: currentPage, per_page: 8 },
+        headers
       });
       if (res.data.success) {
         setOrders(res.data.data);
@@ -71,7 +74,9 @@ const Orders = () => {
 
   const fetchTemplates = async () => {
     try {
-      const res = await axios.get(`${API_BASE}/portal/orders/templates`);
+      const token = localStorage.getItem('token');
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+      const res = await axios.get(`${API_BASE}/portal/orders/templates`, { headers });
       if (res.data.success) {
         setAdminTemplates(res.data.data);
       }
@@ -94,10 +99,12 @@ const Orders = () => {
   const executeAdminAction = async () => {
     try {
       setLoading(true);
+      const token = localStorage.getItem('token');
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
       const res = await axios.put(`${API_BASE}/portal/orders/${targetId}/status`, { 
         status: actionType,
         template_id: selectedTemplateId
-      });
+      }, { headers });
       if (res.data.success) {
         setIsAdminActionOpen(false);
         showToast('Operational state transition confirmed', 'emerald');

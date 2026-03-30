@@ -98,7 +98,9 @@ const Settings = () => {
 
   const fetchProfile = async () => {
     try {
-      const response = await axios.get(`${API_BASE}/portal/profile`);
+      const token = localStorage.getItem('token');
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+      const response = await axios.get(`${API_BASE}/portal/profile`, { headers });
       if (response.data.success) {
         setUserProfile(response.data.user);
         setUnitDetails(response.data.business_unit);
@@ -114,11 +116,9 @@ const Settings = () => {
     try {
         const formData = new FormData();
         formData.append('name', userProfile.name);
-        if (userProfile.avatarFile) {
-            formData.append('avatar', userProfile.avatarFile);
-        }
-        
-        const response = await axios.post(`${API_BASE}/portal/profile`, formData);
+        const token = localStorage.getItem('token');
+        const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+        const response = await axios.post(`${API_BASE}/portal/profile`, formData, { headers });
         if (response.data.success) {
             showToast('Identity synchronized successfully');
             fetchProfile();
@@ -136,10 +136,10 @@ const Settings = () => {
   };
 
   const handleBusinessSave = async (e) => {
-    if (e) e.preventDefault();
-    setSaving(true);
     try {
-        const response = await axios.post(`${API_BASE}/portal/profile/business`, unitDetails);
+        const token = localStorage.getItem('token');
+        const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+        const response = await axios.post(`${API_BASE}/portal/profile/business`, unitDetails, { headers });
         if (response.data.success) {
             showToast('Infrastructure nodes updated successfully');
             fetchProfile();
@@ -154,7 +154,9 @@ const Settings = () => {
   const fetchSettings = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API_BASE}/portal/settings`);
+      const token = localStorage.getItem('token');
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+      const response = await axios.get(`${API_BASE}/portal/settings`, { headers });
       const fetchedSettings = response.data.settings || {};
       
       // Inject Industrial Gmail Defaults if missing
@@ -172,7 +174,9 @@ const Settings = () => {
 
   const fetchCommissionRules = async () => {
     try {
-      const response = await axios.get(`${API_BASE}/commissions`);
+      const token = localStorage.getItem('token');
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+      const response = await axios.get(`${API_BASE}/commissions`, { headers });
       setCommissionRules(response.data.rules || []);
     } catch (error) {
       console.error('Error fetching commission rules:', error);
@@ -207,13 +211,15 @@ const Settings = () => {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await axios.post(`${API_BASE}/portal/settings`, settings);
+      const token = localStorage.getItem('token');
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+      await axios.post(`${API_BASE}/portal/settings`, settings, { headers });
       
       for (const rule of commissionRules) {
         if (rule.id) {
-          await axios.put(`${API_BASE}/commissions/${rule.id}`, rule);
+          await axios.put(`${API_BASE}/commissions/${rule.id}`, rule, { headers });
         } else {
-          await axios.post(`${API_BASE}/commissions`, rule);
+          await axios.post(`${API_BASE}/commissions`, rule, { headers });
         }
       }
 
@@ -234,11 +240,13 @@ const Settings = () => {
   const handleTestConnection = async (type, keyId) => {
     setTestingType(type);
     try {
+      const token = localStorage.getItem('token');
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
       const response = await axios.post(`${API_BASE}/portal/settings/verify-connection`, {
         type,
         key: settings[keyId],
         key_id: keyId
-      });
+      }, { headers });
       if (response.data.success) {
         showToast(response.data.message, 'success');
       } else {
@@ -635,7 +643,14 @@ const Settings = () => {
                        <div className="space-y-4 pt-4">
                          {commissionRules.map((rule, i) => (
                            <div key={i} className="p-6 bg-slate-50 rounded-[32px] grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 items-end relative border border-slate-100 shadow-sm transition-all hover:bg-white hover:shadow-xl hover:border-indigo-100 group">
-                              <button onClick={async () => { if(rule.id) await axios.delete(`${API_BASE}/commissions/${rule.id}`); setCommissionRules(commissionRules.filter((_, idx)=>idx!==i)); }} className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-white text-slate-300 hover:text-red-500 transition-all shadow-md flex items-center justify-center opacity-0 group-hover:opacity-100 border border-slate-100"><Trash2 size={14}/></button>
+                              <button onClick={async () => { 
+                                if(rule.id) {
+                                  const token = localStorage.getItem('token');
+                                  const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+                                  await axios.delete(`${API_BASE}/commissions/${rule.id}`, { headers }); 
+                                }
+                                setCommissionRules(commissionRules.filter((_, idx)=>idx!==i)); 
+                              }} className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-white text-slate-300 hover:text-red-500 transition-all shadow-md flex items-center justify-center opacity-0 group-hover:opacity-100 border border-slate-100"><Trash2 size={14}/></button>
                               <div className="w-full"><Field label="Min (KES)" type="number" value={rule.min_amount} onChange={(v)=>{const nr=[...commissionRules]; nr[i].min_amount=v; setCommissionRules(nr);}}/></div>
                               <div className="w-full"><Field label="Max (KES)" type="number" value={rule.max_amount} onChange={(v)=>{const nr=[...commissionRules]; nr[i].max_amount=v; setCommissionRules(nr);}}/></div>
                               <div className="w-full"><Select label="Type" value={rule.type} options={[{v:'percent',l:'Percentage'},{v:'fixed',l:'Fixed Fee'}]} onChange={(v)=>{const nr=[...commissionRules]; nr[i].type=v; setCommissionRules(nr);}}/></div>
@@ -752,8 +767,10 @@ const LogoPicker = ({ value, onChange }) => {
 
     setUploading(true);
     try {
+      const token = localStorage.getItem('token');
+      const headers = token ? { 'Authorization': `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } : { 'Content-Type': 'multipart/form-data' };
       const response = await axios.post(`${API_BASE}/portal/settings/upload`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+        headers
       });
       if (response.data.success) {
         onChange(response.data.url);

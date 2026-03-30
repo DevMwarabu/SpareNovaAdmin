@@ -49,6 +49,11 @@ const Payments = () => {
   const [toast, setToast] = useState(null);
 
   const [currentUser, setCurrentUser] = useState(null);
+  const [isAdminActionOpen, setIsAdminActionOpen] = useState(false);
+  const [targetTxnId, setTargetTxnId] = useState('');
+  const [actionType, setActionType] = useState('pending');
+  const [adminTemplates, setAdminTemplates] = useState([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState('');
 
   const API_BASE = 'http://localhost:8003/api/v1';
 
@@ -60,8 +65,13 @@ const Payments = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
+      const token = localStorage.getItem('token');
       const res = await axios.get(`${API_BASE}/portal/payments`, {
-        params: { page: currentPage, per_page: 8 }
+        params: { page: currentPage, per_page: 8 },
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
       });
       if (res.data.success) {
         setStats(res.data.stats);
@@ -77,7 +87,13 @@ const Payments = () => {
 
   const fetchTemplates = async () => {
     try {
-      const res = await axios.get(`${API_BASE}/portal/payments/templates`);
+      const token = localStorage.getItem('token');
+      const res = await axios.get(`${API_BASE}/portal/payments/templates`, {
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
+      });
       if (res.data.success) {
         setAdminTemplates(res.data.data);
       }

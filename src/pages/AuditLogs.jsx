@@ -38,8 +38,11 @@ const AuditLogs = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
+      const token = localStorage.getItem('token');
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
       const res = await axios.get(`${API_BASE}/portal/audit-logs`, {
-        params: { model_type: filterType, page: currentPage, per_page: 15, q: searchQuery }
+        params: { model_type: filterType, page: currentPage, per_page: 15, q: searchQuery },
+        headers
       });
       if (res.data.success) {
         setLogs(res.data.data);
