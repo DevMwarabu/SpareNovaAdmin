@@ -63,7 +63,15 @@ const Dashboard = () => {
   const fetchData = async (currentDays) => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API_BASE}/dashboard/stats?days=${currentDays}`);
+      const token = localStorage.getItem('token');
+      // Forced absolute Authorization injection
+      const config = {
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json'
+        }
+      };
+      const response = await axios.get(`${API_BASE}/dashboard/stats?days=${currentDays}`, config);
       if (response.data.success) {
         setStats(response.data.stats);
         setRecentOrders(response.data.recentOrders);
@@ -73,7 +81,7 @@ const Dashboard = () => {
         if (response.data.logisticsHub) setLogisticsHub(response.data.logisticsHub);
       }
     } catch (error) {
-      console.error('Failed to fetch dashboard stats:', error);
+      console.error('Institutional Telemetry Access Restricted (401):', error);
     } finally {
       setLoading(false);
     }
@@ -221,7 +229,7 @@ const Dashboard = () => {
                 {chartData.map((d, i) => {
                   const barWidth = (100 / chartData.length) * 0.5;
                   const barX = (i / chartData.length) * 100 + ((100 / chartData.length) * 0.25);
-                  const barHeight = (d.value / maxVal) * 100 || 1; // Minimum 1px height
+                  const barHeight = (d.value / maxVal) * 100 || 1; 
                   const barY = 100 - barHeight;
                   const isHovered = hoveredPoint && hoveredPoint.label === d.label;
 
@@ -233,7 +241,7 @@ const Dashboard = () => {
                       transition={{ duration: 0.8, delay: i * 0.05, ease: "easeOut" }}
                       x={barX}
                       width={barWidth}
-                      rx={2} // Rounded tops
+                      rx={2} 
                       fill={isHovered ? "url(#bar-grad-hover)" : "url(#bar-grad)"}
                       filter={isHovered ? "url(#bar-shadow)" : ""}
                       className="cursor-pointer transition-colors duration-300"
@@ -244,7 +252,6 @@ const Dashboard = () => {
                 })}
               </svg>
 
-              {/* Distort-Free Tooltip */}
               <AnimatePresence mode="wait">
                 {hoveredPoint && (
                   <motion.div
@@ -275,7 +282,6 @@ const Dashboard = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Recent Activity */}
             <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm shadow-slate-200/50">
               <h2 className="text-xl font-black text-slate-900 mb-6 px-1">Recent Activity</h2>
               <div className="space-y-6">
@@ -305,7 +311,6 @@ const Dashboard = () => {
               </button>
             </div>
 
-            {/* Logistics Hub (Dynamic real-time monitor) */}
             <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm shadow-slate-200/50 flex flex-col justify-center items-center text-center">
                <div className="w-16 h-16 bg-primary-50 rounded-2xl flex items-center justify-center text-primary-600 mb-4 shadow-lg shadow-primary-500/10">
                   <TrendingUp size={32} />
@@ -316,7 +321,6 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Channel Distribution Column (Matching screenshot) */}
         <div className="lg:col-span-1 space-y-8">
           <div className="bg-[#0a0f1b] p-8 rounded-[2.5rem] text-white shadow-2xl shadow-slate-900/40 relative overflow-hidden group">
             <div className="relative z-10">
@@ -342,7 +346,6 @@ const Dashboard = () => {
                 ))}
               </div>
 
-              {/* Growth Signal Card */}
               <div className="mt-16 bg-slate-800/30 border border-white/5 rounded-3xl p-6 backdrop-blur-md">
                 <div className="flex gap-4 items-center mb-4">
                   <div className="w-12 h-12 bg-primary-500/20 text-primary-400 rounded-2xl flex items-center justify-center border border-primary-500/20 shadow-lg shadow-primary-500/10">
@@ -358,8 +361,6 @@ const Dashboard = () => {
                 </button>
               </div>
             </div>
-            
-            {/* Background Grain/Texture (Subtle UI Polish) */}
             <div className="absolute inset-0 opacity-10 pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
           </div>
         </div>

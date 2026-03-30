@@ -228,12 +228,17 @@ const Orders = () => {
                 <tr key={o.id} className="hover:bg-slate-50/50 transition-all group">
                   <td className="px-10 py-6">
                     <div className="flex items-center gap-4 cursor-pointer" onClick={() => openDetails(o)}>
-                       <div className="w-11 h-11 rounded-xl bg-white border-2 border-slate-100 flex items-center justify-center text-slate-900 text-[11px] font-black shadow-sm italic group-hover:border-orange-100 transition-colors">
-                          #
+                       <div className={`w-11 h-11 rounded-xl bg-white border-2 flex items-center justify-center text-slate-900 text-[11px] font-black shadow-sm italic transition-colors ${o.ai_risk.level === 'High' ? 'border-rose-200 text-rose-600 bg-rose-50' : 'border-slate-100 group-hover:border-orange-100'}`}>
+                          {o.ai_risk.level === 'High' ? '!' : '#'}
                        </div>
                        <div className="flex flex-col">
-                          <span className="text-[11px] font-black text-slate-900 italic tracking-tighter leading-none mb-1 group-hover:text-orange-600 transition-colors uppercase">{o.order_number}</span>
-                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic">{o.date}</span>
+                          <div className="flex items-center gap-2">
+                             <span className="text-[11px] font-black text-slate-900 italic tracking-tighter leading-none group-hover:text-orange-600 transition-colors uppercase">{o.order_number}</span>
+                             {o.ai_risk.score > 70 && (
+                                <span className="px-1.5 py-0.5 bg-rose-50 text-rose-600 text-[7px] font-black uppercase rounded border border-rose-100 animate-pulse">Priority</span>
+                             )}
+                          </div>
+                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic mt-1">{o.date}</span>
                        </div>
                     </div>
                   </td>
@@ -242,7 +247,7 @@ const Orders = () => {
                        <span className="text-[11px] font-black text-slate-700 uppercase italic opacity-80 leading-none">{o.customer}</span>
                        <div className="flex items-center gap-2">
                           <span className="text-sm font-black text-slate-900 tracking-tight italic">KES {o.amount.toLocaleString()}</span>
-                          <span className="text-[8px] font-black uppercase text-slate-300 tracking-widest">{o.payment_status}</span>
+                          <span className={`text-[8px] font-black uppercase tracking-widest ${o.payment_status === 'paid' ? 'text-emerald-500' : 'text-slate-300'}`}>{o.payment_status}</span>
                        </div>
                     </div>
                   </td>
@@ -261,22 +266,42 @@ const Orders = () => {
                     </span>
                   </td>
                   <td className="px-10 py-6 text-right relative">
-                    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                       <select 
-                         value={o.delivery_status} 
-                         onChange={(e) => handleGovernanceRequest(o.id, e.target.value)}
-                         className="bg-white border-2 border-slate-50 rounded-xl px-2 py-1.5 text-[10px] font-black text-slate-500 outline-none transition-all cursor-pointer hover:border-orange-100 focus:border-orange-500 uppercase italic shadow-sm"
-                       >
-                          <option value="pending">Pending</option>
-                          <option value="preparing">Preparing</option>
-                          <option value="dispatched">Dispatched</option>
-                          <option value="in_transit">In Transit</option>
-                          <option value="delivered">Delivered</option>
-                          <option value="cancelled">Cancel Order</option>
-                       </select>
-                       <button onClick={() => openDetails(o)} className="p-2.5 bg-white border border-slate-100 rounded-xl text-slate-400 hover:text-orange-600 hover:bg-orange-50 transition-all shadow-xl shadow-slate-200/50">
-                          <ExternalLink size={18} />
-                       </button>
+                    <div className="flex items-center justify-end gap-2">
+                       {o.delivery_status === 'pending' ? (
+                         <div className="flex gap-2">
+                            <button 
+                              onClick={() => handleGovernanceRequest(o.id, 'preparing')}
+                              className="px-4 py-2 bg-emerald-600 text-white text-[9px] font-black uppercase tracking-widest rounded-xl shadow-lg shadow-emerald-500/20 hover:bg-emerald-700 transition-all italic"
+                            >
+                               Accept
+                            </button>
+                            <button 
+                              onClick={() => handleGovernanceRequest(o.id, 'cancelled')}
+                              className="px-4 py-2 bg-white border border-slate-200 text-slate-400 text-[9px] font-black uppercase tracking-widest rounded-xl hover:bg-rose-50 hover:text-rose-600 hover:border-rose-100 transition-all italic"
+                            >
+                               Reject
+                            </button>
+                         </div>
+                       ) : (
+                         <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                            <select 
+                              value={o.delivery_status} 
+                              onChange={(e) => handleGovernanceRequest(o.id, e.target.value)}
+                              className="bg-white border-2 border-slate-50 rounded-xl px-2 py-1.5 text-[10px] font-black text-slate-500 outline-none transition-all cursor-pointer hover:border-orange-100 focus:border-orange-500 uppercase italic shadow-sm"
+                            >
+                               <option value="pending">Pending</option>
+                               <option value="preparing">Preparing</option>
+                               <option value="packed">Packed</option>
+                               <option value="dispatched">Dispatched</option>
+                               <option value="in_transit">In Transit</option>
+                               <option value="delivered">Delivered</option>
+                               <option value="cancelled">Cancel Order</option>
+                            </select>
+                            <button onClick={() => openDetails(o)} className="p-2.5 bg-white border border-slate-100 rounded-xl text-slate-400 hover:text-orange-600 hover:bg-orange-50 transition-all shadow-xl shadow-slate-200/50">
+                               <ExternalLink size={18} />
+                            </button>
+                         </div>
+                       )}
                     </div>
                   </td>
                 </tr>

@@ -84,6 +84,8 @@ const BusinessUnitList = ({ title, type, icon: Icon, color }) => {
   const fetchData = async () => {
     try {
       setLoading(true);
+      const token = localStorage.getItem('token');
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
       const res = await axios.get(`${API_BASE}/portal/${type}`, {
         params: { 
           search: searchTerm, 
@@ -92,7 +94,8 @@ const BusinessUnitList = ({ title, type, icon: Icon, color }) => {
           date_range: dateRange,
           page: currentPage, 
           per_page: 8 
-        }
+        },
+        headers
       });
       if (res.data.success) {
         setUnits(res.data.data);
@@ -110,7 +113,9 @@ const BusinessUnitList = ({ title, type, icon: Icon, color }) => {
   const fetchTemplates = async () => {
     try {
       setTemplateLoading(true);
-      const res = await axios.get(`${API_BASE}/portal/${type}/templates`);
+      const token = localStorage.getItem('token');
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+      const res = await axios.get(`${API_BASE}/portal/${type}/templates`, { headers });
       if (res.data.success) {
         setAdminTemplates(res.data.data);
       }
@@ -123,7 +128,9 @@ const BusinessUnitList = ({ title, type, icon: Icon, color }) => {
 
   const openDetails = async (id) => {
     try {
-      const res = await axios.get(`${API_BASE}/portal/${type}/${id}`);
+      const token = localStorage.getItem('token');
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+      const res = await axios.get(`${API_BASE}/portal/${type}/${id}`, { headers });
       if (res.data.success) {
         setSelectedUnit(res.data.data);
         setDetailTab('profile');
@@ -157,11 +164,13 @@ const BusinessUnitList = ({ title, type, icon: Icon, color }) => {
   const executeAdminAction = async () => {
     try {
       setLoading(true);
+      const token = localStorage.getItem('token');
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
       const statusMap = { 'verify': 'verified', 'suspend': 'suspended', 'reject': 'rejected' };
       const res = await axios.put(`${API_BASE}/portal/${type}/${targetId}/status`, { 
         status: statusMap[actionType],
         template_id: selectedTemplateId
-      });
+      }, { headers });
       if (res.data.success) {
         setIsAdminActionOpen(false);
         showToast('Governance protocol dispatched successfully', 'emerald');
@@ -264,7 +273,7 @@ const BusinessUnitList = ({ title, type, icon: Icon, color }) => {
               <TrendingUp size={16} />
             </div>
           </div>
-          <div className="h-64 mt-4">
+          <div className="h-64 mt-4 min-h-[256px]">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData}>
                 <defs>
@@ -323,7 +332,7 @@ const BusinessUnitList = ({ title, type, icon: Icon, color }) => {
               <BarChart3 size={16} />
             </div>
           </div>
-          <div className="h-64 mt-4">
+          <div className="h-64 mt-4 min-h-[256px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData}>
                 <XAxis 

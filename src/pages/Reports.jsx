@@ -57,7 +57,9 @@ const Reports = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API_BASE}/portal/reports`);
+      const token = localStorage.getItem('token');
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+      const res = await axios.get(`${API_BASE}/portal/reports`, { headers });
       if (res.data.success) {
         setStats(res.data.stats);
         setRevenueTrend(res.data.revenueTrend);
@@ -74,7 +76,12 @@ const Reports = () => {
   const handleExport = async (report) => {
     try {
       setIsExporting(report.id);
-      const res = await axios.get(`${API_BASE}/portal/reports/export`, { params: { id: report.id } });
+      const token = localStorage.getItem('token');
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+      const res = await axios.get(`${API_BASE}/portal/reports/export`, { 
+        params: { id: report.id },
+        headers 
+      });
       if (res.data.success) {
          setGeneratedAsset({
            name: report.name,
@@ -164,7 +171,7 @@ const Reports = () => {
                   <span className="flex items-center gap-1.5 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-100">7D Interval</span>
                </div>
             </div>
-            <div className="h-72 w-full">
+            <div className="h-72 w-full min-h-[288px]">
                <ResponsiveContainer width="100%" height={288}>
                   <AreaChart data={revenueTrend}>
                      <defs>
@@ -220,7 +227,7 @@ const Reports = () => {
                   <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest mt-1 italic">Cross-Node Operational Velocity SLA</p>
                </div>
             </div>
-            <div className="h-72 w-full relative z-10">
+            <div className="h-72 w-full relative z-10 min-h-[288px]">
                <ResponsiveContainer width="100%" height={288}>
                   <BarChart data={hubPerformance} layout="vertical">
                      <XAxis hide type="number" />

@@ -80,9 +80,13 @@ const Reviews = () => {
              <div className="p-2 rounded-xl bg-amber-50 text-amber-500">
                 <Star size={24} fill="currentColor" />
              </div>
-             Reputation & Reviews
+             {JSON.parse(localStorage.getItem('user') || '{}').role === 'admin' ? 'Global Reputation Matrix' : 'Unit Reputation Hub'}
           </h1>
-          <p className="text-slate-500 font-medium mt-1">Monitor vendor ratings, moderate customer feedback, and analyze sentiment.</p>
+          <p className="text-slate-500 font-medium mt-1">
+            {JSON.parse(localStorage.getItem('user') || '{}').role === 'admin' 
+              ? 'Monitor vendor ratings, moderate customer feedback, and analyze global marketplace sentiment.' 
+              : 'Monitor your business unit ratings and analyze customer feedback for your specialized services.'}
+          </p>
         </div>
       </div>
 
@@ -220,10 +224,10 @@ const Reviews = () => {
                        ))}
                     </div>
                   </td>
-                  <td className="px-8 py-5 text-right font-black text-slate-900 text-sm">
+                   <td className="px-8 py-5 text-right font-black text-slate-900 text-sm">
                     <div className="flex items-center justify-end gap-3">
                        <span className={`px-2 py-1 rounded text-[9px] uppercase tracking-tighter font-black ${statusStyles[r.status]}`}>{r.status}</span>
-                       {JSON.parse(localStorage.getItem('user') || '{}').role === 'admin' && (
+                       {JSON.parse(localStorage.getItem('user') || '{}').role === 'admin' ? (
                          <div className="flex gap-1">
                             <button 
                                onClick={() => handleStatusUpdate(r.id, 'approved')}
@@ -240,6 +244,13 @@ const Reviews = () => {
                                <XCircle size={16} />
                             </button>
                          </div>
+                       ) : (
+                         <button 
+                            className="p-1.5 bg-slate-50 text-slate-300 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-all"
+                            title="Contextual Information: Verified Purchase"
+                         >
+                            <Clock size={16} />
+                         </button>
                        )}
                     </div>
                   </td>

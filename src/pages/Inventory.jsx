@@ -194,58 +194,78 @@ const Inventory = () => {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50/50">
-                <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Product & Vendor</th>
-                <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">OEM / Part Number</th>
-                <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Total Stock</th>
-                <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Status</th>
-                <th className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Unit Price</th>
+                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 italic">Consignment & Node</th>
+                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 italic">Industrial ID / OEM</th>
+                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 italic">Stock Hygiene</th>
+                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 italic underline decoration-primary-200">Demand Velocity (AI)</th>
+                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 italic text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50 relative">
               {loading && (
                  <tr>
-                    <td colSpan="5">
-                      <div className="absolute inset-0 bg-white/50 backdrop-blur-sm z-10 flex items-center justify-center">
-                        <div className="w-8 h-8 border-4 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
-                      </div>
+                    <td colSpan="5" className="py-24 text-center">
+                       <div className="w-12 h-12 border-4 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto shadow-xl"></div>
+                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-6 italic animate-pulse">Scanning Global Warehouse Grid...</p>
                     </td>
                  </tr>
               )}
               {inventory.map((item) => (
-                <tr key={item.id} className="hover:bg-slate-50/50 transition-colors group">
-                  <td className="px-8 py-5">
-                    <div className="flex items-center gap-4">
-                       <div className="w-10 h-10 rounded-xl bg-slate-100 overflow-hidden border border-slate-200 flex-shrink-0">
-                          {item.image ? (
-                             <img src={item.image} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                             <div className="w-full h-full flex items-center justify-center text-slate-300">
-                                <Archive size={18} />
-                             </div>
-                          )}
+                <tr key={item.id} className="hover:bg-slate-50/50 transition-all group">
+                  <td className="px-8 py-6">
+                    <div className="flex items-center gap-5">
+                       <div className="w-12 h-12 rounded-2xl bg-white border-2 border-slate-100 flex items-center justify-center text-slate-900 text-xs font-black shadow-sm italic group-hover:border-primary-100 transition-colors">
+                          <Package size={20} className="text-slate-400 group-hover:text-primary-600" />
                        </div>
                        <div>
-                          <p className="text-sm font-black text-slate-900 leading-none mb-1">{item.title}</p>
-                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">{item.store}</p>
+                          <p className="text-sm font-black text-slate-900 leading-none mb-1.5 italic uppercase">{item.title}</p>
+                          <div className="flex items-center gap-2">
+                             <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic">{item.store}</span>
+                             <span className="w-1 h-1 bg-slate-200 rounded-full" />
+                             <span className="text-[9px] font-black text-primary-500 uppercase tracking-widest italic">{item.category}</span>
+                          </div>
                        </div>
                     </div>
                   </td>
-                  <td className="px-8 py-5">
-                    <span className="text-xs font-black text-slate-600 font-mono italic">{item.oem}</span>
-                  </td>
-                  <td className="px-8 py-5">
-                    <div className="flex items-center gap-2">
-                       <span className="text-sm font-black text-slate-900">{item.stock}</span>
-                       <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Units</span>
+                  <td className="px-8 py-6">
+                    <div className="flex flex-col gap-1">
+                       <span className="text-xs font-black text-slate-700 font-mono italic">#{item.oem || 'NO-OEM'}</span>
+                       <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest italic">Matrix ID: {item.id}</span>
                     </div>
                   </td>
-                  <td className="px-8 py-5">
-                    <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest ${getStatusColor(item.status)}`}>
-                      {item.status}
-                    </span>
+                  <td className="px-8 py-6">
+                    <div className="flex flex-col gap-2">
+                       <div className="flex items-center gap-2">
+                          <span className="text-sm font-black text-slate-900 italic">{item.stock}</span>
+                          <span className="text-[9px] font-black text-slate-400 uppercase italic opacity-60">Units Available</span>
+                       </div>
+                       <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border shadow-sm w-fit ${getStatusColor(item.status)}`}>
+                         <div className={`w-1 h-1 rounded-full ${item.status === 'In Stock' ? 'bg-emerald-500' : 'bg-rose-500'} animate-pulse`} />
+                         {item.status}
+                       </span>
+                    </div>
                   </td>
-                  <td className="px-8 py-5 text-right font-black text-slate-900 text-sm italic tracking-tight">
-                    {item.price}
+                  <td className="px-8 py-6">
+                    <div className="space-y-2">
+                       <div className="flex items-center justify-between gap-10 max-w-[150px]">
+                          <span className="text-[9px] font-black text-slate-400 uppercase italic">Weekly Signal</span>
+                          <span className="text-[10px] font-black text-slate-900 italic">+{item.ai_forecast?.velocity || 'LOW'}</span>
+                       </div>
+                       <div className="flex items-center gap-1.5">
+                          {item.ai_forecast?.restock_needed ? (
+                             <span className="flex items-center gap-1 px-2 py-0.5 bg-rose-50 text-rose-600 text-[8px] font-black uppercase rounded border border-rose-100 animate-pulse">Restock Highly Recommended</span>
+                          ) : (
+                             <span className="text-[8px] font-black text-emerald-500 uppercase tracking-widest italic">Pipeline Optimal</span>
+                          )}
+                       </div>
+                    </div>
+                  </td>
+                  <td className="px-8 py-6 text-right relative">
+                    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                       <button className="bg-slate-900 text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg shadow-slate-900/10 hover:bg-primary-600 transition-all italic">
+                          Update Levels
+                       </button>
+                    </div>
                   </td>
                 </tr>
               ))}

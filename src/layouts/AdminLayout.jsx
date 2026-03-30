@@ -2,6 +2,7 @@ import React from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import Navbar from '../components/Navbar';
+import VendorAIAssistant from '../components/VendorAIAssistant';
 
 const AdminLayout = () => {
   return (
@@ -13,6 +14,8 @@ const AdminLayout = () => {
           <Outlet />
         </main>
       </div>
+      {/* Global Neural Assistant Layer */}
+      <VendorAIAssistant />
     </div>
   );
 };

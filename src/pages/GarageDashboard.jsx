@@ -7,7 +7,8 @@ import {
   Users, 
   CheckCircle,
   ArrowUpRight,
-  Clock
+  Clock,
+  Plus
 } from 'lucide-react';
 
 
@@ -39,6 +40,7 @@ const GarageDashboard = () => {
   const [stats, setStats] = React.useState([]);
   const [activeBookings, setActiveBookings] = React.useState([]);
   const [serviceMix, setServiceMix] = React.useState([]);
+  const [businessUnit, setBusinessUnit] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
   const API_BASE = 'http://localhost:8003/api/v1';
 
@@ -51,6 +53,7 @@ const GarageDashboard = () => {
           setStats(response.data.stats);
           setActiveBookings(response.data.recentOrders);
           setServiceMix(response.data.serviceMix || []);
+          setBusinessUnit(response.data.business_unit);
         }
       } catch (error) {
         console.error('Failed to fetch garage stats:', error);
@@ -76,13 +79,56 @@ const GarageDashboard = () => {
           <h1 className="text-3xl font-black text-slate-900 tracking-tight">Garage Hub</h1>
           <p className="text-slate-500 font-medium">Manage service bookings and mechanic assignments.</p>
         </div>
-        <button 
-          onClick={() => window.location.href = '/portal/orders'}
-          className="bg-primary-600 text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-primary-500/20 active:scale-95 transition-all"
-        >
-          <Calendar size={20} /> View Schedule
-        </button>
+        <div className="flex gap-3">
+          <button 
+            onClick={() => window.location.href = '/portal/products/add'}
+            className="bg-white border border-slate-200 px-6 py-2.5 rounded-xl font-bold text-slate-700 shadow-sm hover:bg-slate-50 transition-all flex items-center gap-2"
+          >
+            <Plus size={20} /> Add Part
+          </button>
+          <button 
+            onClick={() => window.location.href = '/portal/orders'}
+            className="bg-primary-600 text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-primary-500/20 active:scale-95 transition-all"
+          >
+            <Calendar size={20} /> View Schedule
+          </button>
+        </div>
       </div>
+
+      {businessUnit && businessUnit.status !== 'verified' && (
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={`p-6 rounded-3xl border flex items-center justify-between ${
+            businessUnit.status === 'pending' 
+              ? 'bg-purple-50 border-purple-100 text-purple-800' 
+              : 'bg-red-50 border-red-100 text-red-800'
+          }`}
+        >
+          <div className="flex items-center gap-4">
+            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
+              businessUnit.status === 'pending' ? 'bg-purple-100/50' : 'bg-red-100'
+            }`}>
+              {businessUnit.status === 'pending' ? <Clock size={24} /> : <Wrench size={24} />}
+            </div>
+            <div>
+              <h3 className="font-black uppercase tracking-tight text-sm">
+                Infrastructure Status: {businessUnit.status.toUpperCase()}
+              </h3>
+              <p className="text-xs font-medium opacity-80">
+                {businessUnit.status === 'pending' 
+                  ? 'Institutional vetting for your garage is in progress. Booking synchronization will remain in sandbox mode until approval.'
+                  : 'Critical Alert: Operational access restricted due to verification failure. Contact the Engineering Hub for re-validation.'}
+              </p>
+            </div>
+          </div>
+          <button className={`px-5 py-2 rounded-xl text-xs font-black uppercase tracking-widest border ${
+            businessUnit.status === 'pending' ? 'border-purple-200 hover:bg-purple-100' : 'border-red-200 hover:bg-red-100'
+          }`}>
+            Compliance Hub
+          </button>
+        </motion.div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((s, i) => <StatCard key={i} {...s} />)}

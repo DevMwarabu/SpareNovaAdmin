@@ -63,7 +63,10 @@ const Navbar = () => {
     };
     document.addEventListener('mousedown', handleClickOutside);
     
-    axios.get(`${API_BASE}/dashboard/alerts`)
+    const token = localStorage.getItem('token');
+    const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+    axios.get(`${API_BASE}/dashboard/alerts`, { headers })
       .then(res => {
          if (res.data.success) {
             setNotifications(res.data.notifications);
@@ -80,9 +83,11 @@ const Navbar = () => {
          setSearchResults([]);
          return;
      }
+     const token = localStorage.getItem('token');
+     const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
      setIsSearching(true);
      const delayDebounceFn = setTimeout(() => {
-      axios.get(`${API_BASE}/portal/search?q=${searchQuery}`)
+      axios.get(`${API_BASE}/portal/search?q=${searchQuery}`, { headers })
         .then(res => {
            if (res.data.success) {
               const matchedUI = ADMIN_MODULES.filter(m => 

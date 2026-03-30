@@ -34,7 +34,7 @@ const Sidebar = () => {
   
   const isAdmin = ['admin', 'platform_admin', 'staff', 'super_admin'].includes(role);
 
-  const menuGroups = [
+  const menuGroups = isAdmin ? [
     {
       label: 'Main',
       items: [
@@ -43,57 +43,58 @@ const Sidebar = () => {
         { name: 'AI Insights', icon: Brain, path: '/portal/ai-insights' },
       ]
     },
-    ...(isAdmin ? [
-      {
-        label: 'Business Units',
-        items: [
-          { name: 'Shops', icon: Store, path: '/portal/shops' },
-          { name: 'Garages', icon: Gavel, path: '/portal/garages' },
-          { name: 'Logistics', icon: Truck, path: '/portal/logistics' },
-        ]
-      },
-      {
-        label: 'E-Commerce',
-        items: [
-          { name: 'Products', icon: ShoppingBag, path: '/portal/products' },
-          { name: 'Orders', icon: Package, path: '/portal/orders' },
-          { name: 'Offers', icon: Percent, path: '/portal/offers' },
-          { name: 'Inventory', icon: Box, path: '/portal/inventory' },
-        ]
-      },
-      {
-        label: 'Administration',
-        items: [
-          { name: 'Users', icon: Users, path: '/portal/users' },
-          { name: 'Reviews', icon: Star, path: '/portal/reviews' },
-          { name: 'Disputes', icon: Gavel, path: '/portal/disputes' },
-          { name: 'Security', icon: Shield, path: '/portal/security' },
-          { name: 'Audit Logs', icon: ClipboardList, path: '/portal/audit-logs' },
-          { name: 'SaaS Platform', icon: Layers, path: '/portal/saas' },
-          { name: 'Communications', icon: Megaphone, path: '/portal/communications' },
-          { name: 'System Logs', icon: Terminal, path: '/portal/system-logs' },
-          { name: 'Content (CMS)', icon: Layout, path: '/portal/cms' },
-          { name: 'Advanced Reports', icon: FileText, path: '/portal/reports' },
-          { name: 'Payments', icon: CreditCard, path: '/portal/payments' },
-          { name: 'Settings', icon: Settings, path: '/portal/settings' },
-        ]
-      }
-    ] : [
-      {
-        label: 'Management',
-        items: [
-          { name: 'My Orders', icon: ShoppingBag, path: '/portal/orders', roles: ['shop', 'store_owner'] },
-          { name: 'Products', icon: Package, path: '/portal/products', roles: ['shop', 'store_owner'] },
-          { name: 'Offers', icon: Percent, path: '/portal/offers', roles: ['shop', 'store_owner'] },
-          { name: 'Inventory', icon: Store, path: '/portal/inventory', roles: ['shop', 'store_owner'] },
-          { name: 'Reviews', icon: Star, path: '/portal/reviews', roles: ['shop', 'store_owner'] },
-          { name: 'Loyalty Hub', icon: Users, path: '/portal/users', roles: ['store_owner', 'garage_owner'] },
-          { name: 'Services', icon: Wrench, path: '/portal/services', roles: ['garage', 'garage_owner'] },
-          { name: 'Bookings', icon: Gavel, path: '/portal/bookings', roles: ['garage', 'garage_owner'] },
-          { name: 'Fleet', icon: Truck, path: '/portal/fleet', roles: ['delivery'] },
-        ].filter(item => !item.roles || item.roles.includes(role))
-      }
-    ])
+    {
+      label: 'Business Units',
+      items: [
+        { name: 'Shops', icon: Store, path: '/portal/shops' },
+        { name: 'Garages', icon: Gavel, path: '/portal/garages' },
+        { name: 'Logistics', icon: Truck, path: '/portal/logistics' },
+      ]
+    },
+    {
+      label: 'E-Commerce',
+      items: [
+        { name: 'Products', icon: ShoppingBag, path: '/portal/products' },
+        { name: 'Orders', icon: Package, path: '/portal/orders' },
+        { name: 'Offers', icon: Percent, path: '/portal/offers' },
+        { name: 'Inventory', icon: Box, path: '/portal/inventory' },
+      ]
+    },
+    {
+      label: 'Administration',
+      items: [
+        { name: 'Users', icon: Users, path: '/portal/users' },
+        { name: 'Reviews', icon: Star, path: '/portal/reviews' },
+        { name: 'Disputes', icon: Gavel, path: '/portal/disputes' },
+        { name: 'Security', icon: Shield, path: '/portal/security' },
+        { name: 'Audit Logs', icon: ClipboardList, path: '/portal/audit-logs' },
+        { name: 'SaaS Platform', icon: Layers, path: '/portal/saas' },
+        { name: 'Communications', icon: Megaphone, path: '/portal/communications' },
+        { name: 'System Logs', icon: Terminal, path: '/portal/system-logs' },
+        { name: 'Content (CMS)', icon: Layout, path: '/portal/cms' },
+        { name: 'Advanced Reports', icon: FileText, path: '/portal/reports' },
+        { name: 'Payments', icon: CreditCard, path: '/portal/payments' },
+        { name: 'Settings', icon: Settings, path: '/portal/settings' },
+      ]
+    }
+  ] : [
+    {
+      label: 'Management Console',
+      items: [
+        { name: 'Dashboard', icon: LayoutDashboard, path: '/portal' },
+        { name: 'Orders', icon: Package, path: '/portal/orders' },
+        { name: 'Products', icon: ShoppingBag, path: '/portal/products' },
+        { name: 'Inventory', icon: Box, path: '/portal/inventory' },
+        { name: 'Customers', icon: Users, path: '/portal/users' },
+        { name: 'Delivery', icon: Truck, path: '/portal/logistics' },
+        { name: 'Garage Ops', icon: Wrench, path: '/portal/garages' },
+        { name: 'Finance', icon: CreditCard, path: '/portal/payments' },
+        { name: 'Marketing', icon: Percent, path: '/portal/offers' },
+        { name: 'Loyalty Hub', icon: Brain, path: '/portal/loyalty' },
+        { name: 'Reports', icon: FileText, path: '/portal/reports' },
+        { name: 'Settings', icon: Settings, path: '/portal/settings' },
+      ]
+    }
   ];
 
   const [logo, setLogo] = React.useState(localStorage.getItem('platform_logo'));

@@ -60,13 +60,16 @@ const Users = () => {
   };
 
   const navigate = useNavigate();
+  const [currentUser, setCurrentUser] = useState(null);
+
   useEffect(() => {
-    // ACCESS CONTROL: Institutional Redirect
+    // ACCESS CONTROL: Institutional Intelligence Scoping
     const userStr = localStorage.getItem('user');
     if (userStr) {
       const user = JSON.parse(userStr);
-      // Deny access to Garage Owners and Delivery Partners
-      if (['garage_owner', 'garage', 'delivery'].includes(user.role)) {
+      setCurrentUser(user);
+      // Allow Admin, Store Owner, Garage Owner
+      if (!['admin', 'store_owner', 'shop', 'garage_owner', 'garage'].includes(user.role)) {
         navigate('/portal');
       }
     } else {
@@ -95,20 +98,24 @@ const Users = () => {
     }
   };
 
+  const isInstitutional = currentUser && currentUser.role !== 'admin';
+
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-             <div className="p-2 rounded-xl bg-purple-50 text-purple-600">
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3 italic uppercase">
+             <div className="p-2.5 rounded-xl bg-purple-50 text-purple-600 border border-purple-100 shadow-sm">
                 <UsersIcon size={24} />
              </div>
-             User Management
+             {isInstitutional ? 'Institutional Network' : 'Global User Management'}
           </h1>
-          <p className="text-slate-500 font-medium mt-1">Configure user roles, permissions and account access.</p>
+          <p className="text-slate-500 font-medium mt-1 uppercase text-[10px] tracking-widest italic opacity-60">
+             {isInstitutional ? 'Manage technical staff and verified customer principal nodes.' : 'Configure global user roles, permissions and ecosystem access.'}
+          </p>
         </div>
-        <button className="bg-slate-900 text-white px-6 py-2.5 rounded-xl text-xs font-black shadow-lg shadow-slate-900/20 hover:bg-slate-800 flex items-center gap-2 transition-all active:scale-95">
-           <UserPlus size={16} /> Create New User
+        <button className="bg-slate-900 text-white px-8 py-3.5 rounded-2xl text-[10px] font-black shadow-2xl shadow-slate-900/20 hover:bg-slate-800 flex items-center gap-3 transition-all active:scale-95 uppercase tracking-widest italic">
+           <UserPlus size={18} /> {isInstitutional ? 'Add Institutional Staff' : 'Generate Platform Node'}
         </button>
       </div>
 

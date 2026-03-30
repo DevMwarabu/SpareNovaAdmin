@@ -36,7 +36,15 @@ import {
   Search,
   Store,
   Tag,
-  MousePointer2
+  MousePointer2,
+  User,
+  Phone,
+  Shield,
+  Linkedin,
+  Facebook,
+  Instagram,
+  Twitter,
+  ExternalLink
 } from 'lucide-react';
 import axios from 'axios';
 
@@ -50,15 +58,20 @@ const Settings = () => {
   const [testingType, setTestingType] = useState(null);
   const [settings, setSettings] = useState({});
   const [commissionRules, setCommissionRules] = useState([]);
+  const [userProfile, setUserProfile] = useState({ name: '', avatar: '' });
+  const [unitDetails, setUnitDetails] = useState(null);
   const [message, setMessage] = useState(null);
+  const [role, setRole] = useState('admin');
 
   useEffect(() => {
-    // ACCESS CONTROL: Institutional Redirect
+    // ACCESS CONTROL: Institutional Context Recovery
     const userStr = localStorage.getItem('user');
     if (userStr) {
-      const user = JSON.parse(userStr);
-      if (user.role !== 'admin') {
-        navigate('/portal');
+      const u = JSON.parse(userStr);
+      setRole(u.role);
+      // Auto-switch tab if not admin
+      if (u.role !== 'admin' && activeTab === 'branding') {
+        setActiveTab('profile');
       }
     } else {
       navigate('/auth');
@@ -71,9 +84,72 @@ const Settings = () => {
   };
 
   useEffect(() => {
-    fetchSettings();
-    fetchCommissionRules();
-  }, []);
+    const loadData = async () => {
+      setLoading(true);
+      if (role === 'admin') {
+        await fetchSettings();
+        await fetchCommissionRules();
+      }
+      await fetchProfile();
+      setLoading(false);
+    };
+    loadData();
+  }, [role]);
+
+  const fetchProfile = async () => {
+    try {
+      const response = await axios.get(`${API_BASE}/portal/profile`);
+      if (response.data.success) {
+        setUserProfile(response.data.user);
+        setUnitDetails(response.data.business_unit);
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+    }
+  };
+
+  const handleProfileSave = async (e) => {
+    if (e) e.preventDefault();
+    setSaving(true);
+    try {
+        const formData = new FormData();
+        formData.append('name', userProfile.name);
+        if (userProfile.avatarFile) {
+            formData.append('avatar', userProfile.avatarFile);
+        }
+        
+        const response = await axios.post(`${API_BASE}/portal/profile`, formData);
+        if (response.data.success) {
+            showToast('Identity synchronized successfully');
+            fetchProfile();
+            // Update local storage name if changed
+            const u = JSON.parse(localStorage.getItem('user'));
+            u.name = response.data.user.name;
+            localStorage.setItem('user', JSON.stringify(u));
+            window.dispatchEvent(new Event('user_update'));
+        }
+    } catch (error) {
+        showToast('Profile sync failed', 'error');
+    } finally {
+        setSaving(false);
+    }
+  };
+
+  const handleBusinessSave = async (e) => {
+    if (e) e.preventDefault();
+    setSaving(true);
+    try {
+        const response = await axios.post(`${API_BASE}/portal/profile/business`, unitDetails);
+        if (response.data.success) {
+            showToast('Infrastructure nodes updated successfully');
+            fetchProfile();
+        }
+    } catch (error) {
+        showToast('Business update failed', 'error');
+    } finally {
+        setSaving(false);
+    }
+  };
 
   const fetchSettings = async () => {
     try {
@@ -184,7 +260,7 @@ const Settings = () => {
     );
   }
 
-  const tabs = [
+  const tabs = role === 'admin' ? [
     { id: 'branding', label: 'Identity & Brand', icon: Fingerprint, col: 'slate' },
     { id: 'ai', label: 'AI Configuration', icon: Cpu, col: 'purple' },
     { id: 'meetings', label: 'Virtual Meetings', icon: Video, col: 'blue' },
@@ -195,6 +271,10 @@ const Settings = () => {
     { id: 'email', label: 'Email Setup', icon: Mail, col: 'sky' },
     { id: 'marketing', label: 'Sliders & Features', icon: Layout, col: 'slate' },
     { id: 'general', label: 'Core Info', icon: Globe, col: 'slate' },
+  ] : [
+    { id: 'profile', label: 'My Identity', icon: User, col: 'slate' },
+    { id: 'business', label: 'Business Profile', icon: Store, col: 'indigo' },
+    { id: 'security', label: 'Security Lab', icon: Shield, col: 'rose' },
   ];
 
   return (
@@ -223,7 +303,7 @@ const Settings = () => {
           <p className="text-slate-500 font-bold mt-1 uppercase text-[9px] tracking-[0.2em] opacity-60 ml-1">Live Database Administration Portal</p>
         </div>
         <button 
-          onClick={handleSave}
+          onClick={role === 'admin' ? handleSave : (activeTab === 'profile' ? handleProfileSave : handleBusinessSave)}
           disabled={saving}
           className="bg-slate-950 text-white px-8 py-3.5 rounded-[20px] text-[10px] font-black shadow-2xl hover:scale-105 active:scale-95 flex items-center gap-3 transition-all disabled:opacity-50 uppercase tracking-widest"
         >
@@ -272,6 +352,189 @@ const Settings = () => {
                            </div>
                         </div>
                       </div>
+                    </section>
+                  )}
+
+                  {activeTab === 'profile' && (
+                    <section className="space-y-12 animate-in fade-in slide-in-from-right-4 duration-500">
+                      <div className="flex items-center justify-between">
+                         <h3 className="text-xl font-black text-slate-900 italic uppercase">Your Identity</h3>
+                         <div className="px-4 py-1.5 bg-slate-900 text-white rounded-full text-[8px] font-black uppercase tracking-widest italic shadow-xl">Role: {role.toUpperCase()}</div>
+                      </div>
+
+                      <div className="flex flex-col md:flex-row gap-12 items-start">
+                         <div className="relative group/avatar">
+                            <div className="w-40 h-40 bg-slate-100 rounded-[48px] overflow-hidden border-4 border-white shadow-2xl relative">
+                               {userProfile.avatar ? (
+                                 <img src={userProfile.avatar} alt="Avatar" className="w-full h-full object-cover" />
+                               ) : (
+                                 <div className="w-full h-full flex items-center justify-center text-slate-300">
+                                    <User size={64} />
+                                 </div>
+                               )}
+                               <input 
+                                 type="file" 
+                                 className="hidden" 
+                                 id="avatar-upload" 
+                                 onChange={(e) => setUserProfile({...userProfile, avatarFile: e.target.files[0], avatar: URL.createObjectURL(e.target.files[0])})} 
+                               />
+                               <label 
+                                 htmlFor="avatar-upload" 
+                                 className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover/avatar:opacity-100 transition-opacity flex items-center justify-center cursor-pointer backdrop-blur-sm"
+                               >
+                                  <CloudUpload size={32} className="text-white" />
+                               </label>
+                            </div>
+                            <div className="absolute -bottom-2 -right-2 bg-emerald-500 text-white p-2.5 rounded-2xl shadow-xl shadow-emerald-500/30">
+                               <ShieldCheck size={20} />
+                            </div>
+                         </div>
+
+                         <div className="flex-1 space-y-8 w-full">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                               <Field label="Full Name" value={userProfile.name} onChange={(v) => setUserProfile({...userProfile, name: v})} />
+                               <div className="space-y-2 opacity-50 pointer-events-none">
+                                  <label className="text-[8px] font-black uppercase text-slate-400 ml-1 tracking-widest">Institutional Email (Read Only)</label>
+                                  <div className="bg-slate-50 border border-slate-100 rounded-[20px] px-5 py-3.5 text-xs font-black text-slate-400 italic">
+                                     {userProfile.email}
+                                  </div>
+                               </div>
+                            </div>
+                            <div className="p-8 bg-slate-50 rounded-[32px] border border-slate-100 space-y-6">
+                               <div className="flex items-center gap-3 text-slate-900">
+                                  <Lock size={18} className="text-slate-400" />
+                                  <h4 className="text-[10px] font-black uppercase tracking-widest">Authentication Synchronization</h4>
+                               </div>
+                               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                  <Field label="New Password" type="password" placeholder="Min 8 characters" value={userProfile.password} onChange={(v) => setUserProfile({...userProfile, password: v})} />
+                                  <Field label="Confirm Secret" type="password" value={userProfile.password_confirmation} onChange={(v) => setUserProfile({...userProfile, password_confirmation: v})} />
+                                </div>
+                            </div>
+                         </div>
+                      </div>
+                    </section>
+                  )}
+
+                  {activeTab === 'business' && unitDetails && (
+                    <section className="space-y-12 animate-in fade-in slide-in-from-right-4 duration-500">
+                       <div className="flex items-center justify-between">
+                         <h3 className="text-xl font-black text-slate-900 italic uppercase">Business Infrastructure</h3>
+                         <div className={`px-4 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest italic shadow-xl ${
+                           unitDetails.status === 'verified' ? 'bg-emerald-500 text-white' : 'bg-orange-500 text-white'
+                         }`}>Status: {unitDetails.status.toUpperCase()}</div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                         <div className="space-y-8">
+                            <div className="p-8 bg-slate-50 rounded-[40px] border border-slate-100 space-y-6">
+                               <div className="flex items-center gap-3 text-slate-900">
+                                  <Phone size={18} className="text-slate-400" />
+                                  <h4 className="text-[10px] font-black uppercase tracking-widest">Communications Hub</h4>
+                               </div>
+                               <div className="space-y-6">
+                                  <Field label="Official Phone Number" placeholder="+254..." value={unitDetails.phone} onChange={(v) => setUnitDetails({...unitDetails, phone: v})} />
+                                  <Field label="WhatsApp Pipeline" placeholder="+254..." value={unitDetails.whatsapp} onChange={(v) => setUnitDetails({...unitDetails, whatsapp: v})} />
+                               </div>
+                            </div>
+                            <div className="p-8 bg-indigo-50 border border-indigo-100 rounded-[40px] space-y-2">
+                               <div className="flex items-center gap-2 text-indigo-600">
+                                  <Globe size={18} />
+                                  <h4 className="text-[10px] font-black uppercase tracking-widest">Global Linkage</h4>
+                               </div>
+                               <Field label="Operational Website" placeholder="https://..." value={unitDetails.website} onChange={(v) => setUnitDetails({...unitDetails, website: v})} />
+                            </div>
+                         </div>
+
+                         <div className="p-10 bg-slate-900 rounded-[48px] text-white space-y-8 relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/20 blur-3xl rounded-full -mr-16 -mt-16"></div>
+                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] italic opacity-60">Social Reach Architecture</h4>
+                            <div className="space-y-6 relative z-10">
+                               <div className="space-y-2">
+                                  <div className="flex items-center gap-2 text-slate-400 mb-1">
+                                     <Facebook size={14} />
+                                     <label className="text-[8px] font-black uppercase tracking-widest">Institutional Facebook</label>
+                                  </div>
+                                  <input 
+                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-3 text-xs font-black text-white outline-none focus:bg-white/10 transition-all font-mono" 
+                                    value={unitDetails.facebook || ''} 
+                                    onChange={(e) => setUnitDetails({...unitDetails, facebook: e.target.value})}
+                                    placeholder="Username or URL"
+                                  />
+                               </div>
+                               <div className="space-y-2">
+                                  <div className="flex items-center gap-2 text-slate-400 mb-1">
+                                     <Instagram size={14} />
+                                     <label className="text-[8px] font-black uppercase tracking-widest">Creative Instagram</label>
+                                  </div>
+                                  <input 
+                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-3 text-xs font-black text-white outline-none focus:bg-white/10 transition-all font-mono" 
+                                    value={unitDetails.instagram || ''} 
+                                    onChange={(e) => setUnitDetails({...unitDetails, instagram: e.target.value})}
+                                    placeholder="Username or URL"
+                                  />
+                               </div>
+                               <div className="space-y-2">
+                                  <div className="flex items-center gap-2 text-slate-400 mb-1">
+                                     <Twitter size={14} />
+                                     <label className="text-[8px] font-black uppercase tracking-widest">Network Twitter / X</label>
+                                  </div>
+                                  <input 
+                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-3 text-xs font-black text-white outline-none focus:bg-white/10 transition-all font-mono" 
+                                    value={unitDetails.twitter || ''} 
+                                    onChange={(e) => setUnitDetails({...unitDetails, twitter: e.target.value})}
+                                    placeholder="@handle"
+                                  />
+                               </div>
+                               <div className="space-y-2">
+                                  <div className="flex items-center gap-2 text-slate-400 mb-1">
+                                     <Linkedin size={14} />
+                                     <label className="text-[8px] font-black uppercase tracking-widest">Technical LinkedIn</label>
+                                  </div>
+                                  <input 
+                                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-3 text-xs font-black text-white outline-none focus:bg-white/10 transition-all font-mono" 
+                                    value={unitDetails.linkedin || ''} 
+                                    onChange={(e) => setUnitDetails({...unitDetails, linkedin: e.target.value})}
+                                    placeholder="Company Page"
+                                  />
+                               </div>
+                            </div>
+                            <div className="pt-4  border-t border-white/10 flex items-center gap-4 text-slate-500">
+                               <ExternalLink size={24} />
+                               <p className="text-[8px] font-black uppercase tracking-tighter italic">Live verification of social nodes is performed periodically by platform security.</p>
+                            </div>
+                         </div>
+                      </div>
+                    </section>
+                  )}
+
+                  {activeTab === 'security' && (
+                    <section className="space-y-10 animate-in fade-in slide-in-from-right-4">
+                       <h3 className="text-xl font-black text-slate-900 italic uppercase">Security Lab</h3>
+                       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                          <div className="p-8 bg-slate-50 rounded-[40px] border border-slate-100 flex flex-col items-center text-center gap-4">
+                             <div className="w-16 h-16 bg-white rounded-3xl shadow-xl flex items-center justify-center text-slate-900"><Shield size={32}/></div>
+                             <h4 className="text-[10px] font-black uppercase tracking-widest">Identity Shield</h4>
+                             <p className="text-[8px] font-medium text-slate-400">Two-factor authentication is active on this account via institutional email linkage.</p>
+                          </div>
+                          <div className="p-8 bg-slate-50 rounded-[40px] border border-slate-100 flex flex-col items-center text-center gap-4 opacity-50 grayscale cursor-not-allowed">
+                             <div className="w-16 h-16 bg-white rounded-3xl shadow-xl flex items-center justify-center text-slate-900"><Fingerprint size={32}/></div>
+                             <h4 className="text-[10px] font-black uppercase tracking-widest">Biometric Link</h4>
+                             <p className="text-[8px] font-medium text-slate-400">Hardware tokens are currently restricted by platform governance.</p>
+                          </div>
+                          <div className="p-8 bg-slate-50 rounded-[40px] border border-slate-100 flex flex-col items-center text-center gap-4">
+                             <div className="w-16 h-16 bg-white rounded-3xl shadow-xl flex items-center justify-center text-slate-900"><Database size={32}/></div>
+                             <h4 className="text-[10px] font-black uppercase tracking-widest">Infrastructure Audit</h4>
+                             <button className="text-[8px] font-black uppercase tracking-widest text-indigo-600 italic underline">Download Access History</button>
+                          </div>
+                       </div>
+                       <div className="p-10 bg-red-50 border border-red-100 rounded-[48px] space-y-6">
+                          <div className="flex items-center gap-4 text-red-600">
+                             <Trash2 size={24} />
+                             <h4 className="text-sm font-black uppercase tracking-[0.2em] italic">Decommission Institutional Node</h4>
+                          </div>
+                          <p className="text-[10px] font-bold text-red-800 tracking-tight">Requesting account termination will trigger a 30-day cooling-off protocol. All linked business units will be suspended immediately. This action is audited and irreversible.</p>
+                          <button className="px-8 py-3 bg-red-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-red-500/20 hover:scale-105 transition-all">Initiate Termination Protocol</button>
+                       </div>
                     </section>
                   )}
 

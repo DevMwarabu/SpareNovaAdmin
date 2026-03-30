@@ -227,7 +227,11 @@ const Products = () => {
   };
 
   const handleAddProduct = () => {
-    setIsAddDrawerOpen(true);
+    navigate('/portal/products/add');
+  };
+
+  const handleEditProduct = (id) => {
+    navigate(`/portal/products/edit/${id}`);
   };
 
   const handleViewDetails = async (id) => {
@@ -307,17 +311,6 @@ const Products = () => {
     }
   };
 
-  const handleEditProduct = async (id) => {
-    try {
-      const res = await axios.get(`${API_BASE}/portal/products/${id}`);
-      if (res.data.success) {
-        setCurrentProduct(res.data.product);
-        setIsEditDrawerOpen(true);
-      }
-    } catch (err) {
-      setError('Parameter access denied or terminal error.');
-    }
-  };
 
   useEffect(() => {
     fetchOverview();

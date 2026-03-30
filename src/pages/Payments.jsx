@@ -48,12 +48,7 @@ const Payments = () => {
   const [isExporting, setIsExporting] = useState(false);
   const [toast, setToast] = useState(null);
 
-  // Governance States
-  const [isAdminActionOpen, setIsAdminActionOpen] = useState(false);
-  const [adminTemplates, setAdminTemplates] = useState([]);
-  const [selectedTemplateId, setSelectedTemplateId] = useState('');
-  const [actionType, setActionType] = useState(null); // 'completed', 'flagged', 'refunded'
-  const [targetTxnId, setTargetTxnId] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
 
   const API_BASE = 'http://localhost:8003/api/v1';
 
@@ -92,6 +87,10 @@ const Payments = () => {
   };
 
   useEffect(() => {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      setCurrentUser(JSON.parse(userStr));
+    }
     fetchData();
     fetchTemplates();
   }, [currentPage]);
@@ -122,6 +121,8 @@ const Payments = () => {
     }
   };
 
+  const isInstitutional = currentUser && currentUser.role !== 'admin';
+
   const statusStyles = {
     'Paid': 'bg-emerald-50 text-emerald-600 border-emerald-100',
     'Completed': 'bg-blue-50 text-blue-600 border-blue-100',
@@ -136,7 +137,7 @@ const Payments = () => {
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000 min-h-screen pb-20">
       {/* Toast System */}
       {toast && (
-        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[300] bg-slate-900 text-white px-8 py-4 rounded-3xl shadow-2xl flex items-center gap-4 animate-in slide-in-from-bottom-4">
+        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[300] bg-slate-900 text-white px-8 py-4 rounded-3xl shadow-2xl flex items-center gap-4 animate-in slide-in-from-bottom-4 shadow-emerald-500/10">
            <div className={`w-8 h-8 rounded-lg flex items-center justify-center bg-${toast.type}-500 shadow-xl shadow-${toast.type}-500/20`}>
               <Zap size={16} />
            </div>
@@ -144,28 +145,30 @@ const Payments = () => {
         </div>
       )}
 
-      {/* Header */}
+      {/* Header Intelligence */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3 italic">
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3 italic uppercase">
              <div className="p-2.5 rounded-2xl bg-emerald-50 text-emerald-600 shadow-xl shadow-emerald-500/10 border border-emerald-100">
                 <DollarSign size={24} />
              </div>
-             Financial Governance
+             {isInstitutional ? 'Earnings Intelligence' : 'Financial Governance'}
           </h1>
-          <p className="text-slate-500 font-medium mt-1 uppercase text-[10px] tracking-widest italic opacity-60 italic">Treasury Control & Secure Payout Manifest</p>
+          <p className="text-slate-500 font-medium mt-1 uppercase text-[10px] tracking-widest italic opacity-60">
+             {isInstitutional ? 'Localized Treasury Control & Escrow Verification' : 'Global Treasury Control & Secure Payout Manifest'}
+          </p>
         </div>
         <div className="flex gap-3">
           <button 
             onClick={() => {
               setIsExporting(true);
-              setTimeout(() => { showToast('Ledger Exported Successfully', 'emerald'); setIsExporting(false); }, 1000);
+              setTimeout(() => { showToast('Financial Ledger Synchronized', 'emerald'); setIsExporting(false); }, 1000);
             }}
             disabled={isExporting}
-            className="bg-white border-2 border-slate-50 px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-700 shadow-sm hover:bg-slate-50 flex items-center gap-2 transition-all active:scale-95 shadow-xl shadow-slate-200/50"
+            className="bg-white border-2 border-slate-50 px-8 py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-700 shadow-sm hover:bg-slate-50 flex items-center gap-3 transition-all active:scale-95 shadow-xl shadow-slate-200/50 italic"
           >
-             {isExporting ? <Loader2 className="animate-spin" size={16} /> : <Download size={16} />} 
-             Export Ledger
+             {isExporting ? <Loader2 className="animate-spin" size={16} /> : <Download size={18} />} 
+             Generate Audit Ledger
           </button>
         </div>
       </div>
@@ -278,18 +281,20 @@ const Payments = () => {
                   </td>
                   <td className="px-10 py-6 text-right relative">
                     <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all text-slate-900">
-                       <select 
-                         value={t.status.toLowerCase()} 
-                         onChange={(e) => handleGovernanceRequest(t.internal_id, e.target.value)}
-                         className="bg-white border-2 border-slate-50 rounded-xl px-2 py-1.5 text-[10px] font-black text-slate-500 outline-none transition-all cursor-pointer hover:border-emerald-100 focus:border-emerald-500 uppercase italic shadow-sm"
-                       >
-                          <option value="pending">Pending</option>
-                          <option value="completed">Complete Payout</option>
-                          <option value="flagged">Flag Transaction</option>
-                          <option value="refunded">Refund Client</option>
-                       </select>
+                       {!isInstitutional && (
+                          <select 
+                            value={t.status.toLowerCase()} 
+                            onChange={(e) => handleGovernanceRequest(t.internal_id, e.target.value)}
+                            className="bg-white border-2 border-slate-50 rounded-xl px-2 py-1.5 text-[10px] font-black text-slate-500 outline-none transition-all cursor-pointer hover:border-emerald-100 focus:border-emerald-500 uppercase italic shadow-sm"
+                          >
+                             <option value="pending">Pending</option>
+                             <option value="completed">Complete Payout</option>
+                             <option value="flagged">Flag Transaction</option>
+                             <option value="refunded">Refund Client</option>
+                          </select>
+                       )}
                        <button className="p-2.5 bg-white border border-slate-100 rounded-xl text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all shadow-xl shadow-slate-200/50">
-                          <MoreVertical size={16} />
+                          {isInstitutional ? <Download size={16} /> : <MoreVertical size={16} />}
                        </button>
                     </div>
                   </td>

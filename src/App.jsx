@@ -25,6 +25,7 @@ import Communications from './pages/Communications';
 import SystemLogs from './pages/SystemLogs';
 import RegisterPartner from './pages/RegisterPartner';
 import CMS from './pages/CMS';
+import ProductForm from './pages/ProductForm';
 import Reports from './pages/Reports';
 import './index.css';
 
@@ -96,6 +97,9 @@ function App() {
           <Route path="logistics" element={<LogisticsIntelligence />} />
           <Route path="users" element={<Users />} />
           <Route path="payments" element={<Payments />} />
+          <Route path="products" element={<Products />} />
+          <Route path="products/add" element={<ProductForm />} />
+          <Route path="products/edit/:id" element={<ProductForm />} />
           <Route path="products/:id?" element={<Products />} />
           <Route path="orders" element={<Orders />} />
           <Route path="offers" element={<Offers />} />
