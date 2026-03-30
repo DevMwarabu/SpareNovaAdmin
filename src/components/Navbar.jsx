@@ -203,7 +203,7 @@ const Navbar = () => {
                 </div>
                 <div className="max-h-[350px] overflow-y-auto">
                   {messages.map((msg, i) => (
-                    <button key={i} onClick={() => { setIsMessagesOpen(false); navigate('/portal/disputes'); }} className="w-full px-8 py-6 border-b border-slate-50 hover:bg-slate-50/80 transition-all text-left group">
+                    <button key={i} onClick={() => { setIsMessagesOpen(false); navigate(`/${JSON.parse(localStorage.getItem('user') || '{}').role?.toLowerCase() || 'admin'}/disputes`); }} className="w-full px-8 py-6 border-b border-slate-50 hover:bg-slate-50/80 transition-all text-left group">
                       <div className="flex items-center justify-between mb-2">
                         <p className="text-[12px] font-black text-slate-900 uppercase italic group-hover:text-orange-600 transition-colors tracking-tight line-clamp-1 pr-2">{msg.from}</p>
                         <span className="text-[9px] font-bold text-slate-400 italic shrink-0">{msg.time}</span>
@@ -215,7 +215,7 @@ const Navbar = () => {
                      <div className="px-8 py-10 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest italic">All Support Channels Cleared</div>
                   )}
                 </div>
-                <button onClick={() => navigate('/portal/disputes')} className="w-full py-6 text-[10px] font-black text-orange-600 hover:bg-orange-50 transition-colors uppercase tracking-[0.2em] italic border-t border-orange-50">Operational Log Access</button>
+                <button onClick={() => navigate(`/${JSON.parse(localStorage.getItem('user') || '{}').role?.toLowerCase() || 'admin'}/disputes`)} className="w-full py-6 text-[10px] font-black text-orange-600 hover:bg-orange-50 transition-colors uppercase tracking-[0.2em] italic border-t border-orange-50">Operational Log Access</button>
               </motion.div>
             )}
           </AnimatePresence>
@@ -302,8 +302,8 @@ const Navbar = () => {
                 </div>
                 <div className="space-y-2">
                   {[
-                    ...(user.role === 'admin' || user.role === 'store_owner' ? [{ label: 'Governance Identity', icon: UserCircle, action: () => navigate('/portal/users'), col: 'slate' }] : []),
-                    ...(user.role === 'admin' ? [{ label: 'System Configuration', icon: Settings, action: () => navigate('/portal/settings'), col: 'slate' }] : []),
+                    ...(user.role === 'admin' || user.role === 'store_owner' ? [{ label: 'Governance Identity', icon: UserCircle, action: () => navigate(`/${JSON.parse(localStorage.getItem('user') || '{}').role?.toLowerCase() || 'admin'}/users`), col: 'slate' }] : []),
+                    ...(user.role === 'admin' ? [{ label: 'System Configuration', icon: Settings, action: () => navigate(`/${JSON.parse(localStorage.getItem('user') || '{}').role?.toLowerCase() || 'admin'}/settings`), col: 'slate' }] : []),
                   ].map((item, i) => (
                     <button 
                       key={i} 

@@ -116,10 +116,34 @@ const VendorDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeInterval, setActiveInterval] = useState('7d');
+  
+  // Advanced Filter States
+  const [isFilterVisible, setIsFilterVisible] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All');
+  const [amountRange, setAmountRange] = useState({ min: '', max: '' });
 
   useEffect(() => {
     fetchDashboardData();
   }, [activeInterval]);
+
+  // High-Performance Filtering Node
+  const filteredOrders = React.useMemo(() => {
+    if (!data?.recent_orders) return [];
+    
+    return data.recent_orders.filter(order => {
+      const matchesSearch = order.id.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          order.customer.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      const matchesStatus = statusFilter === 'All' || order.status === statusFilter;
+      
+      const amount = parseFloat(order.amount.replace(/[^0-9.]/g, ''));
+      const matchesMin = !amountRange.min || amount >= parseFloat(amountRange.min);
+      const matchesMax = !amountRange.max || amount <= parseFloat(amountRange.max);
+      
+      return matchesSearch && matchesStatus && matchesMin && matchesMax;
+    });
+  }, [data?.recent_orders, searchQuery, statusFilter, amountRange]);
 
   const fetchDashboardData = async () => {
     try {
@@ -420,18 +444,85 @@ const VendorDashboard = () => {
                   </h2>
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic opacity-60 mt-1">Cross-platform fulfillment synchronization</p>
               </div>
-              <div className="flex gap-3">
-                  <div className="relative group">
-                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-hover:text-indigo-600 transition-colors" size={16} />
-                      <input 
-                        type="text" 
-                        placeholder="SEARCH TRANSACTION ID..." 
-                        className="bg-slate-50 pl-12 pr-6 py-4 rounded-2xl text-[10px] font-black tracking-widest border border-transparent focus:bg-white focus:border-indigo-100 transition-all outline-none w-64 uppercase"
-                      />
+              <div className="flex flex-col gap-3">
+                  <div className="flex gap-3">
+                      <div className="relative group flex-1">
+                          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-hover:text-indigo-600 transition-colors" size={16} />
+                          <input 
+                            type="text" 
+                            placeholder="SEARCH TRANSACTION ID OR CUSTOMER..." 
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="bg-slate-50 pl-12 pr-6 py-4 rounded-2xl text-[10px] font-black tracking-widest border border-transparent focus:bg-white focus:border-indigo-100 transition-all outline-none w-full uppercase"
+                          />
+                      </div>
+                      <button 
+                        onClick={() => setIsFilterVisible(!isFilterVisible)}
+                        className={`p-4 rounded-2xl transition-all border ${isFilterVisible ? 'bg-indigo-600 text-white border-indigo-600 shadow-xl shadow-indigo-600/20' : 'bg-slate-50 text-slate-400 border-transparent hover:border-indigo-100'}`}
+                      >
+                          <Filter size={18} />
+                      </button>
                   </div>
-                  <button className="bg-slate-50 p-4 rounded-2xl text-slate-400 hover:text-indigo-600 transition-all border border-transparent hover:border-indigo-100">
-                      <Filter size={18} />
-                  </button>
+                  
+                  <AnimatePresence>
+                      {isFilterVisible && (
+                          <motion.div 
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            className="overflow-hidden"
+                          >
+                              <div className="p-6 bg-slate-50/50 rounded-3xl border border-slate-100 flex flex-wrap gap-6 mt-2">
+                                  <div className="space-y-2">
+                                      <p className="text-[10px] font-black uppercase text-slate-400 italic">Protocol Status</p>
+                                      <div className="flex gap-2">
+                                          {['All', 'Delivered', 'Pending', 'Processing', 'Cancelled'].map(status => (
+                                              <button 
+                                                key={status}
+                                                onClick={() => setStatusFilter(status)}
+                                                className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase italic transition-all ${statusFilter === status ? 'bg-slate-900 text-white' : 'bg-white text-slate-400 hover:bg-slate-100'}`}
+                                              >
+                                                  {status}
+                                              </button>
+                                          ))}
+                                      </div>
+                                  </div>
+                                  
+                                  <div className="space-y-2">
+                                      <p className="text-[10px] font-black uppercase text-slate-400 italic">Financial Yield (KES)</p>
+                                      <div className="flex items-center gap-2">
+                                          <input 
+                                            type="number" 
+                                            placeholder="MIN" 
+                                            value={amountRange.min}
+                                            onChange={(e) => setAmountRange(prev => ({ ...prev, min: e.target.value }))}
+                                            className="w-24 bg-white px-4 py-2 rounded-xl text-[10px] font-black border border-slate-100 focus:border-indigo-500 outline-none"
+                                          />
+                                          <div className="w-2 h-0.5 bg-slate-200" />
+                                          <input 
+                                            type="number" 
+                                            placeholder="MAX" 
+                                            value={amountRange.max}
+                                            onChange={(e) => setAmountRange(prev => ({ ...prev, max: e.target.value }))}
+                                            className="w-24 bg-white px-4 py-2 rounded-xl text-[10px] font-black border border-slate-100 focus:border-indigo-500 outline-none"
+                                          />
+                                      </div>
+                                  </div>
+                                  
+                                  <button 
+                                    onClick={() => {
+                                      setSearchQuery('');
+                                      setStatusFilter('All');
+                                      setAmountRange({ min: '', max: '' });
+                                    }}
+                                    className="self-end px-4 py-2 text-[9px] font-black uppercase text-rose-500 hover:bg-rose-50 rounded-xl transition-all italic"
+                                  >
+                                      Reset Parameters
+                                  </button>
+                              </div>
+                          </motion.div>
+                      )}
+                  </AnimatePresence>
               </div>
           </div>
           
@@ -448,7 +539,7 @@ const VendorDashboard = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {data.recent_orders.map((order, i) => (
+                {filteredOrders.length > 0 ? filteredOrders.map((order, i) => (
                   <tr key={i} className="group hover:bg-slate-50/70 transition-all">
                     <td className="px-6 py-8">
                        <span className="text-xs font-black text-slate-900 italic tracking-tighter group-hover:text-indigo-600 transition-colors uppercase">{order.id}</span>
@@ -475,7 +566,16 @@ const VendorDashboard = () => {
                        </div>
                     </td>
                   </tr>
-                ))}
+                )) : (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-20 text-center">
+                      <div className="flex flex-col items-center gap-4 opacity-30">
+                        <Activity size={48} className="text-slate-400" />
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] italic">No transaction nodes match selected parameters</p>
+                      </div>
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -532,14 +632,18 @@ const VendorDashboard = () => {
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic mb-1">Direct Acquisitions</p>
-                            <h4 className="text-3xl font-black italic tracking-tighter text-slate-900">{data.customer_activity.new_customers} <span className="text-[10px] text-emerald-500 font-bold ml-1">+12%</span></h4>
+                            <h4 className="text-3xl font-black italic tracking-tighter text-slate-900">{data.customer_activity.new_acquisitions} 
+                              <span className={`text-[10px] font-bold ml-1 ${data.customer_activity.growth_rate >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                {data.customer_activity.growth_rate >= 0 ? '+' : ''}{data.customer_activity.growth_rate}%
+                              </span>
+                            </h4>
                         </div>
                         <Users size={32} className="text-slate-100" />
                     </div>
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic mb-1">Returning Nodes</p>
-                            <h4 className="text-3xl font-black italic tracking-tighter text-slate-900">{data.customer_activity.returning_customers}%</h4>
+                            <h4 className="text-3xl font-black italic tracking-tighter text-slate-900">{data.customer_activity.returning_percent}%</h4>
                         </div>
                         <CheckCircle2 size={32} className="text-slate-100" />
                     </div>

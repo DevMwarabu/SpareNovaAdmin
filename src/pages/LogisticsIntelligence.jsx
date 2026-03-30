@@ -157,7 +157,7 @@ const LogisticsIntelligence = () => {
           <button onClick={exportCSV} className="bg-white border border-slate-200 px-4 py-2.5 rounded-xl text-xs font-black text-slate-700 shadow-sm hover:bg-slate-50 flex items-center gap-2 transition-all">
             <Download size={14} /> Export
           </button>
-          <button onClick={() => navigate('/portal/register-partner?role=delivery')}
+          <button onClick={() => navigate(`/${JSON.parse(localStorage.getItem('user') || '{}').role?.toLowerCase() || 'admin'}/register-partner?role=delivery`)}
             className="bg-orange-600 text-white px-6 py-2.5 rounded-xl text-xs font-black shadow-lg shadow-orange-500/30 hover:bg-orange-700 flex items-center gap-2 transition-all active:scale-95">
             <Plus size={14} /> Register New
           </button>
@@ -277,7 +277,7 @@ const LogisticsIntelligence = () => {
                   <div className="flex flex-col items-center gap-3 opacity-30">
                     <Truck size={48} />
                     <p className="text-sm font-bold text-slate-400">No logistics partners found.</p>
-                    <button onClick={() => navigate('/portal/register-partner?role=delivery')}
+                    <button onClick={() => navigate(`/${JSON.parse(localStorage.getItem('user') || '{}').role?.toLowerCase() || 'admin'}/register-partner?role=delivery`)}
                       className="opacity-100 mt-2 px-6 py-3 bg-slate-900 text-white text-xs font-black rounded-2xl hover:bg-black transition-all">
                       Onboard First Partner
                     </button>

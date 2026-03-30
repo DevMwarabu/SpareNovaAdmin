@@ -30,9 +30,9 @@ const LoyaltyHub = () => {
       setLoading(true);
       const token = localStorage.getItem('token');
       const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-      const res = await axios.get(`${API_BASE}/portal/dashboard/vendor`, { headers });
+      const res = await axios.get(`${API_BASE}/dashboard/vendor`, { headers });
       if (res.data.success) {
-        setLoyaltyData(res.data.loyalty_data);
+        setLoyaltyData(res.data.data.loyalty);
       }
     } catch (err) {
       console.error("Failed to fetch loyalty data:", err);
@@ -45,14 +45,14 @@ const LoyaltyHub = () => {
     fetchData();
   }, []);
 
+  const Crown = loyaltyData?.tier === 'PLATINUM' ? Trophy : Star;
+
   const tiers = [
     { name: 'BRONZE', min: 0, color: 'orange', icon: Star },
     { name: 'SILVER', min: 10000, color: 'slate', icon: Sparkles },
     { name: 'GOLD', min: 50000, color: 'yellow', icon: Trophy },
     { name: 'PLATINUM', min: 100000, color: 'indigo', icon: Crown },
   ];
-
-  const Crown = loyaltyData?.tier === 'PLATINUM' ? Trophy : Star;
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000 min-h-screen pb-20">
@@ -205,28 +205,20 @@ const LoyaltyHub = () => {
                  </button>
               </div>
 
-              <div className="space-y-6 flex-1">
-                 {[
-                    { l: 'Successful Fullfillment', v: '+250', t: '2 hours ago', c: 'indigo' },
-                    { l: 'Positive Peer Review', v: '+100', t: '5 hours ago', c: 'emerald' },
-                    { l: 'Milestone: Active Node', v: '+1000', t: '1 day ago', c: 'amber' },
-                    { l: 'Bulk Order Synchronization', v: '+500', t: '3 days ago', c: 'blue' },
-                    { l: 'Inventory Health Maintenance', v: '+50', t: '1 week ago', c: 'slate' },
-                 ].map((log, i) => (
+                 {(loyaltyData?.ledger || []).map((log, i) => (
                     <div key={i} className="flex items-center justify-between group relative pl-6">
                        <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-slate-100 group-last:bg-transparent" />
                        <div className="absolute left-[-3px] top-1.5 w-2 h-2 rounded-full border-2 border-white bg-slate-200 group-hover:bg-indigo-500 group-hover:scale-150 transition-all" />
                        
-                       <div>
-                          <p className="text-[10px] font-black text-slate-900 uppercase italic opacity-80 leading-none mb-1 group-hover:text-indigo-600 transition-colors">{log.l}</p>
+                       <div className="flex-1 pr-4">
+                          <p className="text-[10px] font-black text-slate-900 uppercase italic opacity-80 leading-tight mb-1 group-hover:text-indigo-600 transition-colors truncate">{log.l}</p>
                           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest opacity-60 italic">{log.t}</p>
                        </div>
-                       <div className={`px-2.5 py-1.5 rounded-xl bg-${log.c}-50 text-${log.c}-600 text-[10px] font-black italic`}>
+                       <div className={`px-2.5 py-1.5 rounded-xl bg-${log.c}-50 text-${log.c}-600 text-[10px] font-black italic whitespace-nowrap`}>
                           {log.v}
                        </div>
                     </div>
                  ))}
-              </div>
 
               <div className="mt-12 p-6 bg-slate-50 rounded-[32px] border border-slate-100 space-y-4">
                  <div className="flex items-center gap-3">

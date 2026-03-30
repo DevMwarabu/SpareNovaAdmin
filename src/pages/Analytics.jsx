@@ -38,7 +38,9 @@ const Analytics = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const res = await axios.get(`${API_BASE}/dashboard/analytics?days=${days}`);
+        const token = localStorage.getItem('token');
+        const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+        const res = await axios.get(`${API_BASE}/dashboard/analytics?days=${days}`, { headers });
         if(res.data.success) {
           setMetrics(res.data);
         }

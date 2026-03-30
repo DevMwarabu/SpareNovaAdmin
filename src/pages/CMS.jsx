@@ -194,7 +194,7 @@ const CMS = () => {
         </div>
         <div className="flex gap-3">
            <button 
-             onClick={() => navigate('/portal/audit-logs')}
+             onClick={() => navigate(`/${JSON.parse(localStorage.getItem('user') || '{}').role?.toLowerCase() || 'admin'}/audit-logs`)}
              className="bg-white border-2 border-slate-100 text-slate-700 px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-slate-200/20 hover:scale-105 transition-all flex items-center gap-3 italic"
            >
               <History size={18} /> Audit Ledger

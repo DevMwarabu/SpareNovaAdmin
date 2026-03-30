@@ -174,7 +174,7 @@ const ProductForm = () => {
       const response = await axios[method](url, payload);
       if (response.data.success) {
         setSuccess(true);
-        setTimeout(() => navigate('/portal/products'), 2000);
+        setTimeout(() => navigate(`/${JSON.parse(localStorage.getItem('user') || '{}').role?.toLowerCase() || 'admin'}/products`), 2000);
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Pipeline Malfunction: System refused the listing update.');
@@ -200,7 +200,7 @@ const ProductForm = () => {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-6">
           <button 
-            onClick={() => navigate('/portal/products')}
+            onClick={() => navigate(`/${JSON.parse(localStorage.getItem('user') || '{}').role?.toLowerCase() || 'admin'}/products`)}
             className="w-12 h-12 rounded-2xl bg-white border border-slate-100 flex items-center justify-center text-slate-400 hover:text-primary-600 hover:border-primary-100 hover:shadow-xl hover:shadow-primary-600/5 transition-all group"
           >
             <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />

@@ -95,7 +95,7 @@ const Users = () => {
       setCurrentUser(user);
       // Allow Admin, Store Owner, Garage Owner
       if (!['admin', 'store_owner', 'shop', 'garage_owner', 'garage'].includes(user.role)) {
-        navigate('/portal');
+        navigate(`/${JSON.parse(localStorage.getItem('user') || '{}').role?.toLowerCase() || 'admin'}`);
       }
     } else {
       navigate('/auth');

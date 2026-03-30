@@ -235,7 +235,7 @@ const Products = () => {
   };
 
   const handleAddProduct = () => {
-    navigate('/portal/products/add');
+    navigate(`/${JSON.parse(localStorage.getItem('user') || '{}').role?.toLowerCase() || 'admin'}/products/add`);
   };
 
   const handleEditProduct = (id) => {
