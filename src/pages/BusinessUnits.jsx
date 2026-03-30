@@ -84,7 +84,7 @@ const BusinessUnitList = ({ title, type, icon: Icon, color }) => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API_BASE}/admin/${type}`, {
+      const res = await axios.get(`${API_BASE}/portal/${type}`, {
         params: { 
           search: searchTerm, 
           status: filterStatus, 
@@ -110,7 +110,7 @@ const BusinessUnitList = ({ title, type, icon: Icon, color }) => {
   const fetchTemplates = async () => {
     try {
       setTemplateLoading(true);
-      const res = await axios.get(`${API_BASE}/admin/${type}/templates`);
+      const res = await axios.get(`${API_BASE}/portal/${type}/templates`);
       if (res.data.success) {
         setAdminTemplates(res.data.data);
       }
@@ -123,7 +123,7 @@ const BusinessUnitList = ({ title, type, icon: Icon, color }) => {
 
   const openDetails = async (id) => {
     try {
-      const res = await axios.get(`${API_BASE}/admin/${type}/${id}`);
+      const res = await axios.get(`${API_BASE}/portal/${type}/${id}`);
       if (res.data.success) {
         setSelectedUnit(res.data.data);
         setDetailTab('profile');
@@ -158,7 +158,7 @@ const BusinessUnitList = ({ title, type, icon: Icon, color }) => {
     try {
       setLoading(true);
       const statusMap = { 'verify': 'verified', 'suspend': 'suspended', 'reject': 'rejected' };
-      const res = await axios.put(`${API_BASE}/admin/${type}/${targetId}/status`, { 
+      const res = await axios.put(`${API_BASE}/portal/${type}/${targetId}/status`, { 
         status: statusMap[actionType],
         template_id: selectedTemplateId
       });
@@ -189,7 +189,7 @@ const BusinessUnitList = ({ title, type, icon: Icon, color }) => {
 
   const handleRegisterNew = () => {
     const mappedRole = type === 'shops' ? 'store_owner' : type === 'garages' ? 'garage_owner' : 'delivery';
-    navigate(`/admin/register-partner?role=${mappedRole}`);
+    navigate(`/portal/register-partner?role=${mappedRole}`);
   };
 
   return (

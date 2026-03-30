@@ -111,7 +111,7 @@ const RegisterPartner = () => {
 
   const handleBack = () => {
     const dest = role === 'store_owner' ? 'shops' : role === 'garage_owner' ? 'garages' : 'logistics';
-    navigate(`/admin/${dest}`);
+    navigate(`/portal/${dest}`);
   };
 
   // ── File Upload Field ──────────────────────────────────────────────────

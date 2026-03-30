@@ -65,7 +65,7 @@ const Payments = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API_BASE}/admin/payments`, {
+      const res = await axios.get(`${API_BASE}/portal/payments`, {
         params: { page: currentPage, per_page: 8 }
       });
       if (res.data.success) {
@@ -82,7 +82,7 @@ const Payments = () => {
 
   const fetchTemplates = async () => {
     try {
-      const res = await axios.get(`${API_BASE}/admin/payments/templates`);
+      const res = await axios.get(`${API_BASE}/portal/payments/templates`);
       if (res.data.success) {
         setAdminTemplates(res.data.data);
       }
@@ -105,7 +105,7 @@ const Payments = () => {
   const executeAdminAction = async () => {
     try {
       setLoading(true);
-      const res = await axios.put(`${API_BASE}/admin/payments/${targetTxnId}/status`, {
+      const res = await axios.put(`${API_BASE}/portal/payments/${targetTxnId}/status`, {
         status: actionType,
         template_id: selectedTemplateId
       });

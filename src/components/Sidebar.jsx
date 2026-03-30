@@ -38,56 +38,59 @@ const Sidebar = () => {
     {
       label: 'Main',
       items: [
-        { name: 'Dashboard', icon: LayoutDashboard, path: '/admin' },
-        { name: 'Analytics', icon: LineChart, path: '/admin/analytics' },
-        { name: 'AI Insights', icon: Brain, path: '/admin/ai-insights' },
+        { name: 'Dashboard', icon: LayoutDashboard, path: '/portal' },
+        { name: 'Analytics', icon: LineChart, path: '/portal/analytics' },
+        { name: 'AI Insights', icon: Brain, path: '/portal/ai-insights' },
       ]
     },
     ...(isAdmin ? [
       {
         label: 'Business Units',
         items: [
-          { name: 'Shops', icon: Store, path: '/admin/shops' },
-          { name: 'Garages', icon: Gavel, path: '/admin/garages' },
-          { name: 'Logistics', icon: Truck, path: '/admin/logistics' },
+          { name: 'Shops', icon: Store, path: '/portal/shops' },
+          { name: 'Garages', icon: Gavel, path: '/portal/garages' },
+          { name: 'Logistics', icon: Truck, path: '/portal/logistics' },
         ]
       },
       {
         label: 'E-Commerce',
         items: [
-          { name: 'Products', icon: ShoppingBag, path: '/admin/products' },
-          { name: 'Orders', icon: Package, path: '/admin/orders' },
-          { name: 'Offers', icon: Percent, path: '/admin/offers' },
-          { name: 'Inventory', icon: Box, path: '/admin/inventory' },
+          { name: 'Products', icon: ShoppingBag, path: '/portal/products' },
+          { name: 'Orders', icon: Package, path: '/portal/orders' },
+          { name: 'Offers', icon: Percent, path: '/portal/offers' },
+          { name: 'Inventory', icon: Box, path: '/portal/inventory' },
         ]
       },
       {
         label: 'Administration',
         items: [
-          { name: 'Users', icon: Users, path: '/admin/users' },
-          { name: 'Reviews', icon: Star, path: '/admin/reviews' },
-          { name: 'Disputes', icon: Gavel, path: '/admin/disputes' },
-          { name: 'Security', icon: Shield, path: '/admin/security' },
-          { name: 'Audit Logs', icon: ClipboardList, path: '/admin/audit-logs' },
-          { name: 'SaaS Platform', icon: Layers, path: '/admin/saas' },
-          { name: 'Communications', icon: Megaphone, path: '/admin/communications' },
-          { name: 'System Logs', icon: Terminal, path: '/admin/system-logs' },
-          { name: 'Content (CMS)', icon: Layout, path: '/admin/cms' },
-          { name: 'Advanced Reports', icon: FileText, path: '/admin/reports' },
-          { name: 'Payments', icon: CreditCard, path: '/admin/payments' },
-          { name: 'Settings', icon: Settings, path: '/admin/settings' },
+          { name: 'Users', icon: Users, path: '/portal/users' },
+          { name: 'Reviews', icon: Star, path: '/portal/reviews' },
+          { name: 'Disputes', icon: Gavel, path: '/portal/disputes' },
+          { name: 'Security', icon: Shield, path: '/portal/security' },
+          { name: 'Audit Logs', icon: ClipboardList, path: '/portal/audit-logs' },
+          { name: 'SaaS Platform', icon: Layers, path: '/portal/saas' },
+          { name: 'Communications', icon: Megaphone, path: '/portal/communications' },
+          { name: 'System Logs', icon: Terminal, path: '/portal/system-logs' },
+          { name: 'Content (CMS)', icon: Layout, path: '/portal/cms' },
+          { name: 'Advanced Reports', icon: FileText, path: '/portal/reports' },
+          { name: 'Payments', icon: CreditCard, path: '/portal/payments' },
+          { name: 'Settings', icon: Settings, path: '/portal/settings' },
         ]
       }
     ] : [
       {
         label: 'Management',
         items: [
-          { name: 'My Orders', icon: ShoppingBag, path: '/admin/orders', roles: ['shop', 'store_owner'] },
-          { name: 'Inventory', icon: Store, path: '/admin/inventory', roles: ['shop', 'store_owner'] },
-          { name: 'Services', icon: Wrench, path: '/admin/services', roles: ['garage', 'garage_owner'] },
-          { name: 'Bookings', icon: Gavel, path: '/admin/bookings', roles: ['garage', 'garage_owner'] },
-          { name: 'Fleet', icon: Truck, path: '/admin/fleet', roles: ['delivery'] },
-          { name: 'Settings', icon: Settings, path: '/admin/settings' },
+          { name: 'My Orders', icon: ShoppingBag, path: '/portal/orders', roles: ['shop', 'store_owner'] },
+          { name: 'Products', icon: Package, path: '/portal/products', roles: ['shop', 'store_owner'] },
+          { name: 'Offers', icon: Percent, path: '/portal/offers', roles: ['shop', 'store_owner'] },
+          { name: 'Inventory', icon: Store, path: '/portal/inventory', roles: ['shop', 'store_owner'] },
+          { name: 'Reviews', icon: Star, path: '/portal/reviews', roles: ['shop', 'store_owner'] },
+          { name: 'Loyalty Hub', icon: Users, path: '/portal/users', roles: ['store_owner', 'garage_owner'] },
+          { name: 'Services', icon: Wrench, path: '/portal/services', roles: ['garage', 'garage_owner'] },
+          { name: 'Bookings', icon: Gavel, path: '/portal/bookings', roles: ['garage', 'garage_owner'] },
+          { name: 'Fleet', icon: Truck, path: '/portal/fleet', roles: ['delivery'] },
         ].filter(item => !item.roles || item.roles.includes(role))
       }
     ])
@@ -134,7 +137,7 @@ const Sidebar = () => {
                   <NavLink
                     key={item.name}
                     to={item.path}
-                    end={item.path === '/admin'}
+                    end={item.path === '/portal'}
                     className={({ isActive }) => 
                       `relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group ${
                         isActive 

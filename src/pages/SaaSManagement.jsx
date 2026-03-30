@@ -81,7 +81,7 @@ const SaaSManagement = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API_BASE}/admin/saas`, {
+      const res = await axios.get(`${API_BASE}/portal/saas`, {
         params: { status: filterStatus, page: currentPage, per_page: 8 }
       });
       if (res.data.success) {
@@ -102,7 +102,7 @@ const SaaSManagement = () => {
 
   const fetchTemplates = async () => {
     try {
-      const res = await axios.get(`${API_BASE}/admin/email-templates`);
+      const res = await axios.get(`${API_BASE}/portal/email-templates`);
       if (res.data.success) {
         setAdminTemplates(res.data.data);
       }
@@ -125,7 +125,7 @@ const SaaSManagement = () => {
   const executeAdminAction = async () => {
     try {
       setLoading(true);
-      const res = await axios.put(`${API_BASE}/admin/saas/${targetSubId}/status`, {
+      const res = await axios.put(`${API_BASE}/portal/saas/${targetSubId}/status`, {
         status: actionType,
         template_id: selectedTemplateId
       });
@@ -146,7 +146,7 @@ const SaaSManagement = () => {
   const executeCreateAction = async () => {
     try {
       setCreateLoading(true);
-      const res = await axios.post(`${API_BASE}/admin/saas`, newSub);
+      const res = await axios.post(`${API_BASE}/portal/saas`, newSub);
       if (res.data.success) {
         setIsCreateDrawerOpen(false);
         showToast('Monetization Node instantiated successfully.', 'emerald');
@@ -342,7 +342,7 @@ const SaaSManagement = () => {
                        </div>
                        <div>
                           <button 
-                             onClick={() => navigate(`/admin/shops?id=${sub.store_id}`)}
+                             onClick={() => navigate(`/portal/shops?id=${sub.store_id}`)}
                              className="text-[11px] font-black text-slate-900 uppercase italic tracking-tighter leading-none mb-2 text-left hover:text-indigo-600 hover:underline decoration-indigo-500/30 underline-offset-4 transition-all block"
                           >
                              {sub.store}

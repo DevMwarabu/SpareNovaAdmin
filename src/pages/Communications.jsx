@@ -71,7 +71,7 @@ const Communications = () => {
   const fetchNotifications = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API_BASE}/admin/notifications`);
+      const res = await axios.get(`${API_BASE}/portal/notifications`);
       if (res.data.success) {
         setNotifications(res.data.data);
       }
@@ -86,7 +86,7 @@ const Communications = () => {
   const fetchTemplates = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API_BASE}/admin/email-templates`);
+      const res = await axios.get(`${API_BASE}/portal/email-templates`);
       if (res.data.success) {
         setTemplates(res.data.data);
       }
@@ -107,7 +107,7 @@ const Communications = () => {
     e.preventDefault();
     try {
       setLoading(true);
-      const res = await axios.post(`${API_BASE}/admin/notifications`, formData);
+      const res = await axios.post(`${API_BASE}/portal/notifications`, formData);
       if (res.data.success) {
         setShowModal(false);
         fetchNotifications();
@@ -127,8 +127,8 @@ const Communications = () => {
       setLoading(true);
       const isEdit = !!templateData.id;
       const res = isEdit 
-        ? await axios.put(`${API_BASE}/admin/email-templates/${templateData.id}`, templateData)
-        : await axios.post(`${API_BASE}/admin/email-templates`, templateData);
+        ? await axios.put(`${API_BASE}/portal/email-templates/${templateData.id}`, templateData)
+        : await axios.post(`${API_BASE}/portal/email-templates`, templateData);
       
       if (res.data.success) {
         setShowTemplateModal(false);
@@ -152,7 +152,7 @@ const Communications = () => {
       onConfirm: async () => {
         try {
           setLoading(true);
-          await axios.delete(`${API_BASE}/admin/email-templates/${id}`);
+          await axios.delete(`${API_BASE}/portal/email-templates/${id}`);
           fetchTemplates();
           showToast('Protocol decommissioned', 'success');
         } catch (err) {

@@ -48,7 +48,7 @@ const SystemLogs = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API_BASE}/admin/system-logs`);
+      const res = await axios.get(`${API_BASE}/portal/system-logs`);
       if (res.data.success) {
         setLogs(res.data.logs);
         setApis(res.data.apis);
@@ -71,7 +71,7 @@ const SystemLogs = () => {
       onConfirm: async () => {
         try {
           setLoading(true);
-          const res = await axios.post(`${API_BASE}/admin/system-logs/clear`);
+          const res = await axios.post(`${API_BASE}/portal/system-logs/clear`);
           if (res.data.success) {
             showToast('Log cluster truncated successfully');
             fetchData();
@@ -86,7 +86,7 @@ const SystemLogs = () => {
   };
 
   const handleDownloadLogs = () => {
-    window.open(`${API_BASE}/admin/system-logs/download`, '_blank');
+    window.open(`${API_BASE}/portal/system-logs/download`, '_blank');
   };
 
   useEffect(() => {

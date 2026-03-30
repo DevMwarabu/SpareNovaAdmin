@@ -54,7 +54,7 @@ const Orders = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API_BASE}/admin/orders`, {
+      const res = await axios.get(`${API_BASE}/portal/orders`, {
         params: { search: searchTerm, status: filterStatus, page: currentPage, per_page: 8 }
       });
       if (res.data.success) {
@@ -71,7 +71,7 @@ const Orders = () => {
 
   const fetchTemplates = async () => {
     try {
-      const res = await axios.get(`${API_BASE}/admin/orders/templates`);
+      const res = await axios.get(`${API_BASE}/portal/orders/templates`);
       if (res.data.success) {
         setAdminTemplates(res.data.data);
       }
@@ -94,7 +94,7 @@ const Orders = () => {
   const executeAdminAction = async () => {
     try {
       setLoading(true);
-      const res = await axios.put(`${API_BASE}/admin/orders/${targetId}/status`, { 
+      const res = await axios.put(`${API_BASE}/portal/orders/${targetId}/status`, { 
         status: actionType,
         template_id: selectedTemplateId
       });

@@ -65,7 +65,7 @@ function App() {
         <Route path="/auth" element={<Auth />} />
         <Route path="/login" element={<Navigate to="/auth" replace />} />
         <Route path="/register" element={<Navigate to="/auth" replace />} />
-        <Route path="/admin" element={<AdminLayout />}>
+        <Route path="/portal" element={<AdminLayout />}>
           <Route index element={<Dashboard />} />
           <Route path="analytics" element={<Analytics />} />
           <Route path="shops/:unitId?" element={<BusinessUnits type="shops" title="Shop Network" icon={Store} color="blue" />} />
@@ -90,7 +90,9 @@ function App() {
           <Route path="register-partner" element={<RegisterPartner />} />
           <Route path="settings" element={<Settings />} />
         </Route>
+        <Route path="/portal/*" element={<Navigate to="/portal" replace />} />
         <Route path="/" element={<Navigate to="/auth" replace />} />
+        <Route path="*" element={<Navigate to="/portal" replace />} />
       </Routes>
     </Router>
   );

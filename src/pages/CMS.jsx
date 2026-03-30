@@ -62,7 +62,7 @@ const CMS = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API_BASE}/admin/cms`);
+      const res = await axios.get(`${API_BASE}/portal/cms`);
       if (res.data.success) {
         setBanners(res.data.banners);
         setFeatured(res.data.featured);
@@ -76,7 +76,7 @@ const CMS = () => {
 
   const fetchProducts = async () => {
     try {
-      const res = await axios.get(`${API_BASE}/admin/cms/products`);
+      const res = await axios.get(`${API_BASE}/portal/cms/products`);
       if (res.data.success) setAllProducts(res.data.products);
     } catch (err) { console.error("Catalog fetch failed"); }
   };
@@ -89,7 +89,7 @@ const CMS = () => {
   const handleStageUpdate = async (type, id) => {
     setActiveStagingId(id);
     try {
-      const res = await axios.put(`${API_BASE}/admin/cms/banner/${id}`, { staged: true });
+      const res = await axios.put(`${API_BASE}/portal/cms/banner/${id}`, { staged: true });
       if (res.data.success) {
         showToast('Asset status staged successfully');
         fetchData();
@@ -109,7 +109,7 @@ const CMS = () => {
       message: 'This protocol will permanently remove this marketplace staging slot from the index. This action is audited and irreversible.',
       onConfirm: async () => {
         try {
-          await axios.delete(`${API_BASE}/admin/cms/banner/${id}`);
+          await axios.delete(`${API_BASE}/portal/cms/banner/${id}`);
           showToast('Asset decommissioned successfully');
           fetchData();
         } catch (err) {
@@ -126,7 +126,7 @@ const CMS = () => {
       message: 'This item will be removed from the editorial spotlight gallery. It will remain in the catalog but lose its tier-priority visibility.',
       onConfirm: async () => {
         try {
-          await axios.delete(`${API_BASE}/admin/cms/featured/${id}`);
+          await axios.delete(`${API_BASE}/portal/cms/featured/${id}`);
           showToast('Curation spotlight revoked');
           fetchData();
         } catch (err) {
@@ -154,10 +154,10 @@ const CMS = () => {
   const handleSaveBanner = async () => {
     try {
       if (editingBanner) {
-        await axios.put(`${API_BASE}/admin/cms/banner/${editingBanner.id}`, bannerForm);
+        await axios.put(`${API_BASE}/portal/cms/banner/${editingBanner.id}`, bannerForm);
         showToast('Brand asset updated');
       } else {
-        await axios.post(`${API_BASE}/admin/cms/banner`, bannerForm);
+        await axios.post(`${API_BASE}/portal/cms/banner`, bannerForm);
         showToast('New asset defined');
       }
       setIsBannerModalOpen(false);
@@ -167,7 +167,7 @@ const CMS = () => {
 
   const handleSaveFeatured = async () => {
     try {
-      await axios.post(`${API_BASE}/admin/cms/featured`, featuredForm);
+      await axios.post(`${API_BASE}/portal/cms/featured`, featuredForm);
       showToast('Curation spotlight deployed');
       setIsFeaturedModalOpen(false);
       fetchData();
@@ -194,7 +194,7 @@ const CMS = () => {
         </div>
         <div className="flex gap-3">
            <button 
-             onClick={() => navigate('/admin/audit-logs')}
+             onClick={() => navigate('/portal/audit-logs')}
              className="bg-white border-2 border-slate-100 text-slate-700 px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-slate-200/20 hover:scale-105 transition-all flex items-center gap-3 italic"
            >
               <History size={18} /> Audit Ledger

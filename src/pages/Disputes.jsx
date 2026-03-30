@@ -60,7 +60,7 @@ const Disputes = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API_BASE}/admin/disputes`, {
+      const res = await axios.get(`${API_BASE}/portal/disputes`, {
         params: { search: searchTerm, status: filterStatus, page: currentPage, per_page: 8 }
       });
       if (res.data.success) {
@@ -77,7 +77,7 @@ const Disputes = () => {
 
   const fetchTemplates = async () => {
     try {
-      const res = await axios.get(`${API_BASE}/admin/disputes/templates`);
+      const res = await axios.get(`${API_BASE}/portal/disputes/templates`);
       if (res.data.success) {
         setAdminTemplates(res.data.data);
       }
@@ -100,7 +100,7 @@ const Disputes = () => {
   const executeResolution = async () => {
     try {
       setLoading(true);
-      const res = await axios.put(`${API_BASE}/admin/disputes/${targetId}/resolve`, { 
+      const res = await axios.put(`${API_BASE}/portal/disputes/${targetId}/resolve`, { 
         status: resolutionType, 
         admin_notes: adminNotes,
         template_id: selectedTemplateId
@@ -292,7 +292,7 @@ const Disputes = () => {
                     </td>
                     <td className="px-10 py-6">
                        <div className="flex flex-col items-start">
-                          <button onClick={(e) => { e.stopPropagation(); navigate(`/admin/orders?id=${d.order_id}`); }} className="text-[11px] font-black text-slate-900 italic tracking-tighter leading-none mb-1 uppercase hover:text-rose-600 transition-colors decoration-rose-500/30 hover:underline underline-offset-4 cursor-pointer text-left">
+                          <button onClick={(e) => { e.stopPropagation(); navigate(`/portal/orders?id=${d.order_id}`); }} className="text-[11px] font-black text-slate-900 italic tracking-tighter leading-none mb-1 uppercase hover:text-rose-600 transition-colors decoration-rose-500/30 hover:underline underline-offset-4 cursor-pointer text-left">
                              ORDER #{d.order_number}
                           </button>
                           <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic leading-none">{d.date}</span>
@@ -301,10 +301,10 @@ const Disputes = () => {
                     </td>
                     <td className="px-10 py-6">
                        <div className="flex flex-col gap-1.5 items-start">
-                          <button onClick={(e) => { e.stopPropagation(); navigate(`/admin/users?id=${d.customer_id}`); }} className="flex items-center gap-1.5 text-[11px] font-black text-slate-700 italic hover:text-primary-600 transition-colors decoration-primary-500/30 hover:underline underline-offset-4 cursor-pointer">
+                          <button onClick={(e) => { e.stopPropagation(); navigate(`/portal/users?id=${d.customer_id}`); }} className="flex items-center gap-1.5 text-[11px] font-black text-slate-700 italic hover:text-primary-600 transition-colors decoration-primary-500/30 hover:underline underline-offset-4 cursor-pointer">
                              <User size={12} className="text-primary-400" /> {d.customer}
                           </button>
-                          <button onClick={(e) => { e.stopPropagation(); navigate(`/admin/shops/${d.store_id}`); }} className="flex items-center gap-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest opacity-60 hover:opacity-100 hover:text-secondary-600 transition-all cursor-pointer">
+                          <button onClick={(e) => { e.stopPropagation(); navigate(`/portal/shops/${d.store_id}`); }} className="flex items-center gap-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest opacity-60 hover:opacity-100 hover:text-secondary-600 transition-all cursor-pointer">
                              <Store size={12} className="text-secondary-400" /> {d.store}
                           </button>
                        </div>

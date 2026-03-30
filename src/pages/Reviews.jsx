@@ -32,7 +32,7 @@ const Reviews = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API_BASE}/admin/reviews`, {
+      const res = await axios.get(`${API_BASE}/portal/reviews`, {
         params: { search: searchTerm, status: filterStatus, page: currentPage, per_page: 8 }
       });
       if (res.data.success) {
@@ -57,7 +57,7 @@ const Reviews = () => {
 
   const handleStatusUpdate = async (id, newStatus) => {
     try {
-      const res = await axios.put(`${API_BASE}/admin/reviews/${id}/status`, { status: newStatus });
+      const res = await axios.put(`${API_BASE}/portal/reviews/${id}/status`, { status: newStatus });
       if (res.data.success) {
         fetchData();
       }
@@ -207,7 +207,7 @@ const Reviews = () => {
                   </td>
                   <td className="px-8 py-5">
                     <div className="flex flex-col gap-1 items-start">
-                       <button onClick={() => r.product_id ? navigate(`/admin/products/${r.product_id}`) : null} className={`text-xs font-bold text-slate-700 transition-colors text-left truncate max-w-[150px] ${r.product_id ? 'hover:text-amber-600 decoration-amber-500/30 hover:underline underline-offset-4 cursor-pointer' : 'cursor-default'}`}>
+                       <button onClick={() => r.product_id ? navigate(`/portal/products/${r.product_id}`) : null} className={`text-xs font-bold text-slate-700 transition-colors text-left truncate max-w-[150px] ${r.product_id ? 'hover:text-amber-600 decoration-amber-500/30 hover:underline underline-offset-4 cursor-pointer' : 'cursor-default'}`}>
                           {r.product}
                        </button>
                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{r.store}</span>
@@ -223,22 +223,24 @@ const Reviews = () => {
                   <td className="px-8 py-5 text-right font-black text-slate-900 text-sm">
                     <div className="flex items-center justify-end gap-3">
                        <span className={`px-2 py-1 rounded text-[9px] uppercase tracking-tighter font-black ${statusStyles[r.status]}`}>{r.status}</span>
-                       <div className="flex gap-1">
-                          <button 
-                             onClick={() => handleStatusUpdate(r.id, 'approved')}
-                             title="Approve Review"
-                             className="p-1.5 bg-slate-50 text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 rounded-lg transition-all"
-                          >
-                             <CheckCircle2 size={16} />
-                          </button>
-                          <button 
-                             onClick={() => handleStatusUpdate(r.id, 'rejected')}
-                             title="Reject Review"
-                             className="p-1.5 bg-slate-50 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                          >
-                             <XCircle size={16} />
-                          </button>
-                       </div>
+                       {JSON.parse(localStorage.getItem('user') || '{}').role === 'admin' && (
+                         <div className="flex gap-1">
+                            <button 
+                               onClick={() => handleStatusUpdate(r.id, 'approved')}
+                               title="Approve Review"
+                               className="p-1.5 bg-slate-50 text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 rounded-lg transition-all"
+                            >
+                               <CheckCircle2 size={16} />
+                            </button>
+                            <button 
+                               onClick={() => handleStatusUpdate(r.id, 'rejected')}
+                               title="Reject Review"
+                               className="p-1.5 bg-slate-50 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                            >
+                               <XCircle size={16} />
+                            </button>
+                         </div>
+                       )}
                     </div>
                   </td>
                 </tr>

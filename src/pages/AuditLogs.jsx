@@ -38,7 +38,7 @@ const AuditLogs = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API_BASE}/admin/audit-logs`, {
+      const res = await axios.get(`${API_BASE}/portal/audit-logs`, {
         params: { model_type: filterType, page: currentPage, per_page: 15, q: searchQuery }
       });
       if (res.data.success) {

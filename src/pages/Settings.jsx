@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Settings as SettingsIcon, 
@@ -42,6 +43,7 @@ import axios from 'axios';
 const API_BASE = 'http://localhost:8003/api/v1';
 
 const Settings = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('branding');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -49,6 +51,19 @@ const Settings = () => {
   const [settings, setSettings] = useState({});
   const [commissionRules, setCommissionRules] = useState([]);
   const [message, setMessage] = useState(null);
+
+  useEffect(() => {
+    // ACCESS CONTROL: Institutional Redirect
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      if (user.role !== 'admin') {
+        navigate('/portal');
+      }
+    } else {
+      navigate('/auth');
+    }
+  }, [navigate]);
 
   const showToast = (text, type = 'success') => {
     setMessage({ type, text });
@@ -63,7 +78,7 @@ const Settings = () => {
   const fetchSettings = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API_BASE}/admin/settings`);
+      const response = await axios.get(`${API_BASE}/portal/settings`);
       const fetchedSettings = response.data.settings || {};
       
       // Inject Industrial Gmail Defaults if missing
@@ -116,7 +131,7 @@ const Settings = () => {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await axios.post(`${API_BASE}/admin/settings`, settings);
+      await axios.post(`${API_BASE}/portal/settings`, settings);
       
       for (const rule of commissionRules) {
         if (rule.id) {
@@ -143,7 +158,7 @@ const Settings = () => {
   const handleTestConnection = async (type, keyId) => {
     setTestingType(type);
     try {
-      const response = await axios.post(`${API_BASE}/admin/settings/verify-connection`, {
+      const response = await axios.post(`${API_BASE}/portal/settings/verify-connection`, {
         type,
         key: settings[keyId],
         key_id: keyId
@@ -388,7 +403,7 @@ const Settings = () => {
                                 <p className="text-[10px] font-black uppercase text-slate-900 italic tracking-widest underline decoration-sky-500/20 underline-offset-4">Transactional Content Management</p>
                                 <p className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">Modify the visual and textual structure of system emails</p>
                              </div>
-                             <button onClick={()=>window.location.href='/admin/communications'} className="px-6 py-3 bg-sky-600 text-white rounded-xl text-[9px] uppercase tracking-widest font-black shadow-lg shadow-sky-600/20 hover:scale-105 transition-all">Open Communications Lab</button>
+                             <button onClick={()=>window.location.href='/portal/communications'} className="px-6 py-3 bg-sky-600 text-white rounded-xl text-[9px] uppercase tracking-widest font-black shadow-lg shadow-sky-600/20 hover:scale-105 transition-all">Open Communications Lab</button>
                           </div>
                        </div>
                     </section>
@@ -474,7 +489,7 @@ const LogoPicker = ({ value, onChange }) => {
 
     setUploading(true);
     try {
-      const response = await axios.post(`${API_BASE}/admin/settings/upload`, formData, {
+      const response = await axios.post(`${API_BASE}/portal/settings/upload`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       if (response.data.success) {
@@ -554,7 +569,7 @@ const SlideSourcePicker = ({ slide, onRemove, onChange, onSync, brandColor }) =>
 
   const fetchCatalog = async () => {
     try {
-      const response = await axios.get(`${API_BASE}/admin/cms/products`);
+      const response = await axios.get(`${API_BASE}/portal/cms/products`);
       setCatalog(response.data.products || []);
     } catch (e) { console.error(e); }
   };
@@ -566,7 +581,7 @@ const SlideSourcePicker = ({ slide, onRemove, onChange, onSync, brandColor }) =>
     formData.append('image', file);
     setUploading(true);
     try {
-      const response = await axios.post(`${API_BASE}/admin/settings/upload`, formData);
+      const response = await axios.post(`${API_BASE}/portal/settings/upload`, formData);
       if (response.data.success) onChange('image_url', response.data.url);
     } catch (e) { console.error(e); } finally { setUploading(false); }
   };

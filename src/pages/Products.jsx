@@ -66,7 +66,7 @@ const Products = () => {
   // 1. Fetch Overview Analytics
   const fetchOverview = async () => {
     try {
-      const res = await axios.get(`${API_BASE}/admin/products/overview`);
+      const res = await axios.get(`${API_BASE}/portal/products/overview`);
       if (res.data.success) {
         setData({ stats: res.data.stats, charts: res.data.charts });
       }
@@ -95,7 +95,7 @@ const Products = () => {
       if (isRefresh) setRefreshing(true);
       else setLoading(true);
       
-      const res = await axios.get(`${API_BASE}/admin/products`, {
+      const res = await axios.get(`${API_BASE}/portal/products`, {
         params: { 
           search: searchTerm, 
           status: filterStatus, 
@@ -142,7 +142,7 @@ const Products = () => {
       setExportLoading(true);
       showToast('Generating Universal CSV Report...', 'info');
       
-      const res = await axios.get(`${API_BASE}/admin/products/export`, {
+      const res = await axios.get(`${API_BASE}/portal/products/export`, {
         params: { 
           search: searchTerm, 
           status: filterStatus,
@@ -200,7 +200,7 @@ const Products = () => {
       setExportLoading(true);
       showToast('Initializing Visual PDF Pipeline...', 'info');
       
-      const res = await axios.get(`${API_BASE}/admin/products/export`, {
+      const res = await axios.get(`${API_BASE}/portal/products/export`, {
         params: { 
           search: searchTerm, 
           status: filterStatus,
@@ -232,7 +232,7 @@ const Products = () => {
 
   const handleViewDetails = async (id) => {
     try {
-      const res = await axios.get(`${API_BASE}/admin/products/${id}`);
+      const res = await axios.get(`${API_BASE}/portal/products/${id}`);
       if (res.data.success) {
         setCurrentProduct(res.data.product);
         setMainImage(res.data.product.image); // Reset main image toggle
@@ -274,13 +274,13 @@ const Products = () => {
       
       let url, method;
       if (actionType === 'delete') {
-        url = `${API_BASE}/admin/products/${selectedProduct.id}`;
+        url = `${API_BASE}/portal/products/${selectedProduct.id}`;
         method = 'delete';
       } else if (actionType === 'flag') {
-        url = `${API_BASE}/admin/products/${selectedProduct.id}/status`;
+        url = `${API_BASE}/portal/products/${selectedProduct.id}/status`;
         method = 'put';
       } else {
-        url = `${API_BASE}/admin/products/${selectedProduct.id}/status`; // Deactivate set to pending
+        url = `${API_BASE}/portal/products/${selectedProduct.id}/status`; // Deactivate set to pending
         method = 'put';
       }
 
@@ -309,7 +309,7 @@ const Products = () => {
 
   const handleEditProduct = async (id) => {
     try {
-      const res = await axios.get(`${API_BASE}/admin/products/${id}`);
+      const res = await axios.get(`${API_BASE}/portal/products/${id}`);
       if (res.data.success) {
         setCurrentProduct(res.data.product);
         setIsEditDrawerOpen(true);
@@ -323,7 +323,7 @@ const Products = () => {
     fetchOverview();
     const fetchTemplates = async () => {
       try {
-        const res = await axios.get(`${API_BASE}/admin/products/templates`);
+        const res = await axios.get(`${API_BASE}/portal/products/templates`);
         if (res.data.success) {
           setAdminTemplates(res.data.data);
         }
@@ -343,7 +343,7 @@ const Products = () => {
 
   const handleStatusUpdate = async (id, newStatus) => {
     try {
-      const res = await axios.put(`${API_BASE}/admin/products/${id}/status`, { status: newStatus });
+      const res = await axios.put(`${API_BASE}/portal/products/${id}/status`, { status: newStatus });
       if (res.data.success) {
         fetchProducts();
         fetchOverview();
@@ -1315,7 +1315,7 @@ const Products = () => {
                             <button 
                               onClick={() => {
                                 setIsDetailDrawerOpen(false);
-                                navigate(`/admin/shops/${currentProduct.store_id}`);
+                                navigate(`/portal/shops/${currentProduct.store_id}`);
                               }}
                               className="w-full text-left p-6 bg-slate-50 rounded-3xl border border-slate-100 hover:border-primary-100 transition-all hover:bg-slate-100 group/merchant"
                             >

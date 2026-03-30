@@ -298,7 +298,7 @@ const Dashboard = () => {
                 )}
               </div>
               <button 
-                onClick={() => window.location.href = '/admin/payments'}
+                onClick={() => window.location.href = '/portal/payments'}
                 className="w-full mt-8 py-3 bg-slate-50 border border-slate-100 rounded-xl text-xs font-black text-slate-500 hover:bg-slate-100 transition-colors uppercase tracking-widest"
               >
                 View All Orders

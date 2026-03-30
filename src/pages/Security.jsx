@@ -43,7 +43,7 @@ const Security = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API_BASE}/admin/security`);
+      const res = await axios.get(`${API_BASE}/portal/security`);
       if (res.data.success) {
         setStats(res.data.stats);
         setAlerts(res.data.alerts);
@@ -71,7 +71,7 @@ const Security = () => {
       const type = selectedAlert.type.includes('User') ? 'user' : 'order';
       const id = selectedAlert.id.replace('USR-', '');
       
-      const res = await axios.post(`${API_BASE}/admin/security/flag`, {
+      const res = await axios.post(`${API_BASE}/portal/security/flag`, {
         type,
         id,
         is_flagged: isFlagged,
@@ -296,8 +296,8 @@ const Security = () => {
                        <button 
                           onClick={() => {
                              setIsDrawerOpen(false);
-                             if (selectedAlert.type.includes('User')) navigate(`/admin/users?id=${selectedAlert.id.replace('USR-', '')}`);
-                             else navigate(`/admin/orders?id=${selectedAlert.id}`);
+                             if (selectedAlert.type.includes('User')) navigate(`/portal/users?id=${selectedAlert.id.replace('USR-', '')}`);
+                             else navigate(`/portal/orders?id=${selectedAlert.id}`);
                           }}
                           className="text-2xl font-black text-slate-900 tracking-tight leading-none text-left max-w-[240px] hover:text-rose-600 hover:underline decoration-rose-500/30 underline-offset-4 transition-all truncate"
                        >

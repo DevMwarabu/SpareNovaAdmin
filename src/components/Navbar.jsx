@@ -11,29 +11,29 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 const ADMIN_MODULES = [
-   { type: 'ui', title: 'Intelligence Dashboard', subtitle: 'Global System Telemetry Overview', url: '/admin' },
-   { type: 'ui', title: 'Data Analytics', subtitle: 'Platform Conversions & Sales Metrics', url: '/admin/analytics' },
-   { type: 'ui', title: 'Shop Network', subtitle: 'Business Units & Vendor Franchises', url: '/admin/shops' },
-   { type: 'ui', title: 'Service Garages', subtitle: 'On-Demand Mechanics & Hubs', url: '/admin/garages' },
-   { type: 'ui', title: 'Logistics Control', subtitle: 'Fleet Management & Deliveries', url: '/admin/logistics' },
-   { type: 'ui', title: 'User Index', subtitle: 'Customers, Drivers, and Administrators', url: '/admin/users' },
-   { type: 'ui', title: 'Payment Gateways', subtitle: 'Financial Transactions & Escrow', url: '/admin/payments' },
-   { type: 'ui', title: 'Inventory Pipeline', subtitle: 'Stock Constraints & Audits', url: '/admin/inventory' },
-   { type: 'ui', title: 'Products Hub', subtitle: 'Items & SKU Identifiers', url: '/admin/products' },
-   { type: 'ui', title: 'Order Dispatches', subtitle: 'Cart Settlements & Deliveries', url: '/admin/orders' },
-   { type: 'ui', title: 'Promotional Offers', subtitle: 'Discounts & Conversion Campaigns', url: '/admin/offers' },
-   { type: 'ui', title: 'Customer Reviews', subtitle: 'Store Verification & Ratings', url: '/admin/reviews' },
-   { type: 'ui', title: 'Dispute Mediation', subtitle: 'Conflict Resolution & Evidence', url: '/admin/disputes' },
-   { type: 'ui', title: 'Security Sentinel', subtitle: 'Fraud Deflection & Risk Scores', url: '/admin/security' },
-   { type: 'ui', title: 'SaaS Configurations', subtitle: 'Vendor Subscriptions & Billings', url: '/admin/saas' },
-   { type: 'ui', title: 'AI Insights Engine', subtitle: 'Machine Learning Predictors', url: '/admin/ai-insights' },
-   { type: 'ui', title: 'Audit Ledger', subtitle: 'Compliance Trails & Integrity Logs', url: '/admin/audit-logs' },
-   { type: 'ui', title: 'Communications', subtitle: 'Email Templates & Mass Broadcasting', url: '/admin/communications' },
-   { type: 'ui', title: 'System Logs', subtitle: 'API Health & Server Protocols', url: '/admin/system-logs' },
-   { type: 'ui', title: 'CMS Architecture', subtitle: 'Legal, Policies, & Branding Interfaces', url: '/admin/cms' },
-   { type: 'ui', title: 'Reporting Modules', subtitle: 'PDF Accounting & Export Protocols', url: '/admin/reports' },
-   { type: 'ui', title: 'Platform Settings', subtitle: 'Institutional App Overrides', url: '/admin/settings' },
-   { type: 'ui', title: 'Vendor Onboarding', subtitle: 'Register Partner Terminal', url: '/admin/register-partner' }
+   { type: 'ui', title: 'Intelligence Dashboard', subtitle: 'Global System Telemetry Overview', url: '/portal', roles: ['admin', 'store_owner', 'garage_owner', 'delivery'] },
+   { type: 'ui', title: 'Data Analytics', subtitle: 'Platform Conversions & Sales Metrics', url: '/portal/analytics', roles: ['admin'] },
+   { type: 'ui', title: 'Shop Network', subtitle: 'Business Units & Vendor Franchises', url: '/portal/shops', roles: ['admin'] },
+   { type: 'ui', title: 'Service Garages', subtitle: 'On-Demand Mechanics & Hubs', url: '/portal/garages', roles: ['admin'] },
+   { type: 'ui', title: 'Logistics Control', subtitle: 'Fleet Management & Deliveries', url: '/portal/logistics', roles: ['admin', 'delivery'] },
+   { type: 'ui', title: 'Loyalty Hub', subtitle: 'Customers, Drivers, and Administrators', url: '/portal/users', roles: ['admin', 'store_owner', 'garage_owner'] },
+   { type: 'ui', title: 'Payment Gateways', subtitle: 'Financial Transactions & Escrow', url: '/portal/payments', roles: ['admin'] },
+   { type: 'ui', title: 'Inventory Pipeline', subtitle: 'Stock Constraints & Audits', url: '/portal/inventory', roles: ['admin', 'store_owner'] },
+   { type: 'ui', title: 'Products Hub', subtitle: 'Items & SKU Identifiers', url: '/portal/products', roles: ['admin', 'store_owner'] },
+   { type: 'ui', title: 'Order Dispatches', subtitle: 'Cart Settlements & Deliveries', url: '/portal/orders', roles: ['admin', 'store_owner', 'garage_owner'] },
+   { type: 'ui', title: 'Promotional Offers', subtitle: 'Discounts & Conversion Campaigns', url: '/portal/offers', roles: ['admin', 'store_owner'] },
+   { type: 'ui', title: 'Customer Reviews', subtitle: 'Store Verification & Ratings', url: '/portal/reviews', roles: ['admin', 'store_owner', 'garage_owner'] },
+   { type: 'ui', title: 'Dispute Mediation', subtitle: 'Conflict Resolution & Evidence', url: '/portal/disputes', roles: ['admin', 'store_owner', 'garage_owner'] },
+   { type: 'ui', title: 'Security Sentinel', subtitle: 'Fraud Deflection & Risk Scores', url: '/portal/security', roles: ['admin'] },
+   { type: 'ui', title: 'SaaS Configurations', subtitle: 'Vendor Subscriptions & Billings', url: '/portal/saas', roles: ['admin'] },
+   { type: 'ui', title: 'AI Insights Engine', subtitle: 'Machine Learning Predictors', url: '/portal/ai-insights', roles: ['admin', 'store_owner', 'garage_owner'] },
+   { type: 'ui', title: 'Audit Ledger', subtitle: 'Compliance Trails & Integrity Logs', url: '/portal/audit-logs', roles: ['admin'] },
+   { type: 'ui', title: 'Communications', subtitle: 'Email Templates & Mass Broadcasting', url: '/portal/communications', roles: ['admin'] },
+   { type: 'ui', title: 'System Logs', subtitle: 'API Health & Server Protocols', url: '/portal/system-logs', roles: ['admin'] },
+   { type: 'ui', title: 'CMS Architecture', subtitle: 'Legal, Policies, & Branding Interfaces', url: '/portal/cms', roles: ['admin'] },
+   { type: 'ui', title: 'Reporting Modules', subtitle: 'PDF Accounting & Export Protocols', url: '/portal/reports', roles: ['admin'] },
+   { type: 'ui', title: 'Platform Settings', subtitle: 'Institutional App Overrides', url: '/portal/settings', roles: ['admin'] },
+   { type: 'ui', title: 'Vendor Onboarding', subtitle: 'Register Partner Terminal', url: '/portal/register-partner', roles: ['admin'] }
 ];
 
 const Navbar = () => {
@@ -82,12 +82,13 @@ const Navbar = () => {
      }
      setIsSearching(true);
      const delayDebounceFn = setTimeout(() => {
-      axios.get(`${API_BASE}/admin/search?q=${searchQuery}`)
+      axios.get(`${API_BASE}/portal/search?q=${searchQuery}`)
         .then(res => {
            if (res.data.success) {
               const matchedUI = ADMIN_MODULES.filter(m => 
-                 m.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                 m.subtitle.toLowerCase().includes(searchQuery.toLowerCase())
+                 (m.roles.includes(user.role) || user.role === 'admin') &&
+                 (m.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                  m.subtitle.toLowerCase().includes(searchQuery.toLowerCase()))
               );
               setSearchResults([...matchedUI, ...res.data.data].slice(0, 8));
            }
@@ -197,7 +198,7 @@ const Navbar = () => {
                 </div>
                 <div className="max-h-[350px] overflow-y-auto">
                   {messages.map((msg, i) => (
-                    <button key={i} onClick={() => { setIsMessagesOpen(false); navigate('/admin/disputes'); }} className="w-full px-8 py-6 border-b border-slate-50 hover:bg-slate-50/80 transition-all text-left group">
+                    <button key={i} onClick={() => { setIsMessagesOpen(false); navigate('/portal/disputes'); }} className="w-full px-8 py-6 border-b border-slate-50 hover:bg-slate-50/80 transition-all text-left group">
                       <div className="flex items-center justify-between mb-2">
                         <p className="text-[12px] font-black text-slate-900 uppercase italic group-hover:text-orange-600 transition-colors tracking-tight line-clamp-1 pr-2">{msg.from}</p>
                         <span className="text-[9px] font-bold text-slate-400 italic shrink-0">{msg.time}</span>
@@ -209,7 +210,7 @@ const Navbar = () => {
                      <div className="px-8 py-10 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest italic">All Support Channels Cleared</div>
                   )}
                 </div>
-                <button onClick={() => navigate('/admin/disputes')} className="w-full py-6 text-[10px] font-black text-orange-600 hover:bg-orange-50 transition-colors uppercase tracking-[0.2em] italic border-t border-orange-50">Operational Log Access</button>
+                <button onClick={() => navigate('/portal/disputes')} className="w-full py-6 text-[10px] font-black text-orange-600 hover:bg-orange-50 transition-colors uppercase tracking-[0.2em] italic border-t border-orange-50">Operational Log Access</button>
               </motion.div>
             )}
           </AnimatePresence>
@@ -296,8 +297,8 @@ const Navbar = () => {
                 </div>
                 <div className="space-y-2">
                   {[
-                    { label: 'Governance Identity', icon: UserCircle, action: () => navigate('/admin/users'), col: 'slate' },
-                    { label: 'System Configuration', icon: Settings, action: () => navigate('/admin/settings'), col: 'slate' },
+                    ...(user.role === 'admin' || user.role === 'store_owner' ? [{ label: 'Governance Identity', icon: UserCircle, action: () => navigate('/portal/users'), col: 'slate' }] : []),
+                    ...(user.role === 'admin' ? [{ label: 'System Configuration', icon: Settings, action: () => navigate('/portal/settings'), col: 'slate' }] : []),
                   ].map((item, i) => (
                     <button 
                       key={i} 

@@ -97,7 +97,7 @@ const Auth = () => {
       });
       localStorage.setItem('user', JSON.stringify(response.data.user));
       localStorage.setItem('token', response.data.token);
-      window.location.href = '/admin';
+      window.location.href = '/portal';
     } catch (error) {
       alert('Login failed: ' + (error.response?.data?.message || 'Invalid credentials.'));
     } finally {
@@ -117,7 +117,7 @@ const Auth = () => {
     if (token) {
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify({ name, role }));
-      window.location.href = '/admin';
+      window.location.href = '/portal';
     }
   }, [searchParams]);
 
@@ -650,7 +650,7 @@ const Auth = () => {
 
                 <div className="flex flex-col gap-4">
                    <button
-                     onClick={() => window.location.href = isAdminMode ? `/admin/${role === 'store_owner' ? 'shops' : role === 'garage_owner' ? 'garages' : 'logistics'}` : 'http://localhost:8003'}
+                     onClick={() => window.location.href = isAdminMode ? `/portal/${role === 'store_owner' ? 'shops' : role === 'garage_owner' ? 'garages' : 'logistics'}` : 'http://localhost:8003'}
                      className="w-full bg-primary-600 text-white font-black py-5 rounded-[24px] hover:bg-primary-700 transition-all shadow-2xl shadow-primary-500/20 active:scale-95 uppercase tracking-widest text-xs"
                    >
                      {isAdminMode ? 'Back to Dashboard' : 'Return to Portal'}

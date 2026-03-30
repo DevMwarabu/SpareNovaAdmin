@@ -33,7 +33,7 @@ const Inventory = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API_BASE}/admin/inventory`, {
+      const res = await axios.get(`${API_BASE}/portal/inventory`, {
         params: { 
           search: searchTerm, 
           page: currentPage, 

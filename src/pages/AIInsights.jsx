@@ -38,7 +38,7 @@ const AIInsights = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API_BASE}/admin/ai-insights`);
+      const res = await axios.get(`${API_BASE}/portal/ai-insights`);
       if (res.data.success) {
         setInsights(res.data.insights);
         if (res.data.stats) {

@@ -27,7 +27,8 @@ import {
   ArrowRight,
   Target,
   Activity,
-  Award
+  Award,
+  Trash2
 } from 'lucide-react';
 import { 
   AreaChart, 
@@ -93,7 +94,7 @@ const Offers = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API_BASE}/admin/promotions`, {
+      const res = await axios.get(`${API_BASE}/portal/promotions`, {
         params: { 
           search: searchTerm, 
           status: filterStatus, 
@@ -118,7 +119,7 @@ const Offers = () => {
 
   const fetchTemplates = async () => {
     try {
-      const res = await axios.get(`${API_BASE}/admin/promotions/templates`);
+      const res = await axios.get(`${API_BASE}/portal/promotions/templates`);
       if (res.data.success) {
         setAdminTemplates(res.data.data);
       }
@@ -130,7 +131,7 @@ const Offers = () => {
   const openDetails = async (id) => {
     try {
       setIsDetailLoading(id);
-      const res = await axios.get(`${API_BASE}/admin/promotions/${id}`);
+      const res = await axios.get(`${API_BASE}/portal/promotions/${id}`);
       if (res.data.success) {
         setSelectedPromo(res.data.data);
         setIsModalOpen(true);
@@ -161,7 +162,7 @@ const Offers = () => {
     try {
       setLoading(true);
       const statusMap = { 'approve': 'active', 'reject': 'rejected', 'expire': 'expired' };
-      const res = await axios.put(`${API_BASE}/admin/promotions/${targetPromoId}/status`, {
+      const res = await axios.put(`${API_BASE}/portal/promotions/${targetPromoId}/status`, {
         status: statusMap[actionType],
         template_id: selectedTemplateId
       });
@@ -461,18 +462,39 @@ const Offers = () => {
                        {p.status}
                     </span>
                   </td>
-                  <td className="px-10 py-6 text-right relative">
+                   <td className="px-10 py-6 text-right relative">
                     <div className="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all">
-                       <select 
-                         value={p.status.toLowerCase()} 
-                         onChange={(e) => handleGovernanceRequest(p.id, e.target.value === 'active' ? 'approve' : e.target.value)}
-                         className="bg-white border-2 border-slate-50 rounded-xl px-2 py-1.5 text-[10px] font-black text-slate-500 outline-none transition-all cursor-pointer hover:border-primary-100 focus:border-primary-100 uppercase italic shadow-sm"
-                       >
-                          <option value="pending">Pending</option>
-                          <option value="active">Approve</option>
-                          <option value="rejected">Reject</option>
-                          <option value="expired">Expire</option>
-                       </select>
+                       {JSON.parse(localStorage.getItem('user') || '{}').role === 'admin' ? (
+                         <select 
+                           value={p.status.toLowerCase()} 
+                           onChange={(e) => handleGovernanceRequest(p.id, e.target.value === 'active' ? 'approve' : e.target.value)}
+                           className="bg-white border-2 border-slate-50 rounded-xl px-2 py-1.5 text-[10px] font-black text-slate-500 outline-none transition-all cursor-pointer hover:border-primary-100 focus:border-primary-100 uppercase italic shadow-sm"
+                         >
+                            <option value="pending">Pending</option>
+                            <option value="active">Approve</option>
+                            <option value="rejected">Reject</option>
+                            <option value="expired">Expire</option>
+                         </select>
+                       ) : (
+                         p.status.toLowerCase() === 'pending' && (
+                           <button 
+                             onClick={async () => {
+                               if (window.confirm('Institutional Alert: Rescind this promotion protocol?')) {
+                                 try {
+                                   await axios.delete(`${API_BASE}/portal/promotions/${p.id}`);
+                                   fetchData();
+                                   showToast('Promotion protocol terminated.', 'success');
+                                 } catch (err) {
+                                   showToast('Termination protocol failed.', 'danger');
+                                 }
+                               }
+                             }}
+                             className="p-3 bg-white border border-slate-100 rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 transition-all shadow-xl shadow-slate-200/50"
+                           >
+                              <Trash2 size={18} />
+                           </button>
+                         )
+                       )}
                        <button onClick={() => openDetails(p.id)} disabled={isDetailLoading === p.id} className="p-3 bg-white border border-slate-100 rounded-xl text-slate-400 hover:text-primary-600 hover:bg-primary-50 transition-all shadow-xl shadow-slate-200/50">
                           {isDetailLoading === p.id ? <Loader2 size={18} className="animate-spin" /> : <Eye size={18} />}
                        </button>

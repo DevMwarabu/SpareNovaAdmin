@@ -43,7 +43,7 @@ const Users = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API_BASE}/admin/users`, {
+      const res = await axios.get(`${API_BASE}/portal/users`, {
         params: { search: searchTerm, role: filterRole, status: filterStatus, page: currentPage, per_page: 8 }
       });
       if (res.data.success) {
@@ -58,6 +58,21 @@ const Users = () => {
     }
   };
 
+  const navigate = useNavigate();
+  useEffect(() => {
+    // ACCESS CONTROL: Institutional Redirect
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      // Deny access to Garage Owners and Delivery Partners
+      if (['garage_owner', 'garage', 'delivery'].includes(user.role)) {
+        navigate('/portal');
+      }
+    } else {
+      navigate('/auth');
+    }
+  }, [navigate]);
+
   useEffect(() => {
     fetchData();
   }, [searchTerm, filterRole, filterStatus, currentPage]);
@@ -68,7 +83,7 @@ const Users = () => {
 
   const handleStatusUpdate = async (id, newStatus) => {
     try {
-      const res = await axios.put(`${API_BASE}/admin/users/${id}/status`, { status: newStatus });
+      const res = await axios.put(`${API_BASE}/portal/users/${id}/status`, { status: newStatus });
       if (res.data.success) {
         fetchData();
       } else {

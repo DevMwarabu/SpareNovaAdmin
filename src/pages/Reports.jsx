@@ -57,7 +57,7 @@ const Reports = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API_BASE}/admin/reports`);
+      const res = await axios.get(`${API_BASE}/portal/reports`);
       if (res.data.success) {
         setStats(res.data.stats);
         setRevenueTrend(res.data.revenueTrend);
@@ -74,7 +74,7 @@ const Reports = () => {
   const handleExport = async (report) => {
     try {
       setIsExporting(report.id);
-      const res = await axios.get(`${API_BASE}/admin/reports/export`, { params: { id: report.id } });
+      const res = await axios.get(`${API_BASE}/portal/reports/export`, { params: { id: report.id } });
       if (res.data.success) {
          setGeneratedAsset({
            name: report.name,
