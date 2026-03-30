@@ -108,7 +108,9 @@ const Settings = () => {
   const removeArrayItem = (key, index) => {
     const newArray = (settings[key] || []).filter((_, i) => i !== index);
     setSettings(prev => ({ ...prev, [key]: newArray }));
+    showToast('Promotional node staged for removal', 'success');
   };
+
 
   const handleSave = async () => {
     setSaving(true);
@@ -410,6 +412,7 @@ const Settings = () => {
                                >
                                  <SlideSourcePicker 
                                    slide={slide} 
+                                   brandColor={settings.brand_color || '#0F172A'}
                                    onRemove={() => removeArrayItem('home_slider_slides', i)}
                                    onChange={(field, val) => handleArrayChange('home_slider_slides', i, field, val)}
                                    onSync={handleSave}
@@ -522,7 +525,7 @@ const LogoPicker = ({ value, onChange }) => {
   );
 };
 
-const SlideSourcePicker = ({ slide, onRemove, onChange, onSync }) => {
+const SlideSourcePicker = ({ slide, onRemove, onChange, onSync, brandColor }) => {
   const [showCatalog, setShowCatalog] = useState(false);
   const [catalog, setCatalog] = useState([]);
   const [search, setSearch] = useState('');
@@ -683,12 +686,15 @@ const SlideSourcePicker = ({ slide, onRemove, onChange, onSync }) => {
                   <div className="p-10 pb-6 space-y-8">
                      <div className="flex justify-between items-center">
                         <div className="flex items-center gap-4">
-                           <div className="p-3 bg-indigo-600 text-white rounded-2xl rotate-[-3deg]">
-                              <Database size={24} />
+                           <div 
+                             className="p-4 text-white rounded-[24px] rotate-[-3deg] shadow-xl"
+                             style={{ backgroundColor: brandColor }}
+                           >
+                              <Database size={28} />
                            </div>
                            <div>
-                              <h2 className="text-xl font-black text-slate-900 uppercase italic leading-tight">Catalog Orchestrator</h2>
-                              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Select an entity for promotional linkage</p>
+                              <h2 className="text-2xl font-black text-slate-900 uppercase italic leading-tight">Catalog Orchestrator</h2>
+                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Select an entity for promotional linkage</p>
                            </div>
                         </div>
                         <button onClick={() => setShowCatalog(false)} className="p-3 bg-slate-100 rounded-2xl hover:bg-slate-200 transition-all"><X size={20}/></button>
@@ -699,9 +705,17 @@ const SlideSourcePicker = ({ slide, onRemove, onChange, onSync }) => {
                            placeholder="Search Products & Offers..."
                            value={search}
                            onChange={(e) => setSearch(e.target.value)}
-                           className="w-full bg-slate-50 border border-slate-100 rounded-[24px] px-8 py-4.5 text-sm font-bold text-slate-900 outline-none focus:ring-8 focus:ring-indigo-600/5 focus:bg-white transition-all pl-14"
+                           className="w-full bg-slate-50 border border-slate-100 rounded-[28px] px-10 py-6 text-base font-black text-slate-900 outline-none transition-all pl-16 shadow-inner focus:bg-white"
+                           style={{ 
+                             boxShadow: search ? `0 0 0 4px ${brandColor}10` : 'none',
+                             borderColor: search ? brandColor : undefined
+                           }}
                         />
-                        <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300" size={20} />
+                        <Search 
+                          className="absolute left-7 top-1/2 -translate-y-1/2 transition-colors" 
+                          style={{ color: search ? brandColor : '#CBD5E1' }}
+                          size={24} 
+                        />
                      </div>
                   </div>
                   <div className="flex-1 overflow-y-auto px-10 pb-10 custom-scrollbar space-y-3">
@@ -714,32 +728,43 @@ const SlideSourcePicker = ({ slide, onRemove, onChange, onSync }) => {
                             if (p.image) onChange('image_url', p.image);
                             setShowCatalog(false);
                           }}
-                          className="w-full flex items-center gap-6 p-5 bg-slate-50 rounded-[32px] border border-slate-100 hover:bg-indigo-50 hover:border-indigo-100 hover:scale-[1.02] transition-all group"
+                          className="w-full flex items-center gap-6 p-6 bg-slate-50 rounded-[36px] border border-slate-100 hover:bg-white hover:shadow-2xl hover:scale-[1.02] transition-all group"
+                          style={{ 
+                            borderLeft: `8px solid ${brandColor}00`,
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.borderLeftColor = brandColor}
+                          onMouseLeave={(e) => e.currentTarget.style.borderLeftColor = 'transparent'}
                         >
-                           <div className="w-14 h-14 bg-white rounded-2xl overflow-hidden border border-slate-100 group-hover:border-indigo-200">
+                           <div className="w-16 h-16 bg-white rounded-2xl overflow-hidden border border-slate-100 group-hover:rotate-3 transition-transform">
                               {p.image ? (
                                 <img src={p.image} className="w-full h-full object-cover" />
                               ) : (
-                                <div className="w-full h-full flex items-center justify-center bg-slate-100"><ImageIcon size={16} className="text-slate-300" /></div>
+                                <div className="w-full h-full flex items-center justify-center bg-slate-100"><ImageIcon size={18} className="text-slate-300" /></div>
                               )}
                            </div>
                            <div className="flex-1 text-left space-y-0.5">
-                              <p className="text-[11px] font-black text-slate-900 uppercase leading-snug group-hover:text-indigo-600 transition-colors">{p.title}</p>
+                              <p className="text-xs font-black text-slate-900 uppercase leading-snug group-hover:italic transition-all">{p.title}</p>
                               <div className="flex items-center gap-3">
                                  <div className="flex items-center gap-1.5 px-2 py-0.5 bg-slate-200/50 rounded-lg text-slate-500">
                                     <Store size={10} />
                                     <span className="text-[8px] font-black uppercase tracking-widest">{p.shop_name}</span>
                                  </div>
                                  {p.is_offer && (
-                                   <div className="px-2 py-0.5 bg-emerald-100 rounded-lg text-emerald-600 flex items-center gap-1">
+                                   <div 
+                                     className="px-2 py-0.5 rounded-lg text-white flex items-center gap-1"
+                                     style={{ backgroundColor: brandColor }}
+                                   >
                                       <Zap size={10}/>
                                       <span className="text-[8px] font-black uppercase tracking-widest">Active Offer</span>
                                    </div>
                                  )}
                               </div>
                            </div>
-                           <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-indigo-600 text-white p-2.5 rounded-xl shadow-lg shadow-indigo-200">
-                              <MousePointer2 size={16} />
+                           <div 
+                             className="opacity-0 group-hover:opacity-100 transition-opacity text-white p-3 rounded-2xl shadow-xl"
+                             style={{ backgroundColor: brandColor }}
+                           >
+                              <MousePointer2 size={18} />
                            </div>
                         </button>
                      ))}
