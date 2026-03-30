@@ -105,14 +105,14 @@ const Navbar = () => {
     window.location.href = '/register';
   };
 
-  const getNoteStyles = (type) => {
-     switch(type) {
-       case 'success': return { i: CheckCircle2, c: 'emerald' };
-       case 'warning': return { i: AlertCircle, c: 'orange' };
-       case 'error': return { i: XCircle, c: 'red' };
-       default: return { i: Activity, c: 'blue' };
-     }
-  };
+    const getNoteStyles = (type) => {
+      switch(type) {
+        case 'success': return { i: CheckCircle2, c: 'emerald' };
+        case 'warning': return { i: AlertCircle, c: 'orange' };
+        case 'error': return { i: AlertCircle, c: 'red' };
+        default: return { i: Activity, c: 'blue' };
+      }
+    };
 
   return (
     <header className="h-20 bg-white/90 backdrop-blur-xl border-b border-slate-100 flex items-center justify-between px-10 sticky top-0 z-[100] shadow-sm shadow-slate-200/20 italic uppercase">

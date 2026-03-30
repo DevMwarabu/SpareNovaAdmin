@@ -32,6 +32,29 @@ const API_BASE = 'http://localhost:8003/api/v1';
 
 function App() {
   useEffect(() => {
+    // ── Global Security Interceptor ──────────────────────────────────────────
+    const authInterceptor = axios.interceptors.request.use((config) => {
+      const token = localStorage.getItem('token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+      return config;
+    }, (error) => Promise.reject(error));
+
+    // Handle 401 Session Expiration
+    const responseInterceptor = axios.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (error.response && error.response.status === 401) {
+          // Clear credentials and redirect to gateway
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          window.location.href = '/auth';
+        }
+        return Promise.reject(error);
+      }
+    );
+
     const fetchBranding = async () => {
       try {
         const response = await axios.get(`${API_BASE}/settings`);
@@ -60,7 +83,7 @@ function App() {
   }, []);
 
   return (
-    <Router>
+    <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <Routes>
         <Route path="/auth" element={<Auth />} />
         <Route path="/login" element={<Navigate to="/auth" replace />} />
