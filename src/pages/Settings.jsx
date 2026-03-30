@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Settings as SettingsIcon, 
@@ -28,7 +28,10 @@ import {
   Car,
   Cpu,
   Fingerprint,
-  RefreshCw
+  RefreshCw,
+  Upload,
+  CloudUpload,
+  X
 } from 'lucide-react';
 import axios from 'axios';
 
@@ -225,7 +228,10 @@ const Settings = () => {
                     <section className="space-y-8 animate-in fade-in duration-500">
                       <h3 className="text-xl font-black text-slate-900 italic uppercase underline decoration-slate-900/10 underline-offset-8">Brand Identity</h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <Field label="Custom Logo URL" value={settings.custom_logo} onChange={(v) => handleChange('custom_logo', v)} placeholder="https://..." />
+                        <div className="space-y-4">
+                           <label className="text-[9px] font-black uppercase tracking-widest text-slate-900 ml-1 italic">Institutional Logo</label>
+                           <LogoPicker value={settings.custom_logo} onChange={(url) => handleChange('custom_logo', url)} />
+                        </div>
                         <div className="space-y-4">
                            <label className="text-[9px] font-black uppercase tracking-widest text-slate-900 ml-1 italic">Primary Brand Color</label>
                            <div className="p-6 bg-slate-50 rounded-[32px] flex items-center gap-6 border border-slate-100">
@@ -284,7 +290,6 @@ const Settings = () => {
                          <Field label="Teams Client ID" value={settings.teams_client_id} onChange={(v)=>handleChange('teams_client_id', v)}/>
                          <Field label="Teams Secret" type="password" value={settings.teams_client_secret} onChange={(v)=>handleChange('teams_client_secret', v)}/>
                       </div>
-
                     </section>
                   )}
 
@@ -416,6 +421,79 @@ const Settings = () => {
             </AnimatePresence>
          </div>
       </div>
+    </div>
+  );
+};
+
+const LogoPicker = ({ value, onChange }) => {
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef(null);
+
+  const handleUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('image', file);
+
+    setUploading(true);
+    try {
+      const response = await axios.post(`${API_BASE}/admin/settings/upload`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      if (response.data.success) {
+        onChange(response.data.url);
+      }
+    } catch (error) {
+      console.error('Logo upload failed:', error);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div className="p-6 bg-slate-50 rounded-[32px] border border-slate-100 flex items-center gap-6 group hover:bg-white hover:shadow-xl transition-all duration-500">
+       <div className="w-20 h-20 bg-white rounded-2xl border border-slate-100 flex items-center justify-center overflow-hidden shadow-sm relative group/logo">
+          {value ? (
+            <img src={value} alt="Current Logo" className="w-full h-full object-contain p-2" />
+          ) : (
+            <ImageIcon size={24} className="text-slate-200" />
+          )}
+          {uploading && (
+            <div className="absolute inset-0 bg-slate-900/60 flex items-center justify-center backdrop-blur-sm">
+               <Loader2 size={16} className="text-white animate-spin" />
+            </div>
+          )}
+       </div>
+       <div className="flex-1 space-y-3">
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={handleUpload} 
+            className="hidden" 
+            accept="image/*"
+          />
+          <div className="flex flex-wrap gap-3">
+             <button 
+               onClick={() => fileInputRef.current.click()}
+               disabled={uploading}
+               className="bg-slate-900 text-white px-5 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
+             >
+               {uploading ? 'Uploading...' : 'Change Logo'}
+               <Upload size={12} />
+             </button>
+             {value && (
+               <button 
+                 onClick={() => onChange('')}
+                 className="bg-red-50 text-red-600 px-4 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-red-100 transition-all"
+               >
+                 Remove
+                 <X size={12} />
+               </button>
+             )}
+          </div>
+          <p className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">Recommended: Transparent PNG or SVG (Max 2MB)</p>
+       </div>
     </div>
   );
 };
