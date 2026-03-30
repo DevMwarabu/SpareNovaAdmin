@@ -406,10 +406,17 @@ const Settings = () => {
                              {(settings.home_slider_slides || []).map((slide, i) => (
                                <motion.div 
                                  key={i}
-                                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                                 layout
+                                 initial={{ opacity: 0, scale: 0.9, y: -40 }}
                                  animate={{ opacity: 1, scale: 1, y: 0 }}
                                  exit={{ opacity: 0, scale: 0.9, y: -20, height: 0, marginBottom: 0, overflow: 'hidden' }}
-                                 transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                                 transition={{ 
+                                   type: 'spring', 
+                                   damping: 30, 
+                                   stiffness: 120,
+                                   opacity: { duration: 0.5 },
+                                   y: { stiffness: 80, damping: 25 }
+                                 }}
                                >
                                  <SlideSourcePicker 
                                    slide={slide} 
@@ -421,6 +428,7 @@ const Settings = () => {
                                </motion.div>
                              ))}
                            </AnimatePresence>
+
                            {(!settings.home_slider_slides || settings.home_slider_slides.length === 0) && (
 
                               <div className="h-40 border-2 border-dashed border-slate-100 rounded-[40px] flex items-center justify-center bg-slate-50/50">
