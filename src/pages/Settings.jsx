@@ -31,7 +31,11 @@ import {
   RefreshCw,
   Upload,
   CloudUpload,
-  X
+  X,
+  Search,
+  Store,
+  Tag,
+  MousePointer2
 } from 'lucide-react';
 import axios from 'axios';
 
@@ -388,17 +392,22 @@ const Settings = () => {
                        <section className="space-y-8">
                          <div className="flex justify-between items-center bg-slate-50 p-6 rounded-[32px] border border-slate-200">
                            <h3 className="text-xl font-black text-slate-900 italic uppercase underline decoration-slate-950/10 underline-offset-4">Landing Matrix Sliders</h3>
-                           <button onClick={()=>addArrayItem('home_slider_slides', {title:'', image_url:'', link_url:''})} className="bg-slate-950 text-white px-5 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 hover:scale-105 active:scale-95 transition-all"><Plus size={14}/> New Asset</button>
+                           <button onClick={()=>addArrayItem('home_slider_slides', {title:'', image_url:'', link_url:'', source_type: 'product'})} className="bg-slate-950 text-white px-5 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 hover:scale-105 active:scale-95 transition-all"><Plus size={14}/> New Promo Node</button>
                          </div>
-                         <div className="space-y-4 pt-4">
+                         <div className="space-y-6 pt-4">
                            {(settings.home_slider_slides || []).map((slide, i) => (
-                             <div key={i} className="p-8 bg-slate-50 rounded-[40px] grid grid-cols-1 md:grid-cols-3 gap-6 relative border border-slate-100 group hover:bg-white hover:shadow-2xl transition-all">
-                               <button onClick={()=>removeArrayItem('home_slider_slides', i)} className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-white text-slate-300 hover:text-red-500 transition-all shadow-md flex items-center justify-center opacity-0 group-hover:opacity-100 border border-slate-100"><Trash2 size={16}/></button>
-                               <div className="md:col-span-1"><Field label="Headline" value={slide.title} onChange={(v)=>handleArrayChange('home_slider_slides',i,'title',v)} placeholder="e.g. New Arrivals"/></div>
-                               <div className="md:col-span-1"><Field label="Asset Link (Image URL)" value={slide.image_url} onChange={(v)=>handleArrayChange('home_slider_slides',i,'image_url',v)} placeholder="https://..."/></div>
-                               <div className="md:col-span-1"><Field label="Redirect Path" value={slide.link_url} onChange={(v)=>handleArrayChange('home_slider_slides',i,'link_url',v)} placeholder="/shop/category/..."/></div>
-                             </div>
+                             <SlideSourcePicker 
+                               key={i} 
+                               slide={slide} 
+                               onRemove={() => removeArrayItem('home_slider_slides', i)}
+                               onChange={(field, val) => handleArrayChange('home_slider_slides', i, field, val)}
+                             />
                            ))}
+                           {(!settings.home_slider_slides || settings.home_slider_slides.length === 0) && (
+                              <div className="h-40 border-2 border-dashed border-slate-100 rounded-[40px] flex items-center justify-center bg-slate-50/50">
+                                 <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest italic">No promotional assets staged for deployment</p>
+                              </div>
+                           )}
                          </div>
                        </section>
                     </div>
@@ -497,6 +506,226 @@ const LogoPicker = ({ value, onChange }) => {
     </div>
   );
 };
+
+const SlideSourcePicker = ({ slide, onRemove, onChange }) => {
+  const [showCatalog, setShowCatalog] = useState(false);
+  const [catalog, setCatalog] = useState([]);
+  const [search, setSearch] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef(null);
+
+  const sourceType = slide.source_type || 'custom';
+
+  useEffect(() => {
+    if (showCatalog) fetchCatalog();
+  }, [showCatalog]);
+
+  const fetchCatalog = async () => {
+    try {
+      const response = await axios.get(`${API_BASE}/admin/cms/products`);
+      setCatalog(response.data.products || []);
+    } catch (e) { console.error(e); }
+  };
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const formData = new FormData();
+    formData.append('image', file);
+    setUploading(true);
+    try {
+      const response = await axios.post(`${API_BASE}/admin/settings/upload`, formData);
+      if (response.data.success) onChange('image_url', response.data.url);
+    } catch (e) { console.error(e); } finally { setUploading(false); }
+  };
+
+  const filtered = catalog.filter(p => 
+    p.title.toLowerCase().includes(search.toLowerCase()) || 
+    p.shop_name.toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <div className="p-8 bg-slate-50 rounded-[40px] border border-slate-100 relative group transition-all hover:bg-white hover:shadow-2xl overflow-hidden">
+       <button onClick={onRemove} className="absolute -top-1 -right-1 w-10 h-10 rounded-bl-[20px] bg-red-600 text-white opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center shadow-lg"><Trash2 size={16}/></button>
+       
+       <div className="flex flex-col md:flex-row gap-10">
+          <div className="w-full md:w-64 space-y-4">
+             <div className="h-44 bg-slate-100 rounded-[32px] overflow-hidden border border-slate-200 relative group/preview">
+                {slide.image_url ? (
+                  <img src={slide.image_url} className="w-full h-full object-cover" alt="Slide" />
+                ) : (
+                  <div className="w-full h-full flex flex-col items-center justify-center gap-3">
+                     <ImageIcon size={32} className="text-slate-300" />
+                     <p className="text-[8px] font-black uppercase text-slate-400 tracking-widest text-center px-6 italic opacity-60">Asset Placeholder</p>
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover/preview:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
+                   <button onClick={() => fileInputRef.current.click()} className="p-3 bg-white rounded-2xl text-slate-900 shadow-xl hover:scale-110 active:scale-90 transition-all"><CloudUpload size={20}/></button>
+                </div>
+                {uploading && (
+                  <div className="absolute inset-0 bg-slate-900/60 flex flex-col items-center justify-center backdrop-blur-sm">
+                     <Loader2 size={24} className="text-white animate-spin mb-2" />
+                     <p className="text-[8px] font-black uppercase text-white tracking-widest italic animate-pulse">Processing Asset</p>
+                  </div>
+                )}
+             </div>
+             <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept="image/*" />
+             
+             <div className="flex bg-slate-200/50 p-1 rounded-2xl">
+                {['custom', 'catalog'].map(t => (
+                  <button 
+                    key={t}
+                    onClick={() => onChange('source_type', t)}
+                    className={`flex-1 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all ${sourceType === t ? 'bg-white text-slate-900 shadow-md' : 'text-slate-400'}`}
+                  >
+                    {t}
+                  </button>
+                ))}
+             </div>
+          </div>
+
+          <div className="flex-1 space-y-8 py-2">
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-4">
+                   <label className="text-[9px] font-black uppercase tracking-widest text-slate-900 ml-1 flex items-center gap-2">
+                      <Tag size={12} className="text-indigo-500" />
+                      Promotional Headline
+                   </label>
+                   <input 
+                     value={slide.title || ''} 
+                     onChange={(e) => onChange('title', e.target.value)} 
+                     className="w-full bg-white border border-slate-100 rounded-[20px] px-6 py-4 text-xs font-black text-slate-900 outline-none focus:ring-8 focus:ring-indigo-500/5 transition-all shadow-sm italic"
+                     placeholder="e.g. MEGA SUMMER SALE 2024"
+                   />
+                </div>
+
+                <div className="space-y-4 text-left">
+                   <label className="text-[9px] font-black uppercase tracking-widest text-slate-900 ml-1 flex items-center gap-2">
+                      <MousePointer2 size={12} className="text-indigo-500" />
+                      Interaction Target
+                   </label>
+                   {sourceType === 'catalog' ? (
+                      <button 
+                        onClick={() => setShowCatalog(true)}
+                        className="w-full bg-indigo-50/50 border border-indigo-100 rounded-[20px] px-6 py-4 text-xs font-black text-indigo-600 flex items-center justify-between group/btn hover:bg-white transition-all shadow-sm text-left"
+                      >
+                         <div className="truncate">
+                            {slide.link_url || 'SYNCHRONIZE WITH CATALOG'}
+                         </div>
+                         <Search size={14} className="group-hover/btn:scale-125 transition-transform" />
+                      </button>
+                   ) : (
+                      <input 
+                        value={slide.link_url || ''} 
+                        onChange={(e) => onChange('link_url', e.target.value)} 
+                        className="w-full bg-white border border-slate-100 rounded-[20px] px-6 py-4 text-xs font-black text-slate-900 outline-none focus:ring-8 focus:ring-indigo-500/5 transition-all shadow-sm"
+                        placeholder="e.g. /products/all"
+                      />
+                   )}
+                </div>
+             </div>
+
+             <div className="p-6 bg-indigo-900 rounded-[24px] text-white flex items-center gap-6 shadow-2xl relative overflow-hidden group/overlay">
+                <div className="absolute right-[-20px] top-[-20px] opacity-10 group-hover/overlay:rotate-12 transition-transform">
+                   <Monitor size={120} />
+                </div>
+                <div className="flex-1 space-y-1 relative z-10">
+                   <p className="text-[10px] font-black uppercase tracking-[0.2em] italic opacity-60">Strategic Placement</p>
+                   <p className="text-xs font-black text-indigo-100">This promo node will be injected into the Landing Matrix Slider without temporal expiration.</p>
+                </div>
+                <button className="px-5 py-2.5 bg-white text-indigo-900 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-xl hover:scale-105 transition-all relative z-10">Live Site Sync</button>
+             </div>
+          </div>
+       </div>
+
+       <AnimatePresence>
+          {showCatalog && (
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[400] bg-slate-900/90 backdrop-blur-xl flex items-center justify-center p-6"
+            >
+               <motion.div 
+                 initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
+                 className="w-full max-w-2xl bg-white rounded-[48px] shadow-2xl overflow-hidden flex flex-col h-[70vh]"
+               >
+                  <div className="p-10 pb-6 space-y-8">
+                     <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-4">
+                           <div className="p-3 bg-indigo-600 text-white rounded-2xl rotate-[-3deg]">
+                              <Database size={24} />
+                           </div>
+                           <div>
+                              <h2 className="text-xl font-black text-slate-900 uppercase italic leading-tight">Catalog Orchestrator</h2>
+                              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Select an entity for promotional linkage</p>
+                           </div>
+                        </div>
+                        <button onClick={() => setShowCatalog(false)} className="p-3 bg-slate-100 rounded-2xl hover:bg-slate-200 transition-all"><X size={20}/></button>
+                     </div>
+                     <div className="relative">
+                        <input 
+                           autoFocus
+                           placeholder="Search Products & Offers..."
+                           value={search}
+                           onChange={(e) => setSearch(e.target.value)}
+                           className="w-full bg-slate-50 border border-slate-100 rounded-[24px] px-8 py-4.5 text-sm font-bold text-slate-900 outline-none focus:ring-8 focus:ring-indigo-600/5 focus:bg-white transition-all pl-14"
+                        />
+                        <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300" size={20} />
+                     </div>
+                  </div>
+                  <div className="flex-1 overflow-y-auto px-10 pb-10 custom-scrollbar space-y-3">
+                     {filtered.map(p => (
+                        <button 
+                          key={p.id}
+                          onClick={() => {
+                            onChange('title', p.title);
+                            onChange('link_url', p.link);
+                            if (p.image) onChange('image_url', p.image);
+                            setShowCatalog(false);
+                          }}
+                          className="w-full flex items-center gap-6 p-5 bg-slate-50 rounded-[32px] border border-slate-100 hover:bg-indigo-50 hover:border-indigo-100 hover:scale-[1.02] transition-all group"
+                        >
+                           <div className="w-14 h-14 bg-white rounded-2xl overflow-hidden border border-slate-100 group-hover:border-indigo-200">
+                              {p.image ? (
+                                <img src={p.image} className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center bg-slate-100"><ImageIcon size={16} className="text-slate-300" /></div>
+                              )}
+                           </div>
+                           <div className="flex-1 text-left space-y-0.5">
+                              <p className="text-[11px] font-black text-slate-900 uppercase leading-snug group-hover:text-indigo-600 transition-colors">{p.title}</p>
+                              <div className="flex items-center gap-3">
+                                 <div className="flex items-center gap-1.5 px-2 py-0.5 bg-slate-200/50 rounded-lg text-slate-500">
+                                    <Store size={10} />
+                                    <span className="text-[8px] font-black uppercase tracking-widest">{p.shop_name}</span>
+                                 </div>
+                                 {p.is_offer && (
+                                   <div className="px-2 py-0.5 bg-emerald-100 rounded-lg text-emerald-600 flex items-center gap-1">
+                                      <Zap size={10}/>
+                                      <span className="text-[8px] font-black uppercase tracking-widest">Active Offer</span>
+                                   </div>
+                                 )}
+                              </div>
+                           </div>
+                           <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-indigo-600 text-white p-2.5 rounded-xl shadow-lg shadow-indigo-200">
+                              <MousePointer2 size={16} />
+                           </div>
+                        </button>
+                     ))}
+                     {filtered.length === 0 && (
+                        <div className="h-40 flex flex-col items-center justify-center gap-3">
+                           <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center border border-slate-100 italic font-black text-slate-300">?</div>
+                           <p className="text-[9px] font-black uppercase text-slate-300 tracking-widest italic text-center">No entities matched your search parameters</p>
+                        </div>
+                     )}
+                  </div>
+               </motion.div>
+            </motion.div>
+          )}
+       </AnimatePresence>
+    </div>
+  );
+};
+
 
 const Field = ({ label, value, onChange, type = "text", placeholder }) => (
   <div className="space-y-2">
