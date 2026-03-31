@@ -25,15 +25,19 @@ import {
   Box,
   CornerDownRight,
   ClipboardList,
-  Search
+  Search,
+  Lock
 } from 'lucide-react';
 
 const API_BASE = 'http://localhost:8003/api/v1';
 
 const ProductForm = () => {
-  const { id } = useParams();
+  const { id, role } = useParams();
   const navigate = useNavigate();
   const isEdit = !!id;
+  
+  // Role-based Access Control for Logistics
+  const canEditLogistics = role === 'logistics' || role === 'admin';
   
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(isEdit);
@@ -154,6 +158,19 @@ const ProductForm = () => {
     };
     fetchMetadata();
   }, [id, isEdit]);
+
+  // Update sub-categories when primary category changes
+  useEffect(() => {
+    if (formData.category_id && metadata.categories.length > 0) {
+      const selectedCat = metadata.categories.find(c => c.id === parseInt(formData.category_id));
+      setMetadata(prev => ({
+        ...prev,
+        subCategories: selectedCat ? selectedCat.children || [] : []
+      }));
+    } else {
+      setMetadata(prev => ({ ...prev, subCategories: [] }));
+    }
+  }, [formData.category_id, metadata.categories]);
 
   const handleImageUpload = async (e) => {
     const files = Array.from(e.target.files);
@@ -530,15 +547,23 @@ const ProductForm = () => {
           </section>
 
           {/* ── 5. Logistics Dimensional Node ── */}
-          <section className="bg-white rounded-[40px] border border-slate-100 shadow-sm p-10 space-y-8">
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center">
-                <Truck size={20} />
+          <section className={`bg-white rounded-[40px] border border-slate-100 shadow-sm p-10 space-y-8 transition-all ${!canEditLogistics ? 'opacity-80' : ''}`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center">
+                  <Truck size={20} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-slate-900">Logistics Dimensions</h3>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">Physical attributes for delivery calculation</p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-lg font-black text-slate-900">Logistics Dimensions</h3>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest italic">Physical attributes for delivery calculation</p>
-              </div>
+              {!canEditLogistics && (
+                <div className="flex items-center gap-2 px-4 py-2 bg-slate-50 border border-slate-100 rounded-2xl text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                  <Lock size={12} className="text-slate-300" />
+                  System Managed
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
@@ -548,7 +573,7 @@ const ProductForm = () => {
                  { label: 'Width (cm)', key: 'width', icon: Box },
                  { label: 'Height (cm)', key: 'height', icon: Box },
                ].map((dim) => (
-                 <div key={dim.key} className="space-y-3 bg-slate-50/50 p-6 rounded-[32px] border border-slate-100">
+                 <div key={dim.key} className={`space-y-3 p-6 rounded-[32px] border transition-all ${!canEditLogistics ? 'bg-slate-50/30 border-slate-50 cursor-not-allowed' : 'bg-slate-50/50 border-slate-100 shadow-sm hover:shadow-md'}`}>
                     <div className="flex items-center justify-between mb-2">
                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{dim.label}</label>
                        <dim.icon size={12} className="text-slate-300" />
@@ -556,8 +581,9 @@ const ProductForm = () => {
                     <input 
                       type="number" 
                       value={formData[dim.key]}
+                      disabled={!canEditLogistics}
                       onChange={(e) => setFormData({...formData, [dim.key]: e.target.value})}
-                      className="w-full bg-transparent text-lg font-black text-slate-900 outline-none"
+                      className={`w-full bg-transparent text-lg font-black outline-none ${!canEditLogistics ? 'text-slate-400 cursor-not-allowed' : 'text-slate-900'}`}
                       placeholder="0.0"
                     />
                  </div>
