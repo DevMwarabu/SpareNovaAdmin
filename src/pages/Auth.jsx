@@ -100,7 +100,9 @@ const Auth = () => {
       const userRole = response.data.user?.role || 'admin';
       window.location.href = `/${userRole}`;
     } catch (error) {
-      alert('Login failed: ' + (error.response?.data?.message || 'Invalid credentials.'));
+      console.error('Login detailed error:', error);
+      const msg = error.response?.data?.message || error.message || 'Invalid credentials.';
+      alert('Login failed: ' + msg);
     } finally {
       setLoading(false);
     }

@@ -274,7 +274,7 @@ const BusinessUnitList = ({ title, type, icon: Icon, color }) => {
             </div>
           </div>
           <div className="h-64 mt-4 min-h-[256px]">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height={256}>
               <AreaChart data={chartData}>
                 <defs>
                   <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
@@ -333,7 +333,7 @@ const BusinessUnitList = ({ title, type, icon: Icon, color }) => {
             </div>
           </div>
           <div className="h-64 mt-4 min-h-[256px]">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height={256}>
               <BarChart data={chartData}>
                 <XAxis 
                   dataKey="date" 
