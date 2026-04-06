@@ -548,15 +548,15 @@ const Auth = () => {
                    <button onClick={() => setStep(0)} className="absolute -left-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
                     <ArrowLeft size={24} />
                   </button>
-                  <h1 className="text-4xl font-black text-slate-900 mb-2 italic uppercase">Authenticate</h1>
-                  <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest tracking-tight">Enterprise Identity Access</p>
+                  <h1 className="text-4xl font-black text-slate-900 mb-2 italic uppercase">Log In</h1>
+                  <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest tracking-tight">Admin Access</p>
                 </div>
 
                 <form 
                   onSubmit={(e) => { e.preventDefault(); handleLogin(); }}
                   className="space-y-6"
                 >
-                  <Field label="Corporate Email">
+                  <Field label="Email Address">
                     <div className="relative group">
                        <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-primary-600 transition-colors" size={18} />
                        <input 
@@ -568,7 +568,7 @@ const Auth = () => {
                        />
                     </div>
                   </Field>
-                  <Field label="Key Password">
+                  <Field label="Password">
                     <div className="relative group">
                       <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary-600 transition-colors" size={18} />
                       <input 
@@ -595,12 +595,12 @@ const Auth = () => {
                       disabled={loading || !formData.email || !formData.password}
                       className="w-full bg-slate-950 text-white font-black py-5 rounded-[24px] flex items-center justify-center gap-3 hover:bg-black transition-all shadow-2xl shadow-slate-950/20 disabled:opacity-50 uppercase tracking-widest text-xs"
                     >
-                      {loading ? <Loader2 className="animate-spin" size={20} /> : <>Initiate Access <ArrowRight size={20} /></>}
+                      {loading ? <Loader2 className="animate-spin" size={20} /> : <>Log In <ArrowRight size={20} /></>}
                     </button>
 
                     <div className="relative py-4">
                       <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-100"></div></div>
-                      <div className="relative flex justify-center text-[8px] font-black uppercase tracking-[0.3em]"><span className="bg-white px-4 text-slate-300">Social Identity Gateway</span></div>
+                      <div className="relative flex justify-center text-[8px] font-black uppercase tracking-[0.3em]"><span className="bg-white px-4 text-slate-300">Or continue with</span></div>
                     </div>
 
                     <button

@@ -227,7 +227,7 @@ const Inventory = () => {
                           <div className="flex items-center gap-2">
                              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic">{item.store}</span>
                              <span className="w-1 h-1 bg-slate-200 rounded-full" />
-                             <span className="text-[9px] font-black text-primary-500 uppercase tracking-widest italic">{item.category}</span>
+                             <span className="text-[9px] font-black text-primary-500 uppercase tracking-widest italic">{item.category?.name ?? item.category}</span>
                           </div>
                        </div>
                     </div>
