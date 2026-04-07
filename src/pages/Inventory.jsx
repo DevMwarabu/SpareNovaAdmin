@@ -1,3 +1,4 @@
+import { API_BASE } from '../api/config';
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { 
@@ -28,7 +29,7 @@ const Inventory = () => {
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
 
-  const API_BASE = 'http://localhost:8003/api/v1';
+  
 
   const fetchData = async () => {
     try {

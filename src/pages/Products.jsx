@@ -1,3 +1,4 @@
+import { API_BASE } from '../api/config';
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -17,7 +18,7 @@ import {
   BarChart, Bar, PieChart, Pie, Cell, Legend, AreaChart, Area
 } from 'recharts';
 
-const API_BASE = 'http://localhost:8003/api/v1';
+
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
 
 const Products = () => {

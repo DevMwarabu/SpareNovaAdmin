@@ -1,0 +1,31 @@
+
+> spare-nova-admin@1.0.0 build
+> vite build
+
+vite v5.4.21 building for production...
+transforming...
+✓ 9 modules transformed.
+x Build failed in 459ms
+error during build:
+[vite:esbuild] Transform failed with 1 error:
+/Users/mwarabu/Development/Projects/React/SpareNovaAdmin/src/pages/Analytics.jsx:32:9: ERROR: Unexpected "{"
+file: /Users/mwarabu/Development/Projects/React/SpareNovaAdmin/src/pages/Analytics.jsx:32:9
+
+Unexpected "{"
+30 |  
+31 |  const Analytics = () => {
+32 |    import { API_BASE } from '../api/config';
+   |           ^
+33 |    const [days, setDays] = useState(30);
+34 |    const [loading, setLoading] = useState(true);
+
+    at failureErrorWithLog (/Users/mwarabu/Development/Projects/React/SpareNovaAdmin/node_modules/esbuild/lib/main.js:1472:15)
+    at /Users/mwarabu/Development/Projects/React/SpareNovaAdmin/node_modules/esbuild/lib/main.js:755:50
+    at responseCallbacks.<computed> (/Users/mwarabu/Development/Projects/React/SpareNovaAdmin/node_modules/esbuild/lib/main.js:622:9)
+    at handleIncomingPacket (/Users/mwarabu/Development/Projects/React/SpareNovaAdmin/node_modules/esbuild/lib/main.js:677:12)
+    at Socket.readFromStdout (/Users/mwarabu/Development/Projects/React/SpareNovaAdmin/node_modules/esbuild/lib/main.js:600:7)
+    at Socket.emit (node:events:507:28)
+    at addChunk (node:internal/streams/readable:559:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+    at Readable.push (node:internal/streams/readable:390:5)
+    at Pipe.onStreamRead (node:internal/stream_base_commons:189:23)

@@ -1,3 +1,4 @@
+import { API_BASE } from '../api/config';
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -14,7 +15,7 @@ import {
   Calendar, CheckCircle, Store, Gauge, Wrench
 } from 'lucide-react';
 
-const API_BASE = 'http://localhost:8003/api/v1';
+
 
 // --- Sub-Components ---
 

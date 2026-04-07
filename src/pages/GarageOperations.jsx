@@ -1,3 +1,4 @@
+import { API_BASE } from '../api/config';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -31,7 +32,7 @@ const GarageOperations = () => {
     { label: 'Service Efficiency', value: '94%', change: 'SLA Optimal', col: 'purple', icon: Zap },
   ]);
 
-  const API_BASE = 'http://localhost:8003/api/v1';
+  
 
   const fetchData = async () => {
     try {

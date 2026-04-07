@@ -1,3 +1,4 @@
+import { API_BASE } from '../api/config';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
@@ -44,7 +45,7 @@ const Orders = () => {
   const [actionType, setActionType] = useState(null); // 'preparing', 'dispatched', 'cancelled'
   const [targetId, setTargetId] = useState(null);
 
-  const API_BASE = 'http://localhost:8003/api/v1';
+  
 
   const showToast = (message, type = 'blue') => {
     setToast({ message, type });

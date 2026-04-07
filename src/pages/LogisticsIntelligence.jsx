@@ -1,3 +1,4 @@
+import { API_BASE } from '../api/config';
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
@@ -10,7 +11,7 @@ import {
   Ban, RotateCcw, Loader2, UserX, TrendingUp
 } from 'lucide-react';
 
-const API_BASE = 'http://localhost:8003/api/v1';
+
 
 // ── Status Badge ────────────────────────────────────────────────────────────
 const StatusBadge = ({ status }) => {

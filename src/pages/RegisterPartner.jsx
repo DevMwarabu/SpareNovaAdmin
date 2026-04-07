@@ -1,3 +1,4 @@
+import { API_BASE } from '../api/config';
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSearchParams, useNavigate } from 'react-router-dom';
@@ -10,7 +11,7 @@ import {
 import axios from 'axios';
 import CountrySelector, { allCountries } from '../components/CountrySelector';
 
-const API_BASE = 'http://localhost:8003/api/v1';
+
 
 // ── Password Policy Engine ──────────────────────────────────────────────────
 const passwordRules = [

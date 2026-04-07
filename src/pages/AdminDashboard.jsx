@@ -1,3 +1,4 @@
+import { API_BASE } from '../api/config';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
@@ -14,7 +15,7 @@ import {
 
 import CustomModal from '../components/CustomModal';
 
-const API_BASE = 'http://localhost:8003/api/v1';
+
 
 const StatCard = ({ title, value, change, icon: Icon, color }) => {
   const IconComponent = {

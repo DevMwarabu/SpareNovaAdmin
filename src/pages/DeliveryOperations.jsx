@@ -1,3 +1,4 @@
+import { API_BASE } from '../api/config';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -30,7 +31,7 @@ const DeliveryOperations = () => {
     { label: 'Success Rate', value: '98.2%', change: '+0.5% vs LW', col: 'emerald', icon: Zap },
   ]);
 
-  const API_BASE = 'http://localhost:8003/api/v1';
+  
 
   const fetchData = async () => {
     try {

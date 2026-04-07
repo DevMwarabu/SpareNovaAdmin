@@ -1,3 +1,4 @@
+import { API_BASE } from '../api/config';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -42,7 +43,7 @@ const Users = () => {
   const [addForm, setAddForm] = useState({ name: '', email: '', password: '', role: 'store_staff' });
   const [isAdding, setIsAdding] = useState(false);
 
-  const API_BASE = 'http://localhost:8003/api/v1';
+  
 
   const fetchData = async () => {
     try {

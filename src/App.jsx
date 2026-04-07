@@ -1,3 +1,4 @@
+import { API_BASE } from './api/config';
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import axios from 'axios';
@@ -30,7 +31,7 @@ import Reports from './pages/Reports';
 import LoyaltyHub from './pages/LoyaltyHub';
 import './index.css';
 
-const API_BASE = 'http://localhost:8003/api/v1';
+
 
 // ── Global Security Interceptor ──────────────────────────────────────────
 axios.interceptors.request.use((config) => {

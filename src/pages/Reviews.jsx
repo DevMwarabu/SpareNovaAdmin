@@ -1,3 +1,4 @@
+import { API_BASE } from '../api/config';
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { 
@@ -27,7 +28,7 @@ const Reviews = () => {
   const [showAdvancedFilter, setShowAdvancedFilter] = useState(false);
   const navigate = useNavigate();
 
-  const API_BASE = 'http://localhost:8003/api/v1';
+  
 
   const fetchData = async () => {
     try {

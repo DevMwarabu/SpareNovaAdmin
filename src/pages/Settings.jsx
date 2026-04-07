@@ -1,3 +1,4 @@
+import { API_BASE } from '../api/config';
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -48,7 +49,7 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 
-const API_BASE = 'http://localhost:8003/api/v1';
+
 
 const Settings = () => {
   const navigate = useNavigate();

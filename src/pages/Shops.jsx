@@ -1,3 +1,4 @@
+import { API_BASE } from '../api/config';
 import React from 'react';
 import BusinessUnitList from './BusinessUnits';
 import { Store } from 'lucide-react';

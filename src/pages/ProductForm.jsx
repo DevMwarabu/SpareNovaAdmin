@@ -1,3 +1,4 @@
+import { API_BASE } from '../api/config';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
@@ -29,7 +30,7 @@ import {
   Lock
 } from 'lucide-react';
 
-const API_BASE = 'http://localhost:8003/api/v1';
+
 
 const ProductForm = () => {
   const { id, role } = useParams();

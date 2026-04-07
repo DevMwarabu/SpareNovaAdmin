@@ -1,3 +1,4 @@
+import { API_BASE } from '../api/config';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
@@ -50,7 +51,7 @@ const Disputes = () => {
   const [targetId, setTargetId] = useState(null);
   const [adminNotes, setAdminNotes] = useState('');
 
-  const API_BASE = 'http://localhost:8003/api/v1';
+  
 
   const showToast = (message, type = 'blue') => {
     setToast({ message, type });

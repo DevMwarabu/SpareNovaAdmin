@@ -1,3 +1,4 @@
+import { API_BASE } from '../api/config';
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, CheckCircle2, AlertCircle, Info } from 'lucide-react';

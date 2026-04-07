@@ -1,3 +1,4 @@
+import { API_BASE } from '../api/config';
 import React from 'react';
 import axios from 'axios';
 import { motion } from 'framer-motion';
@@ -42,7 +43,7 @@ const GarageDashboard = () => {
   const [serviceMix, setServiceMix] = React.useState([]);
   const [businessUnit, setBusinessUnit] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
-  const API_BASE = 'http://localhost:8003/api/v1';
+  
 
   React.useEffect(() => {
     const fetchData = async () => {

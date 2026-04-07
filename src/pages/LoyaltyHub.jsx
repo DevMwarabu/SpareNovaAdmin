@@ -1,3 +1,4 @@
+import { API_BASE } from '../api/config';
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { 
@@ -23,7 +24,7 @@ const LoyaltyHub = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('Overview');
 
-  const API_BASE = 'http://localhost:8003/api/v1';
+  
 
   const fetchData = async () => {
     try {

@@ -1,3 +1,4 @@
+import { API_BASE } from '../api/config';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -74,7 +75,7 @@ const BusinessUnitList = ({ title, type, icon: Icon, color }) => {
   const [actionType, setActionType] = useState(null); // 'verify', 'suspend', 'reject'
   const [targetId, setTargetId] = useState(null);
 
-  const API_BASE = 'http://localhost:8003/api/v1';
+  
 
   const showToast = (message, type = 'blue') => {
     setToast({ message, type });

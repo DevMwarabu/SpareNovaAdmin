@@ -1,3 +1,4 @@
+import { API_BASE } from '../api/config';
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   Search, Bell, User, MessageSquare, 
@@ -51,7 +52,7 @@ const Navbar = () => {
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
 
-  const API_BASE = 'http://localhost:8003/api/v1';
+  
 
   useEffect(() => {
     const handleClickOutside = (event) => {

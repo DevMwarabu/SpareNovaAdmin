@@ -1,3 +1,4 @@
+import { API_BASE } from '../api/config';
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -31,7 +32,7 @@ const VendorAIAssistant = () => {
   const [isTyping, setIsTyping] = useState(false);
   const scrollRef = useRef(null);
 
-  const API_BASE = 'http://localhost:8003/api/v1';
+  
 
   useEffect(() => {
     if (scrollRef.current) {

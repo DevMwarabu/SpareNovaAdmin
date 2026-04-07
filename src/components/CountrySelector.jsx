@@ -1,3 +1,4 @@
+import { API_BASE } from '../api/config';
 import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Search, Globe, X, Check } from 'lucide-react';

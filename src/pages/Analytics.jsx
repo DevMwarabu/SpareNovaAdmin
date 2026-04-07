@@ -1,3 +1,4 @@
+import { API_BASE } from '../api/config';
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import axios from 'axios';
@@ -29,7 +30,7 @@ const MetricCard = ({ title, value, change, label, color }) => (
 );
 
 const Analytics = () => {
-  const API_BASE = 'http://localhost:8003/api/v1';
+  
   const [days, setDays] = useState(30);
   const [loading, setLoading] = useState(true);
   const [metrics, setMetrics] = useState(null);
