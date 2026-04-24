@@ -145,7 +145,14 @@ const ProductForm = () => {
             setFormData({
               ...p,
               product_name: p.title || p.product_name,
-              vehicles: p.vehicles?.map(v => v.id) || []
+              vehicles: p.vehicles?.map(v => v.id) || [],
+              delivery_meta: p.delivery_meta || {
+                standard: true,
+                express: false,
+                pickup: true,
+                fee_override: '',
+                estimated_time: ''
+              }
             });
             setImagePreviews(p.gallery_images || p.images || []);
           }

@@ -523,7 +523,7 @@ const Products = () => {
             </div>
           </div>
           <div className="h-[280px] w-full">
-            <ResponsiveContainer width="100%" height="100%" minHeight={280}>
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={280}>
                 <PieChart>
                 <Pie
                   data={data.charts.category_distribution || []}
@@ -570,7 +570,7 @@ const Products = () => {
             </div>
           </div>
           <div className="h-[320px] w-full">
-            <ResponsiveContainer width="100%" height="100%" minHeight={320}>
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={320}>
                 <AreaChart data={data.charts.upload_trend || []}>
                 <defs>
                   <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
@@ -641,7 +641,7 @@ const Products = () => {
             <Users size={18} className="text-blue-500" />
           </div>
           <div className="h-[240px] w-full">
-            <ResponsiveContainer width="100%" height="100%" minHeight={240}>
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={240}>
                 <BarChart data={data.charts.vendor_distribution || []}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                 <XAxis dataKey="name" hide />
@@ -676,7 +676,7 @@ const Products = () => {
             <Box size={18} className="text-emerald-500" />
           </div>
           <div className="h-[240px] w-full">
-            <ResponsiveContainer width="100%" height="100%" minHeight={240}>
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={240}>
                 <BarChart data={data.charts.inventory_health || []} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
                 <XAxis type="number" hide />
