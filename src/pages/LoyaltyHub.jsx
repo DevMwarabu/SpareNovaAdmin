@@ -14,15 +14,18 @@ import {
   ChevronRight,
   Sparkles,
   TrendingUp,
-  Cpu
+  Cpu,
+  X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { createPortal } from 'react-dom';
 
 const LoyaltyHub = () => {
   const [loyaltyData, setLoyaltyData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('Overview');
+  const [isVaultOpen, setIsVaultOpen] = useState(false);
 
   
 
@@ -184,7 +187,10 @@ const LoyaltyHub = () => {
                        <div className="space-y-4 mb-8 opacity-90">
                           <p className="text-[10px] font-black uppercase leading-relaxed italic">Convert your institutional standing into tangible growth accelerators.</p>
                        </div>
-                       <button className="w-full bg-white text-indigo-600 py-4 rounded-3xl text-[10px] font-black uppercase tracking-widest shadow-xl hover:scale-105 transition-all active:scale-95 flex items-center justify-center gap-3 italic">
+                       <button 
+                         onClick={() => setIsVaultOpen(true)}
+                         className="w-full bg-white text-indigo-600 py-4 rounded-3xl text-[10px] font-black uppercase tracking-widest shadow-xl hover:scale-105 transition-all active:scale-95 flex items-center justify-center gap-3 italic"
+                       >
                           Open Rewards Vault <ArrowRight size={16} />
                        </button>
                     </div>
@@ -232,6 +238,67 @@ const LoyaltyHub = () => {
               </div>
            </div>
         </div>
+      )}
+
+      {createPortal(
+        <AnimatePresence>
+          {isVaultOpen && (
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] flex items-center justify-center p-4"
+            >
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                className="bg-slate-900 rounded-[48px] w-full max-w-2xl p-12 shadow-2xl relative overflow-hidden border border-indigo-500/20"
+              >
+                <div className="absolute top-0 right-0 p-8 opacity-10 text-indigo-500">
+                  <Gift size={200} />
+                </div>
+                
+                <div className="relative z-10 text-white">
+                  <div className="flex items-center justify-between mb-8">
+                    <div>
+                      <h3 className="text-3xl font-black tracking-tight italic uppercase flex items-center gap-3">
+                        <Sparkles className="text-amber-400" size={28} /> Rewards Vault
+                      </h3>
+                      <p className="text-[10px] font-bold text-indigo-300 uppercase tracking-widest mt-2">Available Balance: {loyaltyData?.points?.toLocaleString() || 0} Pts</p>
+                    </div>
+                    <button onClick={() => setIsVaultOpen(false)} className="w-10 h-10 flex items-center justify-center bg-white/10 text-indigo-200 rounded-2xl hover:bg-white/20 transition-all">
+                      <X size={20} />
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-6 mt-10">
+                    {[
+                      { title: 'Free Regional Shipping', pts: '15,000 Pts', icon: ShoppingBag, color: 'emerald' },
+                      { title: 'Homepage Banner (1 Wk)', pts: '45,000 Pts', icon: Star, color: 'amber' },
+                      { title: 'Dedicated Account Rep', pts: '100,000 Pts', icon: ShieldCheck, color: 'purple' },
+                      { title: 'Discount on Logistics', pts: '25,000 Pts', icon: Target, color: 'blue' }
+                    ].map((reward, i) => (
+                      <div key={i} className="bg-white/5 border border-white/10 p-6 rounded-3xl hover:bg-white/10 transition-colors group cursor-pointer">
+                        <div className={`w-12 h-12 bg-${reward.color}-500/20 text-${reward.color}-400 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
+                          <reward.icon size={24} />
+                        </div>
+                        <p className="text-[10px] font-black text-indigo-300 uppercase tracking-widest mb-1 italic">{reward.pts}</p>
+                        <h4 className="text-sm font-black text-white">{reward.title}</h4>
+                        <button 
+                          onClick={() => {
+                            alert(`You have requested: ${reward.title}. A member of the institutional success team will contact you shortly to coordinate.`);
+                            setIsVaultOpen(false);
+                          }}
+                          className="mt-4 w-full bg-indigo-600/20 text-indigo-300 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest group-hover:bg-indigo-600 group-hover:text-white transition-colors"
+                        >
+                          Redeem Reward
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
       )}
     </div>
   );

@@ -29,6 +29,7 @@ import CMS from './pages/CMS';
 import ProductForm from './pages/ProductForm';
 import Reports from './pages/Reports';
 import LoyaltyHub from './pages/LoyaltyHub';
+import HelpCenter from './pages/HelpCenter';
 import './index.css';
 
 
@@ -120,6 +121,7 @@ function App() {
           <Route path="loyalty" element={<LoyaltyHub />} />
           <Route path="register-partner" element={<RegisterPartner />} />
           <Route path="settings" element={<Settings />} />
+          <Route path="help" element={<HelpCenter />} />
         </Route>
         <Route path="/:role/*" element={<Navigate to={`/${localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')).role || 'admin' : 'admin'}`} replace />} />
         <Route path="/" element={<Navigate to="/auth" replace />} />

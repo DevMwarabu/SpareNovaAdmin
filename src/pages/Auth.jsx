@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 import CountrySelector, { allCountries } from '../components/CountrySelector';
-
+import CustomModal from '../components/CustomModal';
 
 
 // ── Password Policy Engine ──────────────────────────────────────────────────
@@ -66,6 +66,7 @@ const Auth = () => {
   });
   const [showCountrySelector, setShowCountrySelector] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState(allCountries.find(c => c.code === 'KE') || allCountries[0]);
+  const [modal, setModal] = useState({ isOpen: false, title: '', message: '', type: 'error' });
 
   // Password Policy Logic
   const strength      = useMemo(() => getStrength(formData.password), [formData.password]);
@@ -103,7 +104,7 @@ const Auth = () => {
     } catch (error) {
       console.error('Login detailed error:', error);
       const msg = error.response?.data?.message || error.message || 'Invalid credentials.';
-      alert('Login failed: ' + msg);
+      setModal({ isOpen: true, title: 'Login Failed', message: msg, type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -153,7 +154,7 @@ const Auth = () => {
       }
       setStep(3);
     } catch (error) {
-      alert('Registration failed: ' + (error.response?.data?.message || 'Please try again.'));
+      setModal({ isOpen: true, title: 'Registration Failed', message: error.response?.data?.message || 'Please try again.', type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -677,6 +678,14 @@ const Auth = () => {
            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">SpareNova Logic Engine</span>
         </div>
       </motion.div>
+
+      <CustomModal 
+        isOpen={modal.isOpen} 
+        onClose={() => setModal(prev => ({ ...prev, isOpen: false }))} 
+        title={modal.title} 
+        message={modal.message} 
+        type={modal.type} 
+      />
     </div>
   );
 };

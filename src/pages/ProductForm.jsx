@@ -142,18 +142,18 @@ const ProductForm = () => {
           const prodRes = await axios.get(`${API_BASE}/portal/products/${id}`, { headers });
           if (prodRes.data.success) {
             const p = prodRes.data.product;
-            setFormData({
+            setFormData(prev => ({
+              ...prev,
               ...p,
-              product_name: p.title || p.product_name,
-              vehicles: p.vehicles?.map(v => v.id) || [],
-              delivery_meta: p.delivery_meta || {
-                standard: true,
-                express: false,
-                pickup: true,
-                fee_override: '',
-                estimated_time: ''
-              }
-            });
+              product_name: p.title || p.product_name || prev.product_name,
+              vehicles: p.vehicles?.map(v => v.id) || prev.vehicles,
+              gallery_images: p.gallery_images || p.images || prev.gallery_images,
+              main_image: p.main_image || p.image || prev.main_image,
+              delivery_meta: p.delivery_meta && typeof p.delivery_meta === 'object' ? {
+                ...prev.delivery_meta,
+                ...p.delivery_meta
+              } : prev.delivery_meta
+            }));
             setImagePreviews(p.gallery_images || p.images || []);
           }
         }

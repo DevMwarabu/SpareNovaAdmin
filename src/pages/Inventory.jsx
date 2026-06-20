@@ -16,6 +16,7 @@ import {
   X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { createPortal } from 'react-dom';
 
 const Inventory = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -28,6 +29,9 @@ const Inventory = () => {
   const [filterStatus, setFilterStatus] = useState('');
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
+  const [updateModalItem, setUpdateModalItem] = useState(null);
+  const [newStock, setNewStock] = useState('');
+  const [isUpdating, setIsUpdating] = useState(false);
 
   
 
@@ -73,6 +77,43 @@ const Inventory = () => {
     if (status === 'Out of Stock') return 'bg-red-50 text-red-600';
     if (status === 'Low Stock') return 'bg-orange-50 text-orange-600';
     return 'bg-emerald-50 text-emerald-600';
+  };
+
+  const handleUpdateStock = async (e) => {
+    e.preventDefault();
+    if (!updateModalItem) return;
+    
+    try {
+      setIsUpdating(true);
+      const token = localStorage.getItem('token');
+      const res = await axios.put(`${API_BASE}/portal/inventory/${updateModalItem.id}`, 
+        { stock: parseInt(newStock) },
+        { headers: { 'Authorization': `Bearer ${token}` } }
+      );
+      
+      if (res.data.success) {
+        setInventory(prev => prev.map(item => {
+          if (item.id === updateModalItem.id) {
+            return {
+              ...item,
+              stock: parseInt(newStock),
+              status: parseInt(newStock) === 0 ? 'Out of Stock' : parseInt(newStock) <= 5 ? 'Low Stock' : 'In Stock'
+            };
+          }
+          return item;
+        }));
+        setUpdateModalItem(null);
+        setNewStock('');
+        fetchData(); // Refresh stats
+      } else {
+        alert(res.data.message || 'Failed to update stock');
+      }
+    } catch (error) {
+      console.error(error);
+      alert('Failed to update stock');
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   return (
@@ -268,7 +309,13 @@ const Inventory = () => {
                   </td>
                   <td className="px-8 py-6 text-right relative">
                     <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                       <button className="bg-slate-900 text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg shadow-slate-900/10 hover:bg-primary-600 transition-all italic">
+                       <button 
+                         onClick={() => {
+                           setUpdateModalItem(item);
+                           setNewStock(item.stock.toString());
+                         }}
+                         className="bg-slate-900 text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg shadow-slate-900/10 hover:bg-primary-600 transition-all italic"
+                       >
                           Update Levels
                        </button>
                     </div>
@@ -316,6 +363,54 @@ const Inventory = () => {
            )}
         </div>
       </div>
+
+      {createPortal(
+        <AnimatePresence>
+          {updateModalItem && (
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
+            >
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                className="bg-white rounded-[32px] w-full max-w-md p-8 shadow-2xl relative overflow-hidden"
+              >
+                <div className="flex items-center justify-between mb-6">
+                   <div>
+                      <h3 className="text-xl font-black text-slate-900 tracking-tight italic uppercase">Update Stock Level</h3>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{updateModalItem.title}</p>
+                   </div>
+                   <button onClick={() => setUpdateModalItem(null)} className="w-8 h-8 flex items-center justify-center bg-slate-50 text-slate-400 rounded-lg hover:text-slate-900">
+                      <X size={16} />
+                   </button>
+                </div>
+                
+                <form onSubmit={handleUpdateStock} className="space-y-6">
+                  <div>
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2 italic">New Stock Level</label>
+                    <input 
+                       required
+                       type="number"
+                       min="0"
+                       value={newStock}
+                       onChange={(e) => setNewStock(e.target.value)}
+                       className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 text-xs font-black text-slate-900 outline-none focus:border-primary-500 transition-all"
+                    />
+                  </div>
+                  <button 
+                    type="submit"
+                    disabled={isUpdating}
+                    className="w-full py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl active:scale-95 flex justify-center italic"
+                  >
+                    {isUpdating ? 'Updating...' : 'Confirm Stock Update'}
+                  </button>
+                </form>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </div>
   );
 };
